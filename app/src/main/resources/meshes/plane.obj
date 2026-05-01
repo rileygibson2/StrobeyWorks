@@ -1,0 +1,10 @@
+# XZ ground plane, slightly below origin
+o GridPlane
+
+v -5.0 -0.001 -5.0
+v  5.0 -0.001 -5.0
+v  5.0 -0.001  5.0
+v -5.0 -0.001  5.0
+
+f 1 3 2
+f 1 4 3
