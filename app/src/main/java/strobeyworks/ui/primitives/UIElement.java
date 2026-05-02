@@ -13,15 +13,25 @@ import strobeyworks.logger.Logger;
 
 public abstract class UIElement {
     
-    public enum UIPosMode {
-        RELATIVE,
-        ABSOLUTE,
-        SCREEN_ABSOLUTE
+    public enum UIBoxMode {
+        FIXED, // Element size stays constant
+        FLEX // Element size grows and shrinks to fit content
     }
     
-    public enum UIBoxMode {
-        FIXED,
-        FLEX
+    public enum UIFlowMode {
+        ROW, // Elements flow from left of parent box to right
+        COLUMN // Elements flow from top of parent box to bottom
+    }
+    
+    public enum UIPosMode {
+        FLOW, // Element participates in normal parent flow positioning
+        ABSOLUTE, // Element ignores parent flow and positions absolutely with respect to parent
+        SCREEN // Element ignores parent altogather and positions absolutely with respect to screen
+    }
+    
+    public enum UIJustifyMode {
+        START, // Flow originates from left of parent box
+        CENTER // Flow originates from center of parent box
     }
     
     // Tree
@@ -31,10 +41,11 @@ public abstract class UIElement {
     private boolean subtreeDirty; // Composition of subtree has changed
     
     // Authored values
-    private UIPosMode positionMode;
     private UIBoxMode boxMode;
-    private UIPair x;
-    private UIPair y;
+    private UIFlowMode flowMode;
+    private boolean flowWrap;
+    private UIPosMode positionMode;
+    private UIJustifyMode justifyMode;
     private UIPair width;
     private UIPair height;
     
@@ -43,6 +54,9 @@ public abstract class UIElement {
     
     private UIPair minWidth;
     private UIPair minHeight;
+    
+    private UIPair maxWidth;
+    private UIPair maxHeight;
     
     private boolean visible;
     
@@ -60,38 +74,20 @@ public abstract class UIElement {
     // Functional
     private Matrix4f modelMatrix;
     
-    public UIElement(UIPair x, UIPair y, UIPair width, UIPair height) {
-        this.x = x;
-        this.y = y;
+    public UIElement(UIPair width, UIPair height) {
         this.width = width;
         this.height = height;
         
-        this.padding = new UIQuad(px(0));
-        this.margin = new UIQuad(px(0));
-        
-        this.visible = true;
-        this.positionMode = UIPosMode.RELATIVE;
         this.boxMode = UIBoxMode.FIXED;
-        
-        this.layoutDirty = true;
-        this.subtreeDirty = false;
-        
-        children = new ArrayList<>();
-        updateModelMatrix();
-    }
-    
-    public UIElement(UIPair x, UIPair y) {
-        this.x = x;
-        this.y = y;
-        this.width = null;
-        this.height = null;
+        this.flowMode = UIFlowMode.ROW;
+        this.flowWrap = false;
+        this.positionMode = UIPosMode.FLOW;
+        this.justifyMode = UIJustifyMode.START;
         
         this.padding = new UIQuad(px(0));
         this.margin = new UIQuad(px(0));
         
         this.visible = true;
-        this.positionMode = UIPosMode.RELATIVE;
-        this.boxMode = UIBoxMode.FLEX;
         
         this.layoutDirty = true;
         this.subtreeDirty = false;
@@ -204,13 +200,28 @@ public abstract class UIElement {
     * Layout Management
     */
     
+    public void setBoxMode(UIBoxMode boxMode) {
+        this.boxMode = boxMode;
+        markLayoutDirty();
+    }
+    
+    public void setFlowMode(UIFlowMode flowMode) {
+        this.flowMode = flowMode;
+        markLayoutDirty();
+    }
+    
+    public void enableFlowWrap(boolean flowWrap) {
+        this.flowWrap = flowWrap;
+        markLayoutDirty();
+    }
+    
     public void setPositionMode(UIPosMode positionMode) {
         this.positionMode = positionMode;
         markLayoutDirty();
     }
     
-    public void setBoxMode(UIBoxMode boxMode) {
-        this.boxMode = boxMode;
+    public void setJustifyMode(UIJustifyMode justifyMode) {
+        this.justifyMode = justifyMode;
         markLayoutDirty();
     }
     
@@ -224,6 +235,16 @@ public abstract class UIElement {
         markLayoutDirty();
     }
     
+    public void setMaxWidth(UIPair maxWidth) {
+        this.maxWidth = maxWidth;
+        markLayoutDirty();
+    }
+    
+    public void setMaxHeight(UIPair maxHeight) {
+        this.maxHeight = maxHeight;
+        markLayoutDirty();
+    }
+    
     public void setPadding(UIQuad padding) {
         this.padding = padding;
         markLayoutDirty();
@@ -234,28 +255,24 @@ public abstract class UIElement {
         markLayoutDirty();
     }
     
-    public void setX(UIPair x) {
-        this.x = x;
+    public void setMarginLeft(UIPair left) {
+        this.margin.left = left;
         markLayoutDirty();
     }
     
-    public void setY(UIPair y) {
-        this.y = y;
-        markLayoutDirty();
-    }
-    
-    public void setPosition(UIPair x, UIPair y) {
-        this.x = x;
-        this.y = y;
+    public void setMarginTop(UIPair top) {
+        this.margin.top = top;
         markLayoutDirty();
     }
     
     public void setWidth(UIPair width) {
+        if (boxMode==UIBoxMode.FLEX) Logger.throwException("Cannot set width of box in UIBoxMode Flex");
         this.width = width;
         markLayoutDirty();
     }
     
     public void setHeight(UIPair height) {
+        if (boxMode==UIBoxMode.FLEX) Logger.throwException("Cannot set height of box in UIBoxMode Flex");
         this.height = height;
         markLayoutDirty();
     }
@@ -306,57 +323,169 @@ public abstract class UIElement {
         float pBottom = resolveLocal(padding.bottom);
         
         float cursorX = pLeft;
+        float cursorY = pTop;
         float maxX = 0f;
         float maxY = 0f;
         
+        List<List<UIElement>> flowLines = new ArrayList<>();
+        List<UIElement> flowLine = new ArrayList<>();
+        float lineSize = 0f;
+        float availableWidth = -1f;
+        float availableHeight = -1f;
+        
+        // Root case - set own x and y
         if (parent==null) {
-            measuredX = resolveLocal(x);
-            measuredY = resolveLocal(y);
+            measuredX = resolveLocal(margin.left);
+            measuredY = resolveLocal(margin.top);
         }
         
-        if (boxMode == UIBoxMode.FIXED) {
-            measuredWidth = resolveLocal(width);
-            measuredHeight = resolveLocal(height);
+        //Set fixed box w and h and wrap limits
+        if (boxMode==UIBoxMode.FIXED) {
+            float w = resolveLocal(width);
+            if (minWidth!=null) w = Math.max(w, resolveLocal(minWidth));
+            measuredWidth = w;
+            
+            float h = resolveLocal(height);
+            if (minHeight!=null) h = Math.max(h, resolveLocal(minHeight));
+            measuredHeight = h;
+            
+            availableWidth = measuredWidth-pLeft-pRight;
+            availableHeight = measuredHeight-pTop-pBottom;
+        }
+        
+        // Attempt to set wrap limits for flex box
+        if (boxMode==UIBoxMode.FLEX) {
+            if (maxWidth!=null) availableWidth = resolveLocal(maxWidth)-pLeft-pRight;
+            if (maxHeight!=null) availableHeight = resolveLocal(maxHeight)-pTop-pBottom;
         }
         
         for (UIElement c : children) {
             c.layoutMeasure();
             
-            if (c.getPositionMode()==UIPosMode.RELATIVE) {
-                c.measuredX = cursorX+c.resolveLocal(c.getX());
-                c.measuredY = pTop+c.resolveLocal(c.getY());
-                cursorX = c.measuredX + c.measuredWidth;
+            // Resolve local coords
+            float lLeft = c.resolveLocal(c.getMargin().left);
+            float lRight = c.resolveLocal(c.getMargin().right);
+            float lTop = c.resolveLocal(c.getMargin().top);
+            float lBottom = c.resolveLocal(c.getMargin().bottom);
+            
+            // Position in flow (wrapped and no wrap)
+            if (c.getPositionMode()==UIPosMode.FLOW) {
+                if (flowMode==UIFlowMode.ROW) {
+                    if (flowWrap &&
+                        availableWidth!=-1 &&
+                        cursorX>pLeft &&
+                        cursorX-pLeft+lLeft+c.measuredWidth>availableWidth
+                    ) {
+                        cursorX = pLeft;
+                        cursorY += lineSize;
+                        lineSize = 0f;
+                        flowLines.add(flowLine);
+                        flowLine = new ArrayList<>();
+                    }
+                    
+                    c.measuredX = cursorX+lLeft;
+                    c.measuredY = cursorY+lTop;
+                    cursorX = c.measuredX+c.measuredWidth+lRight;
+                    
+                    lineSize = Math.max(
+                        lineSize,
+                        lTop+c.measuredHeight+lBottom
+                    );
+                }
+                
+                if (flowMode==UIFlowMode.COLUMN) {
+                    if (flowWrap &&
+                        availableHeight!=-1 &&
+                        cursorY>pTop &&
+                        cursorY-pTop+lTop+c.measuredHeight>availableHeight
+                    ) {
+                        cursorX += lineSize;
+                        cursorY = pTop;
+                        lineSize = 0f;
+                        flowLines.add(flowLine);
+                        flowLine = new ArrayList<>();
+                    }
+                    
+                    c.measuredX = cursorX+lLeft;
+                    c.measuredY = cursorY+lTop;
+                    cursorY = c.measuredY+c.measuredHeight+lBottom;
+                    
+                    lineSize = Math.max(
+                        lineSize,
+                        lLeft+c.measuredWidth+lRight
+                    );
+                }
+                flowLine.add(c);
             }
             
+            // Other positioning
             if (c.getPositionMode()==UIPosMode.ABSOLUTE) {
-                c.measuredX = pLeft+c.resolveLocal(c.getX());
-                c.measuredY = pTop+c.resolveLocal(c.getY());
+                c.measuredX = pLeft+lLeft;
+                c.measuredY = pTop+lTop;
             }
             
-            if (c.getPositionMode()==UIPosMode.SCREEN_ABSOLUTE) {
-                c.measuredX = c.resolveLocal(c.getX());
-                c.measuredY = c.resolveLocal(c.getY());
+            if (c.getPositionMode()==UIPosMode.SCREEN) {
+                c.measuredX = lLeft;
+                c.measuredY = lTop;
             }
-            
             
             maxX = Math.max(maxX, c.measuredX+c.measuredWidth);
             maxY = Math.max(maxY, c.measuredY+c.measuredHeight);
         }
+        if (!flowLine.isEmpty()) flowLines.add(flowLine);
         
+        // Resize flex boxes
         if (boxMode == UIBoxMode.FLEX) {
             measuredWidth = maxX+pRight;
             measuredHeight = maxY+pBottom;
             
-            if (minWidth!=null) {
-                float minW = resolveLocal(minWidth);
-                if (measuredWidth<minW) measuredWidth = minW;
-            }
-
-            if (minHeight!=null) {
-                float minH = resolveLocal(minHeight);
-                if (measuredHeight<minH) measuredHeight = minH;
+            if (minWidth!=null) measuredWidth = Math.max(measuredWidth, resolveLocal(minWidth));
+            if (maxWidth!=null) measuredWidth = Math.min(measuredWidth, resolveLocal(maxWidth));
+            
+            if (minHeight!=null) measuredHeight = Math.max(measuredHeight, resolveLocal(minHeight));
+            if (maxHeight!=null) measuredHeight = Math.min(measuredHeight, resolveLocal(maxHeight));
+        }
+        
+        // Justify elements to center (wrapped and not wrapped)
+        if (justifyMode==UIJustifyMode.CENTER) {
+            switch(flowMode) {
+                case ROW :
+                for (List<UIElement> line : flowLines) {
+                    float lineLeft = Float.POSITIVE_INFINITY; // This way avoids using left margin of first element in center calc
+                    float lineRight = Float.NEGATIVE_INFINITY;
+                    
+                    for (UIElement c : line) {
+                        lineLeft = Math.min(lineLeft, c.measuredX);
+                        lineRight = Math.max(lineRight, c.measuredX+c.measuredWidth);
+                    }
+                    
+                    float usedWidth = lineRight-lineLeft;
+                    float contentWidth = Math.max(0f, measuredWidth-pLeft-pRight);
+                    float offset = (contentWidth-usedWidth)*0.5f-(lineLeft-pLeft);
+                    
+                    for (UIElement c : line) c.measuredX += offset;
+                }
+                break;
+                
+                case COLUMN :
+                for (List<UIElement> line : flowLines) {
+                    float lineTop = Float.POSITIVE_INFINITY;
+                    float lineBottom = Float.NEGATIVE_INFINITY;
+                    
+                    for (UIElement c : line) {
+                        lineTop = Math.min(lineTop, c.measuredY);
+                        lineBottom = Math.max(lineBottom, c.measuredY+c.measuredHeight);
+                    }
+                    
+                    float usedHeight = lineBottom-lineTop;
+                    float contentHeight = Math.max(0f, measuredHeight-pTop-pBottom);
+                    float offset = (contentHeight-usedHeight)*0.5f-(lineTop-pTop);
+                    
+                    for (UIElement c : line) c.measuredY += offset;
+                }
             }
         }
+        
     }
     
     public void layoutAdvance(float resolvedX, float resolvedY) {
@@ -368,7 +497,7 @@ public abstract class UIElement {
         updateModelMatrix();
         
         for (UIElement c : children) {
-            if (c.getPositionMode()==UIPosMode.SCREEN_ABSOLUTE) c.layoutAdvance(c.measuredX, c.measuredY);
+            if (c.getPositionMode()==UIPosMode.SCREEN) c.layoutAdvance(c.measuredX, c.measuredY);
             else c.layoutAdvance(resolvedX+c.measuredX, resolvedY+c.measuredY);
         }
         
@@ -427,63 +556,35 @@ public abstract class UIElement {
     * Getters
     */
     
-    public UIPair getX() {
-        return this.x;
-    }
+    public UIBoxMode getBoxMode() {return this.boxMode;}
     
-    public UIPair getY() {
-        return this.y;
-    }
+    public UIFlowMode getFlowMode() {return this.flowMode;}
     
-    public UIPair getWidth() {
-        return this.width;
-    }
+    public boolean flowWrapEnabled() {return this.flowWrap;}
     
-    public UIPair getHeight() {
-        return this.height;
-    }
+    public UIPosMode getPositionMode() {return this.positionMode;}
     
-    public float getMeasuredX() {
-        return this.measuredX;
-    }
+    public UIJustifyMode getJustifyMode() {return this.justifyMode;}
     
-    public float getMeasuredY() {
-        return this.measuredY;
-    }
+    public UIElement getParent() {return this.parent;}
     
-    public float getMeasuredWidth() {
-        return this.measuredWidth;
-    }
+    public UIPair getWidth() {return this.width;}
     
-    public float getMeasuredHeight() {
-        return this.measuredHeight;
-    }
+    public UIPair getHeight() {return this.height;}
     
-    public UIQuad getPadding() {
-        return this.padding;
-    }
+    public float getMeasuredX() {return this.measuredX;}
     
-    public UIQuad getMargin() {
-        return this.margin;
-    }
+    public float getMeasuredY() {return this.measuredY;}
     
-    public boolean isVisible() {
-        return this.visible;
-    }
+    public float getMeasuredWidth() {return this.measuredWidth;}
     
-    public UIPosMode getPositionMode() {
-        return this.positionMode;
-    }
+    public float getMeasuredHeight() {return this.measuredHeight;}
     
-    public UIBoxMode getBoxMode() {
-        return this.boxMode;
-    }
+    public UIQuad getPadding() {return this.padding;}
     
-    public Matrix4f getModelMatrix() {
-        return this.modelMatrix;
-    }
+    public UIQuad getMargin() {return this.margin;}
     
-    public UIElement getParent() {
-        return this.parent;
-    }
+    public boolean isVisible() {return this.visible;}
+    
+    public Matrix4f getModelMatrix() {return this.modelMatrix;}
 }
