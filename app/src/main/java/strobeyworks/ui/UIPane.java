@@ -9,26 +9,8 @@ import strobeyworks.ui.primitives.UIRectangle;
 
 public class UIPane extends UIRectangle {
 
-    private List<UIElement> elements;
 
     public UIPane(UIPair x, UIPair y, UIPair width, UIPair height) {
         super(x, y, width, height);
-        elements = new ArrayList<>();
-    }
-
-    public void addElement(UIElement e) {
-        elements.add(e);
-        e.setParent(this);
-    }
-
-    public void removeElement(UIElement e) {
-        elements.remove(e);
-        e.setParent(null);
-    }
-
-    public List<UIElement> getElements() {
-        List<UIElement> e = new ArrayList<>();
-        e.addAll(elements);
-        return e;
     }
 }

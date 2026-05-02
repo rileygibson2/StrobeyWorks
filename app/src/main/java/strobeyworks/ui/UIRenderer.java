@@ -2,10 +2,12 @@ package strobeyworks.ui;
 
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
+import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
 import static org.lwjgl.opengl.GL11.glClear;
 import static org.lwjgl.opengl.GL11.glClearColor;
+import static org.lwjgl.opengl.GL11.glDisable;
 import static org.lwjgl.opengl.GL11.glDrawArrays;
 import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
 import static org.lwjgl.opengl.GL13.glActiveTexture;
@@ -23,14 +25,20 @@ import static strobeyworks.ui.primitives.UIPair.sh;
 import static strobeyworks.ui.primitives.UIPair.sw;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.joml.Matrix4f;
 
+import strobeyworks.Animation;
 import strobeyworks.SWMain;
 import strobeyworks.ShaderManager;
+import strobeyworks.logger.Logger;
 import strobeyworks.render.Renderer;
 import strobeyworks.ui.primitives.UIElement;
+import strobeyworks.ui.primitives.UIQuad;
+import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Vec3;
 import strobeyworks.utils.Vec4;
 
@@ -48,37 +56,60 @@ public class UIRenderer extends Renderer {
         -0.5f,  0.5f, 0.0f,
         -0.5f, -0.5f, 0.0f
     };
-    
     private int quadVAO;
     
-    private List<UIElement> allUIElements;
-    private UIPane rootUIElement;
+    private List<UIElement> visibleUIElements;
+    private UIElement rootUIElement;
+    
+    protected Set<Animation> animations;
     
     public UIRenderer() {
-        allUIElements = new ArrayList<>();
+        visibleUIElements = new ArrayList<>();
+        animations = new HashSet<Animation>();
     }
     
     private void buildTest() {
-        int w = getParentWindow().getWidth();
-        int h = getParentWindow().getHeight();
-        rootUIElement = new UIPane(px(0), px(0), px(w), px(h));
-        rootUIElement.setColor(new Vec3(0.1f));
+        UIPane pane1 = new UIPane(sw(0f), sh(0f), pw(1f), ph(0.2f));
+        pane1.setColor(new Vec3(0.4f, 0.4f, 0.4f));
+        pane1.setCornerRadius(new Vec4(20f, 20f, 0f, 0f));
+        pane1.setPadding(new UIQuad(px(2)));
 
-        UIPane pane1 = new UIPane(sw(0.2f), sh(0.2f), sw(0.1f), sh(0.1f));
-        pane1.setColor(new Vec3(1f, 0f, 0f));
-        rootUIElement.addElement(pane1);
+        rootUIElement.addChild(pane1);
+        
+        int num = 3;
+        for (int i=0; i<num; i++) {
+            UIRectangle rect = new UIRectangle(pw(0f), ph(0f), pw(0.2f), ph(0.5f));
+            rect.setColor(new Vec3(0f, 0f, 1f));
+            rect.setCornerRadius(new Vec4(20f));
+            pane1.addChild(rect);
+        }
+        
+        /*Animation a = new Animation(1, (i, value) -> {
+            rect1.setX(pw(value));
+        });
+        a.setSpeed(0.4f);
+        //animations.add(a);*/
 
-        UIPane pane2 = new UIPane(pw(0.4f), ph(0.2f), sw(0.1f), sh(0.1f));
-        pane2.setColor(new Vec3(0f, 0f, 1f));
-        pane2.setCornerRadius(new Vec4(20f));
-        rootUIElement.addElement(pane2);
+        
     }
     
-    public void rebuildElementList() {
-        allUIElements = rootUIElement.getElements();
+    public void rebuildVisibleElementList() {
+        visibleUIElements = rootUIElement.getVisibleChildren();
+        rootUIElement.clearSubtreeDirtyMark();
+        
+        int i = 0;
+        for (UIElement e : visibleUIElements) {
+            Logger.debug(i+": "+e.getClass());
+            i++;
+        }
     }
     
     public void init() {
+        rootUIElement = new UIRectangle(px(0), px(0), sw(1f), sh(1f));
+        ((UIRectangle) rootUIElement).setColor(new Vec3(0f));
+        rootUIElement.markLayoutDirty();
+        rootUIElement.markSubtreeDirty();
+
         ShaderManager sM = SWMain.getShaderManager();
         
         //Grid init
@@ -98,13 +129,17 @@ public class UIRenderer extends Renderer {
         
         buildProjectionMatrix();
         buildTest();
-
-        rebuildElementList();
     }
     
     public void render() {
+        // Updates
+        for (Animation a : animations) a.trigger();
+        if (rootUIElement.isLayoutDirty()) rootUIElement.layout();
+        if (rootUIElement.isSubtreeDirty()) rebuildVisibleElementList();
+        
         glClearColor(0f, 0f, 0f, 1f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glDisable(GL_DEPTH_TEST);
         
         ShaderManager sM = SWMain.getShaderManager();
         sM.useProgram(uiProgram);
@@ -112,9 +147,7 @@ public class UIRenderer extends Renderer {
         sM.setUniformMat4("uProjection", projectionMatrix);
         
         // Draw objects
-        for (UIElement e : allUIElements) {
-            if (!e.isVisible()) continue;
-            
+        for (UIElement e : visibleUIElements) {
             sM.setUniformMat4("uModel", e.getModelMatrix());
             e.setRenderUniforms(sM);
             sM.bindVAO(quadVAO);

@@ -30,6 +30,37 @@ public class Animation {
     private float phaseHigh;
     private float speed;
     
+    public Animation() {
+        this.numElems = 1;
+        this.form = AnimationForm.SINE;
+        this.width = 1f;
+        this.minVal = 0f;
+        this.maxVal = 1f;
+        this.speed = 0.01f;
+        setPhase(0f, 1f);
+    }
+
+    public Animation(int numElems) {
+        this.numElems = numElems;
+        this.form = AnimationForm.SINE;
+        this.width = 1f;
+        this.minVal = 0f;
+        this.maxVal = 1f;
+        this.speed = 0.01f;
+        setPhase(0f, 1f);
+    }
+
+    public Animation(int numElems, AnimationCallback callback) {
+        this.numElems = numElems;
+        this.form = AnimationForm.SINE;
+        this.callback = callback;
+        this.width = 1f;
+        this.minVal = 0f;
+        this.maxVal = 1f;
+        this.speed = 0.01f;
+        setPhase(0f, 1f);
+    }
+
     public Animation(int numElems, AnimationForm form, AnimationCallback callback) {
         this.numElems = numElems;
         this.form = form;
@@ -41,6 +72,15 @@ public class Animation {
         setPhase(0f, 1f);
     }
     
+    public void setNumElements(int numElems) {
+        this.numElems = numElems;
+        calculatePhases();
+    }
+
+    public void setCallback(AnimationCallback callback) {this.callback = callback;}
+
+    public void setForm(AnimationForm form) {this.form = form;}
+
     public void setWidth(float width) {this.width = width;}
     
     public void setSpeed(float speed) {this.speed = speed;}
@@ -66,7 +106,8 @@ public class Animation {
     }
     
     public void trigger() {
-        float t = SWMain.getTotalFrameCount()*speed;
+        float t = SWMain.getTotalTime()*speed*TWOPI;
+        
         for (int i=0; i<numElems; i++) {
             float val = minVal;
             

@@ -113,7 +113,8 @@ public class WorkingScene extends Scene {
         float rot = obj1.getRotation().y + 0.2f*dt;
         obj1.setRotation(new Vec3((float) Math.toRadians(0f), rot , 0f));
         
-        float lightAngle = SWMain.getTotalFrameCount() * 0.01f;
+        float lightAngle = SWMain.getTotalTime() * 0.5f;
+;
         Vec2 circ = Animation.circlePosition(30.0f, lightAngle);
         //spot1.setPosition(new Vec3(circ.x, 5f, circ.y));
        // spot1.pointAt(new Vec3(0f, 2f, 0f));

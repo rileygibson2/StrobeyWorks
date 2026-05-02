@@ -1,7 +1,7 @@
 package strobeyworks.ui.primitives;
 
 public class UIPair {
-    public enum Unit {
+    public enum UIUnit {
         PIXELS,
         PARENT_WIDTH,
         PARENT_HEIGHT,
@@ -9,39 +9,33 @@ public class UIPair {
         SCREEN_HEIGHT
     }
 
-    private final float value;
-    private final Unit unit;
+    public float value;
+    public UIUnit unit;
 
-    private UIPair(float value, Unit unit) {
+    private UIPair(float value, UIUnit unit) {
         this.value = value;
         this.unit = unit;
     }
 
     public static UIPair px(int v) {
-        return new UIPair(v, Unit.PIXELS);
+        return new UIPair(v, UIUnit.PIXELS);
     }
 
     public static UIPair pw(float v) {
-        return new UIPair(v, Unit.PARENT_WIDTH);
+        return new UIPair(v, UIUnit.PARENT_WIDTH);
     }
 
     public static UIPair ph(float v) {
-        return new UIPair(v, Unit.PARENT_HEIGHT);
+        return new UIPair(v, UIUnit.PARENT_HEIGHT);
     }
 
     public static UIPair sw(float v) {
-        return new UIPair(v, Unit.SCREEN_WIDTH);
+        return new UIPair(v, UIUnit.SCREEN_WIDTH);
     }
 
     public static UIPair sh(float v) {
-        return new UIPair(v, Unit.SCREEN_HEIGHT);
+        return new UIPair(v, UIUnit.SCREEN_HEIGHT);
     }
 
-    public float getValue() {
-        return value;
-    }
-
-    public Unit getUnit() {
-        return unit;
-    }
+    public UIPair clone() {return new UIPair(value, unit);}
 }
