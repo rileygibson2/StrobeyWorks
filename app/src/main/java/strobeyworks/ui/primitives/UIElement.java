@@ -1,5 +1,7 @@
 package strobeyworks.ui.primitives;
 
+import static strobeyworks.ui.primitives.UIPair.px;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -7,11 +9,7 @@ import org.joml.Matrix4f;
 
 import strobeyworks.SWMain;
 import strobeyworks.ShaderManager;
-import static strobeyworks.ui.primitives.UIPair.ph;
-import static strobeyworks.ui.primitives.UIPair.pw;
-import static strobeyworks.ui.primitives.UIPair.px;
-import static strobeyworks.ui.primitives.UIPair.sh;
-import static strobeyworks.ui.primitives.UIPair.sw;
+import strobeyworks.logger.Logger;
 
 public abstract class UIElement {
     
@@ -20,7 +18,7 @@ public abstract class UIElement {
         ABSOLUTE,
         SCREEN_ABSOLUTE
     }
-
+    
     public enum UIBoxMode {
         FIXED,
         FLEX
@@ -39,9 +37,12 @@ public abstract class UIElement {
     private UIPair y;
     private UIPair width;
     private UIPair height;
-
+    
     private UIQuad padding;
     private UIQuad margin;
+    
+    private UIPair minWidth;
+    private UIPair minHeight;
     
     private boolean visible;
     
@@ -50,16 +51,15 @@ public abstract class UIElement {
     private float resolvedY;
     private float resolvedWidth;
     private float resolvedHeight;
-
-    // Resolved content values
-    private float resolvedContentX;
-    private float resolvedContentY;
-    private float resolvedContentWidth;
-    private float resolvedContentHeight;
-
+    
+    private float measuredX;
+    private float measuredY;
+    private float measuredWidth;
+    private float measuredHeight;
+    
     // Functional
     private Matrix4f modelMatrix;
-
+    
     public UIElement(UIPair x, UIPair y, UIPair width, UIPair height) {
         this.x = x;
         this.y = y;
@@ -79,7 +79,7 @@ public abstract class UIElement {
         children = new ArrayList<>();
         updateModelMatrix();
     }
-
+    
     public UIElement(UIPair x, UIPair y) {
         this.x = x;
         this.y = y;
@@ -98,12 +98,12 @@ public abstract class UIElement {
         
         children = new ArrayList<>();
         updateModelMatrix();
-    }    
+    }
     
     public abstract void setRenderUniforms(ShaderManager sM);
     
-    /** 
-     * Tree Management
+    /**
+    * Tree Management
     */
     
     public void setParent(UIElement parent) {
@@ -141,7 +141,8 @@ public abstract class UIElement {
         List<UIElement> elems = new ArrayList<>();
         
         for (UIElement e : children) {
-            if (!e.isVisible()) continue;
+            if (!e.isVisible())
+                continue;
             elems.add(e);
             elems.addAll(e.getVisibleChildren());
         }
@@ -152,7 +153,8 @@ public abstract class UIElement {
         List<UIElement> elems = new ArrayList<>();
         
         for (UIElement e : children) {
-            if (e.getPositionMode()!=positionMode) continue;
+            if (e.getPositionMode() != positionMode)
+                continue;
             elems.add(e);
             elems.addAll(e.getVisibleChildren());
         }
@@ -162,8 +164,10 @@ public abstract class UIElement {
     public UIElement getPositionModeChildAtIndex(UIPosMode positionMode, int index) {
         int i = 0;
         for (UIElement e : children) {
-            if (e.getPositionMode()!=positionMode) continue;
-            if (i==index) return e;
+            if (e.getPositionMode() != positionMode)
+                continue;
+            if (i == index)
+                return e;
             i++;
         }
         
@@ -172,42 +176,59 @@ public abstract class UIElement {
     
     public void markLayoutDirty() {
         layoutDirty = true;
-        if (parent!=null) parent.markLayoutDirty();
+        if (parent != null)
+            parent.markLayoutDirty();
     }
     
-    public boolean isLayoutDirty() {return layoutDirty;}
+    public boolean isLayoutDirty() {
+        return layoutDirty;
+    }
     
     public void markSubtreeDirty() {
         subtreeDirty = true;
-        if (parent!=null) parent.markSubtreeDirty();
+        if (parent != null)
+            parent.markSubtreeDirty();
     }
     
-    public boolean isSubtreeDirty() {return subtreeDirty;}
+    public boolean isSubtreeDirty() {
+        return subtreeDirty;
+    }
     
     public void clearSubtreeDirtyMark() {
         subtreeDirty = false;
-        for (UIElement c : children) c.clearSubtreeDirtyMark();
+        for (UIElement c : children)
+            c.clearSubtreeDirtyMark();
     }
     
-    /** 
-     * Layout Management
+    /**
+    * Layout Management
     */
     
     public void setPositionMode(UIPosMode positionMode) {
         this.positionMode = positionMode;
         markLayoutDirty();
     }
-
+    
     public void setBoxMode(UIBoxMode boxMode) {
         this.boxMode = boxMode;
         markLayoutDirty();
     }
-
+    
+    public void setMinWidth(UIPair minWidth) {
+        this.minWidth = minWidth;
+        markLayoutDirty();
+    }
+    
+    public void setMinHeight(UIPair minHeight) {
+        this.minHeight = minHeight;
+        markLayoutDirty();
+    }
+    
     public void setPadding(UIQuad padding) {
         this.padding = padding;
         markLayoutDirty();
     }
-
+    
     public void setMargin(UIQuad margin) {
         this.margin = margin;
         markLayoutDirty();
@@ -239,24 +260,6 @@ public abstract class UIElement {
         markLayoutDirty();
     }
     
-    private float setResolvedX(float resolvedX) {
-        this.resolvedX = resolvedX;
-    }
-
-    private float setResolvedY(float resolvedY) {
-        this.resolvedY = resolvedY;
-    }
-
-    private float setResolvedWidth(float resolvedWidth) {
-        this.resolvedWidth = resolvedWidth;
-        return this.resolvedContentWidth;
-    }
-
-    private float setResolvedHeight(float resolvedHeight) {
-        this.resolvedHeight = resolvedHeight;
-        return this.resolvedHeight;
-    }
-    
     public void setVisible(boolean visible) {
         this.visible = visible;
         markSubtreeDirty();
@@ -264,132 +267,223 @@ public abstract class UIElement {
     
     /**
     * Structure:
-    * Child owns virtual x y width and height all in a unit as well as position mode
-    * Child also has cached resolved x y w h which it uses to build model matrix
+    * Elements owns authored x y width and height all in a unit as well as position
+    * mode and box mode
+    * Element also has cached resolved x y w h (in pixels) which it uses to build model matrix
+    * Element also has measured x y w h (in pixels) in local space, so relative to the parent.
     * 
-    * Parent is only person who can rebuild resolved values for a child.
-    * This makes relative positioning easier.
-    * Except if an element has no parent, then it resolves it's own values
+    * MEASURE PASS
+    * measure called from root first
     * 
-    * Currently every frame re layout tree. But later - 
-    * When element gets moved/changed
-    * Mark dirty in element
-    * Mark parent dirty -- all the way up the tree.
+    * each element measures it's own size if it's a fixed box
+    * then asks each child to measure
+    * therefore every element past the start of the child loop has a measured width and height
     * 
-    * Another model : multiple dirty flags
-    * self dirty
-    * subtree dirty
+    * then for every child in the parent, it sets the measured x and y based on authored values
+    * if the child x and y is in parent width or height, this is okay if it's a fixed box as that has been set
+    * but parent width and height is disabled when parent is a flex box so this is still safe.
     * 
-    * when element changes it marks itself dirty and asks it's parent to mark subtree dirty
-    * parent can then decide if that change meant that it needs to mark it's parent dirty too.
-    * as dirty flags may not reach root this then means we may need a buffer of dirty subtree roots so updates can occur
-    * this would mean if a parent has been asked by a child to mark itself dirty but it decides not to mark parent dirty
-    * then it add's itself to a cache in renderer.
+    * then if the parent is a flex box it can calculate it's max bounds and set it's size
+    * 
+    * padding is tracked throughout the process, so for relative elements, their measuredx will contain padding left (tracked through cursor)
+    * and their measured y will track padding top
+    * 
+    * flex box width and height setting will also include padding right and bottom.
+    * 
+    * ADVANCE PASS
+    * advance called from root with it's own measured x and y passed in.
+    * each element sets resolved x/y from the parameters and resolved w/h from measured w/h.
+    * 
+    * then it will loop over all it's children
+    * if child is screen absolute then it's measured x and y (in pixels) is correct so it will advance to that child with those values
+    * otherwise it will advance to that child with the current x and y + the child's x and ys
     */
-    public void layout() {
-        if (parent==null) { // Root set's own self resolved values
-            setResolvedX(resolveUIPair(getX()));
-            setResolvedY(resolveUIPair(getY()));
-            setResolvedWidth(resolveUIPair(getWidth()));
-            setResolvedHeight(resolveUIPair(getHeight()));
-        }
+    
+    public void layoutMeasure() {
+        float pLeft = resolveLocal(padding.left);
+        float pRight = resolveLocal(padding.right);
+        float pTop = resolveLocal(padding.top);
+        float pBottom = resolveLocal(padding.bottom);
         
-        updateModelMatrix();
-
-        // Update self content values
-        float padLeft = resolveUIPair(padding.left);
-        float padTop = resolveUIPair(padding.top);
-        resolvedContentX = resolvedX+padLeft;
-        resolvedContentY = resolvedY+padTop;
-        resolvedContentWidth = Math.max(0f, resolvedWidth-padLeft-resolveUIPair(padding.right));
-        resolvedContentHeight = Math.max(0f, resolvedHeight-padTop-resolveUIPair(padding.bottom));
-        
-        float cursorX = resolvedContentX;
-        float cursorY = resolvedContentY;
-
+        float cursorX = pLeft;
         float maxX = 0f;
         float maxY = 0f;
         
+        if (parent==null) {
+            measuredX = resolveLocal(x);
+            measuredY = resolveLocal(y);
+        }
+        
+        if (boxMode == UIBoxMode.FIXED) {
+            measuredWidth = resolveLocal(width);
+            measuredHeight = resolveLocal(height);
+        }
+        
         for (UIElement c : children) {
-            // Size
-            c.setResolvedWidth(c.resolveUIPair(c.getWidth()));
-            c.setResolvedHeight(c.resolveUIPair(c.getHeight()));
+            c.layoutMeasure();
             
-            // Position
             if (c.getPositionMode()==UIPosMode.RELATIVE) {
-                c.setResolvedX(cursorX+c.resolveUIPair(c.getX()));
-                c.setResolvedY(cursorY+c.resolveUIPair(c.getY()));
-                cursorX = c.getResolvedX()+c.getResolvedWidth();
+                c.measuredX = cursorX+c.resolveLocal(c.getX());
+                c.measuredY = pTop+c.resolveLocal(c.getY());
+                cursorX = c.measuredX + c.measuredWidth;
             }
             
             if (c.getPositionMode()==UIPosMode.ABSOLUTE) {
-                c.setResolvedX(resolvedContentX+c.resolveUIPair(c.getX()));
-                c.setResolvedY(resolvedContentY+c.resolveUIPair(c.getY()));
+                c.measuredX = pLeft+c.resolveLocal(c.getX());
+                c.measuredY = pTop+c.resolveLocal(c.getY());
             }
             
             if (c.getPositionMode()==UIPosMode.SCREEN_ABSOLUTE) {
-                c.setResolvedX(c.resolveUIPair(c.getX()));
-                c.setResolvedY(c.resolveUIPair(c.getY()));
+                c.measuredX = c.resolveLocal(c.getX());
+                c.measuredY = c.resolveLocal(c.getY());
             }
             
-            c.layout();
+            
+            maxX = Math.max(maxX, c.measuredX+c.measuredWidth);
+            maxY = Math.max(maxY, c.measuredY+c.measuredHeight);
+        }
+        
+        if (boxMode == UIBoxMode.FLEX) {
+            measuredWidth = maxX+pRight;
+            measuredHeight = maxY+pBottom;
+            
+            if (minWidth!=null) {
+                float minW = resolveLocal(minWidth);
+                if (measuredWidth<minW) measuredWidth = minW;
+            }
+
+            if (minHeight!=null) {
+                float minH = resolveLocal(minHeight);
+                if (measuredHeight<minH) measuredHeight = minH;
+            }
+        }
+    }
+    
+    public void layoutAdvance(float resolvedX, float resolvedY) {
+        this.resolvedX = resolvedX;
+        this.resolvedY = resolvedY;
+        this.resolvedWidth = measuredWidth;
+        this.resolvedHeight = measuredHeight;
+        
+        updateModelMatrix();
+        
+        for (UIElement c : children) {
+            if (c.getPositionMode()==UIPosMode.SCREEN_ABSOLUTE) c.layoutAdvance(c.measuredX, c.measuredY);
+            else c.layoutAdvance(resolvedX+c.measuredX, resolvedY+c.measuredY);
         }
         
         layoutDirty = false;
     }
     
-    private float resolveUIPair(UIPair pair) {
+    private float resolveLocal(UIPair pair) {
         switch (pair.unit) {
-            case PIXELS : return pair.value;
+            case PIXELS:
+            return pair.value;
             
-            case SCREEN_WIDTH : return pair.value*SWMain.getUIWindow().getWidth();
+            case SCREEN_WIDTH:
+            return pair.value * SWMain.getUIWindow().getWidth();
             
-            case SCREEN_HEIGHT : return pair.value*SWMain.getUIWindow().getHeight();
+            case SCREEN_HEIGHT:
+            return pair.value * SWMain.getUIWindow().getHeight();
             
-            case PARENT_WIDTH :
-            if (parent==null) return pair.value*SWMain.getUIWindow().getWidth();
-            return pair.value*parent.getResolvedContentWidth();
+            case PARENT_WIDTH:
+            if (parent == null)
+                return pair.value * SWMain.getUIWindow().getWidth();
+            if (parent.getBoxMode() == UIBoxMode.FLEX)
+                Logger.throwException("Cannot use parent units on parent with box mode flex");
+            return pair.value * parent.getMeasuredContentWidth();
             
-            case PARENT_HEIGHT :
-            if (parent==null) return pair.value*SWMain.getUIWindow().getHeight();
-            return pair.value*parent.getResolvedContentHeight();
+            case PARENT_HEIGHT:
+            if (parent == null)
+                return pair.value * SWMain.getUIWindow().getHeight();
+            if (parent.getBoxMode() == UIBoxMode.FLEX)
+                Logger.throwException("Cannot use parent units on parent with box mode flex");
+            return pair.value * parent.getMeasuredContentHeight();
             
-            default : 
+            default:
             return 0f;
         }
     }
     
+    private float getMeasuredContentWidth() {
+        return Math.max(0f,
+            measuredWidth - resolveLocal(padding.left) - resolveLocal(padding.right)
+        );
+    }
+    
+    private float getMeasuredContentHeight() {
+        return Math.max(0f,
+            measuredHeight - resolveLocal(padding.top) - resolveLocal(padding.bottom)
+        );
+    }
+    
     private void updateModelMatrix() {
         modelMatrix = new Matrix4f()
-        .translate(resolvedX+resolvedWidth*0.5f, resolvedY+resolvedHeight*0.5f, 0.0f)
+        .translate(resolvedX + resolvedWidth * 0.5f, resolvedY + resolvedHeight * 0.5f, 0.0f)
         .scale(resolvedWidth, resolvedHeight, 1.0f);
     }
-
-    /** 
-     * Getters
+    
+    /**
+    * Getters
     */
     
-    public UIPair getX() {return this.x;}
-    public UIPair getY() {return this.y;}
-    public UIPair getWidth() {return this.width;}
-    public UIPair getHeight() {return this.height;}
-
-    public float getResolvedX() {return this.resolvedX;}
-    public float getResolvedY() {return this.resolvedY;}
-    public float getResolvedWidth() {return this.resolvedWidth;}
-    public float getResolvedHeight() {return this.resolvedHeight;}
-
-    public float getResolvedContentX() {return this.resolvedContentX;}
-    public float getResolvedContentY() {return this.resolvedContentY;}
-    public float getResolvedContentWidth() {return this.resolvedContentWidth;}
-    public float getResolvedContentHeight() {return this.resolvedContentHeight;}
-
-    public UIQuad getPadding() {return this.padding;}
-    public UIQuad getMargin() {return this.margin;}
+    public UIPair getX() {
+        return this.x;
+    }
     
-    public boolean isVisible() {return this.visible;}
-    public UIPosMode getPositionMode() {return this.positionMode;}
-    public UIBoxMode getBoxMode() {return this.boxMode;}
-    public Matrix4f getModelMatrix() {return this.modelMatrix;}
-    public UIElement getParent() {return this.parent;}
+    public UIPair getY() {
+        return this.y;
+    }
+    
+    public UIPair getWidth() {
+        return this.width;
+    }
+    
+    public UIPair getHeight() {
+        return this.height;
+    }
+    
+    public float getMeasuredX() {
+        return this.measuredX;
+    }
+    
+    public float getMeasuredY() {
+        return this.measuredY;
+    }
+    
+    public float getMeasuredWidth() {
+        return this.measuredWidth;
+    }
+    
+    public float getMeasuredHeight() {
+        return this.measuredHeight;
+    }
+    
+    public UIQuad getPadding() {
+        return this.padding;
+    }
+    
+    public UIQuad getMargin() {
+        return this.margin;
+    }
+    
+    public boolean isVisible() {
+        return this.visible;
+    }
+    
+    public UIPosMode getPositionMode() {
+        return this.positionMode;
+    }
+    
+    public UIBoxMode getBoxMode() {
+        return this.boxMode;
+    }
+    
+    public Matrix4f getModelMatrix() {
+        return this.modelMatrix;
+    }
+    
+    public UIElement getParent() {
+        return this.parent;
+    }
 }

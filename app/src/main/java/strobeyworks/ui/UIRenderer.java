@@ -39,6 +39,8 @@ import strobeyworks.render.Renderer;
 import strobeyworks.ui.primitives.UIElement;
 import strobeyworks.ui.primitives.UIQuad;
 import strobeyworks.ui.primitives.UIRectangle;
+import strobeyworks.ui.primitives.UIElement.UIBoxMode;
+import strobeyworks.ui.primitives.UIElement.UIPosMode;
 import strobeyworks.utils.Vec3;
 import strobeyworks.utils.Vec4;
 
@@ -72,23 +74,29 @@ public class UIRenderer extends Renderer {
         UIPane pane1 = new UIPane(sw(0f), sh(0f), pw(1f), ph(0.2f));
         pane1.setColor(new Vec3(0.4f, 0.4f, 0.4f));
         pane1.setCornerRadius(new Vec4(20f, 20f, 0f, 0f));
-        pane1.setPadding(new UIQuad(px(2)));
+        pane1.setPadding(new UIQuad(px(10)));
+
+        pane1.setBoxMode(UIBoxMode.FLEX);
+        pane1.setMinWidth(sw(0.6f));
 
         rootUIElement.addChild(pane1);
         
         int num = 3;
+        UIRectangle r = new UIRectangle(sw(0f), sh(0f), sw(0.1f), sh(0.5f));
+
         for (int i=0; i<num; i++) {
-            UIRectangle rect = new UIRectangle(pw(0f), ph(0f), pw(0.2f), ph(0.5f));
+            UIRectangle rect = new UIRectangle(sw(0f), sh(0f), sw(0.1f), sh(0.5f));
+            if (i==1) rect = r;
             rect.setColor(new Vec3(0f, 0f, 1f));
             rect.setCornerRadius(new Vec4(20f));
             pane1.addChild(rect);
         }
         
-        /*Animation a = new Animation(1, (i, value) -> {
-            rect1.setX(pw(value));
+        Animation a = new Animation(1, (i, value) -> {
+            r.setX(sw(value));
         });
         a.setSpeed(0.4f);
-        //animations.add(a);*/
+        animations.add(a);
 
         
     }
@@ -106,7 +114,11 @@ public class UIRenderer extends Renderer {
     
     public void init() {
         rootUIElement = new UIRectangle(px(0), px(0), sw(1f), sh(1f));
-        ((UIRectangle) rootUIElement).setColor(new Vec3(0f));
+        rootUIElement.setPositionMode(UIPosMode.SCREEN_ABSOLUTE);
+        rootUIElement.setBoxMode(UIBoxMode.FIXED);
+
+        ((UIRectangle) rootUIElement).setColor(new Vec3(0.3f));
+
         rootUIElement.markLayoutDirty();
         rootUIElement.markSubtreeDirty();
 
@@ -134,7 +146,12 @@ public class UIRenderer extends Renderer {
     public void render() {
         // Updates
         for (Animation a : animations) a.trigger();
-        if (rootUIElement.isLayoutDirty()) rootUIElement.layout();
+
+        if (rootUIElement.isLayoutDirty()) {
+            rootUIElement.layoutMeasure();
+            rootUIElement.layoutAdvance(rootUIElement.getMeasuredX(), rootUIElement.getMeasuredY());
+        }
+
         if (rootUIElement.isSubtreeDirty()) rebuildVisibleElementList();
         
         glClearColor(0f, 0f, 0f, 1f);
