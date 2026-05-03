@@ -2,6 +2,9 @@ package strobeyworks;
 
 import static org.lwjgl.glfw.GLFW.*;
 
+import strobeyworks.ui.UIIOEvent;
+import strobeyworks.ui.UIIOEvent.UIIOEventType;
+
 public class IO {
     
     private Window parentWindow;
@@ -38,6 +41,31 @@ public class IO {
             scrollDY += yOffset;
         });
         
+        glfwSetMouseButtonCallback(windowID, (window, button, action, mods) -> {
+            double[] mouseX = new double[1];
+            double[] mouseY = new double[1];
+            glfwGetCursorPos(window, mouseX, mouseY);
+            
+            if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+                leftPressed = true;
+                
+                parentWindow.getRenderer().handleIOEvent(new UIIOEvent(
+                    UIIOEventType.LEFT_PRESS,
+                    (float) mouseX[0],
+                    (float) mouseY[0]
+                ));
+            }
+            
+            if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+                leftPressed = false;
+                
+                parentWindow.getRenderer().handleIOEvent(new UIIOEvent(
+                    UIIOEventType.LEFT_RELEASE,
+                    (float) mouseX[0],
+                    (float) mouseY[0]
+                ));
+            }
+        });
     }
     
     public void update() {
@@ -56,8 +84,16 @@ public class IO {
         
         leftPressed = glfwGetMouseButton(windowID, GLFW_MOUSE_BUTTON_LEFT)==GLFW_PRESS;
         rightPressed = glfwGetMouseButton(windowID, GLFW_MOUSE_BUTTON_RIGHT)==GLFW_PRESS;
+        
+        if (leftPressed && (mouseDX != 0 || mouseDY != 0)) {
+            parentWindow.getRenderer().handleIOEvent(new UIIOEvent(
+                UIIOEventType.DRAG,
+                (float) xPos[0],
+                (float) yPos[0]
+            ));
+        }
     }
-
+    
     public void endFrame() {
         scrollDX = 0;
         scrollDY = 0;

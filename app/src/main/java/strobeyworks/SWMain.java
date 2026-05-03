@@ -6,7 +6,7 @@ import javax.swing.Timer;
 
 import strobeyworks.logger.Logger;
 import strobeyworks.render.SceneRenderer;
-import strobeyworks.ui.UIRenderer;
+import strobeyworks.render.UIRenderer;
 
 
 public class SWMain {

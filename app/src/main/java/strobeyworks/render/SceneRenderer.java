@@ -26,6 +26,7 @@ import java.util.List;
 
 import org.joml.Matrix4f;
 
+import strobeyworks.Animation;
 import strobeyworks.Camera;
 import strobeyworks.ObjLoader;
 import strobeyworks.SWMain;
@@ -37,6 +38,7 @@ import strobeyworks.Scenes.Scene;
 import strobeyworks.Scenes.WorkingScene;
 import strobeyworks.object.Mesh;
 import strobeyworks.object.Mesh.MeshType;
+import strobeyworks.ui.UIIOEvent;
 import strobeyworks.object.SceneObject;
 import strobeyworks.utils.MeshStatics;
 import strobeyworks.utils.Vec3;
@@ -64,6 +66,16 @@ public class SceneRenderer extends Renderer {
         camera = new Camera(this);
         scene = new WorkingScene();
         indicatorSphere = ObjLoader.loadMesh("sphere.obj", false, MeshType.SMOOTH_SHADED);
+    }
+
+    public void handleIOEvent(UIIOEvent event) {
+        
+    }
+
+    public void addAnimation(Animation a) {
+    }
+
+    public void removeAnimation(Animation a) {
     }
     
     public void init() {

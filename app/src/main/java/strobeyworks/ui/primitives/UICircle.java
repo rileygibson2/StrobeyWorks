@@ -3,43 +3,42 @@ package strobeyworks.ui.primitives;
 import strobeyworks.ShaderManager;
 import strobeyworks.ui.UIColors;
 import strobeyworks.utils.Vec3;
-import strobeyworks.utils.Vec4;
 
-public class UIRectangle extends UIElement {
+public class UICircle extends UIElement {
     
-    private static final int PRIM_TYPE = 1;
+    private static final int PRIM_TYPE_OVAL = 2;
+    private static final int PRIM_TYPE_CIRCLE = 3;
     
     private Vec3 color;
-    private Vec4 cornerRadius;
     private Vec3 borderColor;
     private float borderThickness;
+    private boolean oval;
 
     private Vec3 debugColor = UIColors.color(UIColors.RED);
     private boolean debugEnabled;
     
-    public UIRectangle(UIPair width, UIPair height) {
+    public UICircle(UIPair width, UIPair height) {
         super(width, height);
         color = new Vec3(0.1f);
-        cornerRadius = new Vec4(0f);
-        borderThickness = 1.5f;
+        borderThickness = 2f;
+        oval = true;
 
         debugEnabled = false;
     }
-
-    public UIRectangle() {
+    
+    public UICircle() {
         super();
         color = new Vec3(0.1f);
-        cornerRadius = new Vec4(0f);
         borderThickness = 2f;
+        oval = true;
 
         debugEnabled = false;
     }
     
     public void setRenderUniforms(ShaderManager sM) {
-        sM.setUniformInt("uPrimType", PRIM_TYPE);
+        sM.setUniformInt("uPrimType", oval ? PRIM_TYPE_OVAL : PRIM_TYPE_CIRCLE);
         sM.setUniformVec3("uColor", color);
-        sM.setUniformVec4("uCornerRadius", cornerRadius);
-
+        
         sM.setUniformInt("uHasBorder", borderColor==null ? 0 : 1);
         if (borderColor!=null) {
             sM.setUniformVec3("uBorderColor", borderColor);
@@ -50,37 +49,30 @@ public class UIRectangle extends UIElement {
         sM.setUniformInt("uDebugEnabled", debugEnabled ? 1 : 0);
     }
     
-    public UIRectangle color(Vec3 baseColor) {
+    public UICircle color(Vec3 baseColor) {
         this.color = baseColor;
         return this;
     }
     
-    public UIRectangle cornerRadius(Vec4 cornerRadii) {
-        this.cornerRadius = cornerRadii;
-        return this;
-    }
-
-    public UIRectangle cornerRadius(float cornerRadius) {
-        this.cornerRadius = new Vec4(cornerRadius);
-        return this;
-    }
-    
-    public UIRectangle borderColor(Vec3 borderColor) {
+    public UICircle borderColor(Vec3 borderColor) {
         this.borderColor = borderColor;
         return this;
     }
     
-    public UIRectangle borderThickness(float borderThickness) {
+    public UICircle borderThickness(float borderThickness) {
         this.borderThickness = borderThickness;
         return this;
     }
 
-    public UIRectangle enableDebugColor(boolean debugEnabled) {
+    public UICircle oval(boolean oval) {
+        this.oval = oval;
+        return this;
+    }
+
+    public UICircle enableDebugColor(boolean debugEnabled) {
         this.debugEnabled = debugEnabled;
         return this;
     }
     
     public Vec3 getColor() {return this.color;}
-    
-    public Vec4 getCornerRadius() {return this.cornerRadius;}
 }

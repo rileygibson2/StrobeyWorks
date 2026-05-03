@@ -21,6 +21,10 @@ public class UIPair {
         return new UIPair(v, UIUnit.PIXELS);
     }
 
+    public static UIPair px(float v) {
+        return new UIPair(v, UIUnit.PIXELS);
+    }
+
     public static UIPair pw(float v) {
         return new UIPair(v, UIUnit.PARENT_WIDTH);
     }
