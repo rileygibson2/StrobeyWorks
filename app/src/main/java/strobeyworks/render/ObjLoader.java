@@ -1,4 +1,4 @@
-package strobeyworks;
+package strobeyworks.render;
 
 import java.io.BufferedReader;
 import java.io.InputStream;

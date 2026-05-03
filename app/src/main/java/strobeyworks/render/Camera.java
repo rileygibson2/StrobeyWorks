@@ -1,4 +1,4 @@
-package strobeyworks;
+package strobeyworks.render;
 
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_A;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_D;
@@ -10,7 +10,8 @@ import static org.lwjgl.glfw.GLFW.GLFW_KEY_W;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
-import strobeyworks.render.Renderer;
+import strobeyworks.platform.IO;
+import strobeyworks.platform.Renderer;
 import strobeyworks.utils.Vec3;
 
 public class Camera {

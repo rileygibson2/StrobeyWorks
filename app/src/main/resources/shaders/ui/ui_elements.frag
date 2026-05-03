@@ -5,15 +5,16 @@ flat in vec2 vSize;
 
 uniform int uPrimType;
 
-uniform vec3 uColor;
+uniform vec4 uColor;
 uniform vec4 uCornerRadius;
 
 uniform int uHasBorder;
-uniform vec3 uBorderColor;
+uniform vec4 uBorderColor;
 uniform float uBorderThickness;
+uniform vec4 uBorderSides; // top, right, bottom, left
 
 uniform int uDebugEnabled;
-uniform vec3 uDebugColor;
+uniform vec4 uDebugColor;
 
 out vec4 FragColor;
 
@@ -40,7 +41,6 @@ float ellipseSDF(vec2 p, vec2 size) {
     vec2 safeSize = max(size, vec2(0.001));
     vec2 center = safeSize * 0.5;
     vec2 radius = safeSize * 0.5;
-
     vec2 d = (p - center) / radius;
 
     return (length(d) - 1.0) * min(radius.x, radius.y);
@@ -53,39 +53,80 @@ float circleSDF(vec2 p, vec2 size) {
     return length(p - center) - radius;
 }
 
-void outputShape(float outerD, float innerD) {
-    float aa = max(fwidth(outerD), 0.001);
-    float outerAlpha = 1.0 - smoothstep(0.0, aa, outerD);
+float borderSideMask(vec2 p, vec2 size, vec4 sides, float aa) {
+    float dTop = p.y;
+    float dRight = size.x - p.x;
+    float dBottom = size.y - p.y;
+    float dLeft = p.x;
+
+    float horizontalSide = dLeft < dRight ? sides.w : sides.y;
+    float verticalSide = dTop < dBottom ? sides.x : sides.z;
+
+    float horizontalDist = min(dLeft, dRight);
+    float verticalDist = min(dTop, dBottom);
+
+    float t = smoothstep(-aa, aa, horizontalDist - verticalDist);
+
+    return mix(horizontalSide, verticalSide, t);
+}
+
+vec4 alphaOver(vec4 top, vec4 bottom) {
+    float outA = top.a + bottom.a * (1.0 - top.a);
+
+    if (outA <= 0.0001) {
+        return vec4(0.0);
+    }
+
+    vec3 outRGB = (
+        top.rgb * top.a +
+        bottom.rgb * bottom.a * (1.0 - top.a)
+    ) / outA;
+
+    return vec4(outRGB, outA);
+}
+
+void outputShape(float outerD, float innerD, float sideMask) {
+    float outerAa = max(fwidth(outerD), 0.001);
+    float outerAlpha = 1.0 - smoothstep(-outerAa, outerAa, outerD);
 
     if (outerAlpha <= 0.0) {
         if (uDebugEnabled == 1) {
-            FragColor = vec4(uDebugColor, 1.0);
+            FragColor = uDebugColor;
             return;
         }
 
         discard;
     }
 
-    vec3 shapeColor = uColor;
-    float shapeAlpha = outerAlpha;
+    vec4 shapeColor;
 
     if (uHasBorder == 1) {
-        float innerAlpha = 1.0 - smoothstep(0.0, aa, innerD);
+        float innerAa = max(fwidth(innerD), 0.001);
+        float innerAlpha = 1.0 - smoothstep(-innerAa, innerAa, innerD);
 
-        float borderMask = outerAlpha * (1.0 - innerAlpha);
+        sideMask = step(0.5, sideMask);
+
+        float borderMask = outerAlpha * (1.0 - innerAlpha) * sideMask;
         float fillMask = innerAlpha;
 
-        shapeColor = mix(uColor, uBorderColor, borderMask);
-        shapeAlpha = max(fillMask, borderMask);
+        vec4 fill = vec4(uColor.rgb, uColor.a * fillMask);
+        vec4 border = vec4(uBorderColor.rgb, uBorderColor.a * borderMask);
+
+        shapeColor = alphaOver(border, fill);
+    } else {
+        shapeColor = vec4(uColor.rgb, uColor.a * outerAlpha);
     }
 
     if (uDebugEnabled == 1) {
-        vec3 finalColor = mix(uDebugColor, shapeColor, shapeAlpha);
-        FragColor = vec4(finalColor, 1.0);
+        FragColor = alphaOver(shapeColor, uDebugColor);
         return;
     }
 
-    FragColor = vec4(shapeColor, shapeAlpha);
+    if (shapeColor.a <= 0.0) {
+        discard;
+    }
+
+    FragColor = shapeColor;
 }
 
 void main() {
@@ -105,7 +146,7 @@ void main() {
 
         float innerD = ellipseSDF(innerP, innerSize);
 
-        outputShape(outerD, innerD);
+        outputShape(outerD, innerD, 1.0);
         return;
     }
 
@@ -118,17 +159,38 @@ void main() {
 
         float innerD = length(p - center) - innerRadius;
 
-        outputShape(outerD, innerD);
+        outputShape(outerD, innerD, 1.0);
         return;
     }
 
     float outerD = roundedRectSDF(p, vSize, uCornerRadius);
 
-    vec2 innerSize = max(vSize - vec2(thickness * 2.0), vec2(0.0));
-    vec2 innerP = p - vec2(thickness);
-    vec4 innerRadius = max(uCornerRadius - vec4(thickness), vec4(0.0));
+    vec4 sides = clamp(uBorderSides, vec4(0.0), vec4(1.0));
+
+    float insetTop = thickness * sides.x;
+    float insetRight = thickness * sides.y;
+    float insetBottom = thickness * sides.z;
+    float insetLeft = thickness * sides.w;
+
+    vec2 innerOffset = vec2(insetLeft, insetTop);
+
+    vec2 innerSize = max(
+        vSize - vec2(insetLeft + insetRight, insetTop + insetBottom),
+        vec2(0.0)
+    );
+
+    vec2 innerP = p - innerOffset;
+
+    vec4 innerRadius = vec4(
+        max(uCornerRadius.x - max(insetTop, insetLeft), 0.0),
+        max(uCornerRadius.y - max(insetTop, insetRight), 0.0),
+        max(uCornerRadius.z - max(insetBottom, insetRight), 0.0),
+        max(uCornerRadius.w - max(insetBottom, insetLeft), 0.0)
+    );
 
     float innerD = roundedRectSDF(innerP, innerSize, innerRadius);
 
-    outputShape(outerD, innerD);
+    float sideMask = borderSideMask(p, vSize, sides, 2.0);
+
+    outputShape(outerD, innerD, sideMask);
 }

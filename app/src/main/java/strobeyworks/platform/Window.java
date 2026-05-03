@@ -1,4 +1,4 @@
-package strobeyworks;
+package strobeyworks.platform;
 
 import static org.lwjgl.glfw.GLFW.GLFW_CONTEXT_VERSION_MAJOR;
 import static org.lwjgl.glfw.GLFW.GLFW_CONTEXT_VERSION_MINOR;
@@ -38,7 +38,6 @@ import org.lwjgl.opengl.GLCapabilities;
 import strobeyworks.logger.LogColor;
 import strobeyworks.logger.LogColorEnum;
 import strobeyworks.logger.Logger;
-import strobeyworks.render.Renderer;
 
 
 @LogColor(LogColorEnum.PURPLE)

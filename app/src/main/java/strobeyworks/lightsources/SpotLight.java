@@ -1,4 +1,4 @@
-package strobeyworks.Lights;
+package strobeyworks.lightsources;
 
 import org.joml.Matrix4f;
 

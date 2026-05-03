@@ -1,28 +1,24 @@
 package strobeyworks.ui.components;
 
+import static strobeyworks.ui.primitives.UIPair.pch;
+import static strobeyworks.ui.primitives.UIPair.pcw;
+import static strobeyworks.ui.primitives.UIPair.px;
+
+import strobeyworks.SWMain;
+import strobeyworks.logger.Logger;
+import strobeyworks.platform.IOEvent;
+import strobeyworks.platform.IOSubscriber;
+import strobeyworks.ui.UIColors;
 import strobeyworks.ui.primitives.UICircle;
 import strobeyworks.ui.primitives.UIPair;
 import strobeyworks.ui.primitives.UIRectangle;
-import strobeyworks.utils.Vec3;
 
-import static strobeyworks.ui.primitives.UIPair.ph;
-import static strobeyworks.ui.primitives.UIPair.pw;
-import static strobeyworks.ui.primitives.UIPair.px;
-import static strobeyworks.ui.primitives.UIPair.sh;
-import static strobeyworks.ui.primitives.UIPair.sw;
-
-import strobeyworks.Animation;
-import strobeyworks.SWMain;
-import strobeyworks.logger.Logger;
-import strobeyworks.ui.UIColors;
-import strobeyworks.ui.UIIOEvent;
-
-public class UISlider extends UIComponent {
+public class UISlider extends UIComponent implements IOSubscriber {
     
     private UIRectangle rect;
     private UICircle circle;
     
-    private float bounds = 0.95f;
+    private float bounds = 0.99f;
     
     private boolean dragging;
     
@@ -35,24 +31,24 @@ public class UISlider extends UIComponent {
         padding(px(0));
         alignItems(UIAlignItems.CENTER);
         
-        rect = new UIRectangle(pw(1f), ph(1f));
+        rect = new UIRectangle(pcw(1f), pch(1f));
         rect.position(UIPositionMode.FLOW)
         .margin(px(0));
         addChild(rect);
         
         rect.borderColor(UIColors.color(UIColors.GREEN))
-        .color(UIColors.color(UIColors.BLACK))
+        .color(UIColors.color(UIColors.TRANSPARENT))
         .cornerRadius(20f);
         
-        circle = new UICircle(ph(0.9f), ph(0.9f));
+        circle = new UICircle(pch(0.9f), pch(0.9f));
         circle.position(UIPositionMode.ABSOLUTE)
         .margin(px(0))
-        .offsetTop(ph(0.05f))
-        .offsetLeft(ph(0.05f));
+        .offsetTop(pch(0.05f))
+        .offsetLeft(pch(0.05f));
         addChild(circle);
         
         circle.borderColor(UIColors.color(UIColors.GREEN))
-        .color(UIColors.color(UIColors.BLACK))
+        .color(UIColors.color(UIColors.TRANSPARENT))
         .oval(false);
     }
     
@@ -77,12 +73,19 @@ public class UISlider extends UIComponent {
     }
     
     @Override
-    public boolean handleIOEvent(UIIOEvent event) {
+    public void receiveIOEvent(IOEvent event) {
+        handleIOEvent(event);
+    }
+    
+    @Override
+    public boolean handleIOEvent(IOEvent event) {
         switch (event.getEventType()) {
             case LEFT_PRESS :
-            Logger.debug("Slider circle aquired");
-            setValueFromMouse(event.getMouseX());
+            if (dragging) return false;
             dragging = true;
+            event.getIO().subscribe(this);
+
+            setValueFromMouse(event.getMouseX());
             return false;
             
             case DRAG :
@@ -93,9 +96,11 @@ public class UISlider extends UIComponent {
             return true;
             
             case LEFT_RELEASE :
-            Logger.debug("Slider circle released");
-            setValueFromMouse(event.getMouseX());
+            if (!dragging) return false;
             dragging = false;
+            event.getIO().unsubscribe(this);
+            
+            setValueFromMouse(event.getMouseX());
             return false;
             
             default:

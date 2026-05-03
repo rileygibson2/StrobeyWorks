@@ -1,5 +1,6 @@
-package strobeyworks;
+package strobeyworks.platform;
 
+import strobeyworks.SWMain;
 import strobeyworks.logger.Logger;
 import strobeyworks.utils.Vec2;
 

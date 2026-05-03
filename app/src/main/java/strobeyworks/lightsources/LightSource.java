@@ -1,4 +1,4 @@
-package strobeyworks.Lights;
+package strobeyworks.lightsources;
 
 import static org.lwjgl.opengl.GL11.GL_DEPTH_COMPONENT;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;

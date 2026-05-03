@@ -5,8 +5,10 @@ import static org.lwjgl.glfw.GLFW.glfwPollEvents;
 import javax.swing.Timer;
 
 import strobeyworks.logger.Logger;
+import strobeyworks.platform.ShaderManager;
+import strobeyworks.platform.Window;
 import strobeyworks.render.SceneRenderer;
-import strobeyworks.render.UIRenderer;
+import strobeyworks.ui.UIRenderer;
 
 
 public class SWMain {

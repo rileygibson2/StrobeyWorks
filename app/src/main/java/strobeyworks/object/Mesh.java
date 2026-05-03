@@ -13,8 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import strobeyworks.SWMain;
-import strobeyworks.ShaderManager;
 import strobeyworks.logger.Logger;
+import strobeyworks.platform.ShaderManager;
 import strobeyworks.utils.Vec3;
 
 public class Mesh {

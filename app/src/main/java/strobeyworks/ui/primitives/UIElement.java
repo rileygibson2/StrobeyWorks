@@ -8,9 +8,9 @@ import java.util.List;
 import org.joml.Matrix4f;
 
 import strobeyworks.SWMain;
-import strobeyworks.ShaderManager;
 import strobeyworks.logger.Logger;
-import strobeyworks.ui.UIIOEvent;
+import strobeyworks.platform.IOEvent;
+import strobeyworks.platform.ShaderManager;
 
 public abstract class UIElement {
     
@@ -222,12 +222,12 @@ public abstract class UIElement {
     * UI interaction
     */
 
-    public boolean handleIOEvent(UIIOEvent event) {
+    public boolean handleIOEvent(IOEvent event) {
         return true;
     }
     
-    public void eventTraverse(UIIOEvent event) {
-        if (!containsResolved(event.mouseX, event.mouseY)) return;
+    public void eventTraverse(IOEvent event) {
+        if (!containsResolved(event.getMouseX(), event.getMouseY())) return;
         if (!handleIOEvent(event)) return; // Swallow if element requests
         
 
@@ -283,17 +283,10 @@ public abstract class UIElement {
         }
         return elems;
     }
-    
-    public List<UIElement> getPositionModeChildren(UIPositionMode positionMode) {
-        List<UIElement> elems = new ArrayList<>();
-        
-        for (UIElement e : children) {
-            if (e.getPositionMode() != positionMode)
-                continue;
-            elems.add(e);
-            elems.addAll(e.getVisibleChildren());
-        }
-        return elems;
+
+    public UIElement getChildAtIndex(int i) {
+        if (i<0||i>children.size()-1) return null;
+        return children.get(i);
     }
     
     public void markLayoutDirty() {
@@ -503,17 +496,12 @@ public abstract class UIElement {
             }
             
             // Other positioning
-            if (cPosition==UIPositionMode.ABSOLUTE) {
-                c.measuredX = pL+oL;
-                c.measuredY = pT+oT;
-            }
-            
-            if (cPosition==UIPositionMode.SCREEN) {
+            if (cPosition==UIPositionMode.ABSOLUTE || cPosition==UIPositionMode.SCREEN) {
                 c.measuredX = oL;
                 c.measuredY = oT;
             }
             
-            if (cPosition!=UIPositionMode.SCREEN) {
+            if (cPosition==UIPositionMode.FLOW || cPosition==UIPositionMode.FLOW_RELATIVE) {
                 maxX = Math.max(maxX, c.measuredX+c.measuredWidth);
                 maxY = Math.max(maxY, c.measuredY+c.measuredHeight);
             }
@@ -683,19 +671,33 @@ public abstract class UIElement {
             case SCREEN_HEIGHT:
             return pair.value * SWMain.getUIWindow().getHeight();
             
-            case PARENT_WIDTH:
+            case PARENT_CONTENT_WIDTH:
             if (parent == null)
                 return pair.value * SWMain.getUIWindow().getWidth();
             if (parent.getBoxMode() == UIBoxMode.FLEX)
-                Logger.throwException("Cannot use parent units on parent with box mode flex");
+                Logger.throwException("Cannot use parental units on parent with box mode flex");
             return pair.value * parent.getMeasuredContentWidth();
             
-            case PARENT_HEIGHT:
+            case PARENT_CONTENT_HEIGHT:
             if (parent == null)
                 return pair.value * SWMain.getUIWindow().getHeight();
             if (parent.getBoxMode() == UIBoxMode.FLEX)
-                Logger.throwException("Cannot use parent units on parent with box mode flex");
+                Logger.throwException("Cannot use parental units on parent with box mode flex");
             return pair.value * parent.getMeasuredContentHeight();
+
+            case PARENT_BOX_WIDTH:
+            if (parent == null)
+                return pair.value * SWMain.getUIWindow().getWidth();
+            if (parent.getBoxMode() == UIBoxMode.FLEX)
+                Logger.throwException("Cannot use parental units on parent with box mode flex");
+            return pair.value * parent.getMeasuredWidth();
+            
+            case PARENT_BOX_HEIGHT:
+            if (parent == null)
+                return pair.value * SWMain.getUIWindow().getHeight();
+            if (parent.getBoxMode() == UIBoxMode.FLEX)
+                Logger.throwException("Cannot use parental units on parent with box mode flex");
+            return pair.value * parent.getMeasuredHeight();
             
             default:
             return 0f;

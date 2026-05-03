@@ -1,9 +1,22 @@
-package strobeyworks;
+package strobeyworks.platform;
 
-import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
+import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
+import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_RIGHT;
+import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
+import static org.lwjgl.glfw.GLFW.GLFW_RELEASE;
+import static org.lwjgl.glfw.GLFW.glfwGetCursorPos;
+import static org.lwjgl.glfw.GLFW.glfwGetKey;
+import static org.lwjgl.glfw.GLFW.glfwGetMouseButton;
+import static org.lwjgl.glfw.GLFW.glfwSetKeyCallback;
+import static org.lwjgl.glfw.GLFW.glfwSetMouseButtonCallback;
+import static org.lwjgl.glfw.GLFW.glfwSetScrollCallback;
+import static org.lwjgl.glfw.GLFW.glfwSetWindowShouldClose;
 
-import strobeyworks.ui.UIIOEvent;
-import strobeyworks.ui.UIIOEvent.UIIOEventType;
+import java.util.HashSet;
+import java.util.Set;
+
+import strobeyworks.platform.IOEvent.IOEventType;
 
 public class IO {
     
@@ -23,9 +36,20 @@ public class IO {
     public double scrollDX;
     public double scrollDY;
     
+    private Set<IOSubscriber> subscribers;
+    
     public IO(Window parentWindow, long windowID) {
         this.parentWindow = parentWindow;
         this.windowID = windowID;
+        subscribers = new HashSet<>();
+    }
+    
+    public void subscribe(IOSubscriber subscriber) {
+        subscribers.add(subscriber);
+    }
+    
+    public void unsubscribe(IOSubscriber subscriber) {
+        subscribers.remove(subscriber);
     }
     
     public void setupCallbacks() {
@@ -44,26 +68,32 @@ public class IO {
         glfwSetMouseButtonCallback(windowID, (window, button, action, mods) -> {
             double[] mouseX = new double[1];
             double[] mouseY = new double[1];
-            glfwGetCursorPos(window, mouseX, mouseY);
+            glfwGetCursorPos(windowID, mouseX, mouseY);
+            IOEvent event = null;
             
             if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
                 leftPressed = true;
-                
-                parentWindow.getRenderer().handleIOEvent(new UIIOEvent(
-                    UIIOEventType.LEFT_PRESS,
+                event = new IOEvent(
+                    this,
+                    IOEventType.LEFT_PRESS,
                     (float) mouseX[0],
                     (float) mouseY[0]
-                ));
+                );
             }
             
             if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
                 leftPressed = false;
-                
-                parentWindow.getRenderer().handleIOEvent(new UIIOEvent(
-                    UIIOEventType.LEFT_RELEASE,
+                event = new IOEvent(
+                    this,
+                    IOEventType.LEFT_RELEASE,
                     (float) mouseX[0],
                     (float) mouseY[0]
-                ));
+                );
+            }
+            
+            if (event!=null) {
+                parentWindow.getRenderer().handleIOEvent(event);
+                for (IOSubscriber s : subscribers) s.receiveIOEvent(event);
             }
         });
     }
@@ -86,11 +116,14 @@ public class IO {
         rightPressed = glfwGetMouseButton(windowID, GLFW_MOUSE_BUTTON_RIGHT)==GLFW_PRESS;
         
         if (leftPressed && (mouseDX != 0 || mouseDY != 0)) {
-            parentWindow.getRenderer().handleIOEvent(new UIIOEvent(
-                UIIOEventType.DRAG,
+            IOEvent event = new IOEvent(
+                this,
+                IOEventType.DRAG,
                 (float) xPos[0],
                 (float) yPos[0]
-            ));
+            );
+            
+            for (IOSubscriber s : subscribers) s.receiveIOEvent(event);
         }
     }
     
