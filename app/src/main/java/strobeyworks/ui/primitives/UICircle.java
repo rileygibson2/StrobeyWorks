@@ -1,8 +1,9 @@
 package strobeyworks.ui.primitives;
 
+import static strobeyworks.ui.UIColors.col;
+
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.ui.UIColors;
-import strobeyworks.utils.Vec3;
 import strobeyworks.utils.Vec4;
 
 public class UICircle extends UIElement {
@@ -16,14 +17,14 @@ public class UICircle extends UIElement {
     private float borderThickness;
     private boolean oval;
     
-    private Vec4 debugColor = UIColors.color(UIColors.RED);
+    private Vec4 debugColor = col(UIColors.RED);
     private boolean debugEnabled;
     
     public UICircle(UIPair width, UIPair height) {
         super(width, height);
-        color = UIColors.color(UIColors.TRANSPARENT);
+        color = col(UIColors.TRANSPARENT);
         borderEnabled = false;
-        borderColor = UIColors.color(UIColors.WHITE);
+        borderColor = col(UIColors.WHITE);
         borderThickness = 2f;
         oval = true;
         
@@ -32,9 +33,9 @@ public class UICircle extends UIElement {
     
     public UICircle() {
         super();
-        color = UIColors.color(UIColors.TRANSPARENT);
+        color = col(UIColors.TRANSPARENT);
         borderEnabled = false;
-        borderColor = UIColors.color(UIColors.WHITE);
+        borderColor = col(UIColors.WHITE);
         borderThickness = 2f;
         oval = true;
         

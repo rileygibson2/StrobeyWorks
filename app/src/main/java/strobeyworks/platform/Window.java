@@ -134,7 +134,7 @@ public class Window {
         totalTime = 0L;
         totalFrameCount = 0;
         
-        renderer.init();
+        renderer.initialise();
         initialised = true;
     }
     

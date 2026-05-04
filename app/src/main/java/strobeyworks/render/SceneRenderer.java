@@ -27,9 +27,6 @@ import java.util.List;
 import org.joml.Matrix4f;
 
 import strobeyworks.SWMain;
-import strobeyworks.lightsources.DirectionalLight;
-import strobeyworks.lightsources.LightSource;
-import strobeyworks.lightsources.SpotLight;
 import strobeyworks.object.Mesh;
 import strobeyworks.object.Mesh.MeshType;
 import strobeyworks.object.SceneObject;
@@ -37,6 +34,9 @@ import strobeyworks.platform.Animation;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.Renderer;
 import strobeyworks.platform.ShaderManager;
+import strobeyworks.render.lightsources.DirectionalLight;
+import strobeyworks.render.lightsources.LightSource;
+import strobeyworks.render.lightsources.SpotLight;
 import strobeyworks.render.scenes.Scene;
 import strobeyworks.render.scenes.WorkingScene;
 import strobeyworks.utils.MeshStatics;
@@ -44,6 +44,8 @@ import strobeyworks.utils.Vec3;
 
 public class SceneRenderer extends Renderer {
     
+    private static SceneRenderer instance;
+
     private int gridProgram;
     private int objectProgram;
     private int shadowProgram;
@@ -60,24 +62,28 @@ public class SceneRenderer extends Renderer {
     private static final int MAX_SPOT_SHADOWS = 8;
     private static final int MAX_DIRECTIONAL_LIGHTS = 8;
     private static final int MAX_SPOT_LIGHTS = 8;
+
+    public static SceneRenderer getInstance() {
+        if (instance==null) instance = new SceneRenderer();
+        return instance;
+    }
     
-    public SceneRenderer() {
+    private SceneRenderer() {
         camera = new Camera(this);
         scene = new WorkingScene();
         indicatorSphere = ObjLoader.loadMesh("sphere.obj", false, MeshType.SMOOTH_SHADED);
     }
 
-    public void handleIOEvent(IOEvent event) {
-        
-    }
+    @Override
+    public void handleIOEvent(IOEvent event) {}
 
-    public void addAnimation(Animation a) {
-    }
+    @Override
+    public void addAnimation(Animation a) {}
 
-    public void removeAnimation(Animation a) {
-    }
+    @Override
+    public void removeAnimation(Animation a) {}
     
-    public void init() {
+    public void initialise() {
         camera.init();
         scene.init();
 
@@ -311,4 +317,6 @@ public class SceneRenderer extends Renderer {
         sM.bindVAO(0);
         sM.useProgram(0);
     }
+
+    public Scene getScene() {return this.scene;}
 }

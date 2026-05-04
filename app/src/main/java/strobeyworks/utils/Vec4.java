@@ -16,4 +16,6 @@ public class Vec4 {
         this.b = a;
         this.a = a;
     }
+
+    public Vec4 clone() {return new Vec4(this.r, this.g, this.b, this.a);}
 }

@@ -11,6 +11,7 @@ import strobeyworks.SWMain;
 import strobeyworks.logger.Logger;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.ShaderManager;
+import strobeyworks.ui.components.UIComponent;
 
 public abstract class UIElement {
     
@@ -129,6 +130,7 @@ public abstract class UIElement {
     private List<UIElement> children;
     private boolean layoutDirty; // Object layout has changed
     private boolean subtreeDirty; // Composition of subtree has changed
+    private boolean subtreeNeedsInitialising; // Subtree element needs initialising
     
     // Authored values
     private UIBoxMode boxMode;
@@ -189,6 +191,7 @@ public abstract class UIElement {
         
         this.layoutDirty = true;
         this.subtreeDirty = false;
+        this.subtreeNeedsInitialising = false;
         
         children = new ArrayList<>();
         updateModelMatrix();
@@ -221,7 +224,7 @@ public abstract class UIElement {
     /**
     * UI interaction
     */
-
+    
     public boolean handleIOEvent(IOEvent event) {
         return true;
     }
@@ -230,7 +233,7 @@ public abstract class UIElement {
         if (!containsResolved(event.getMouseX(), event.getMouseY())) return;
         if (!handleIOEvent(event)) return; // Swallow if element requests
         
-
+        
         for (UIElement c : children) {
             if (!c.isVisible()) continue;
             c.eventTraverse(event);;
@@ -252,6 +255,7 @@ public abstract class UIElement {
         
         markLayoutDirty();
         markSubtreeDirty();
+        markSubtreeNeedsInitialising();
     }
     
     public void removeChild(UIElement e) {
@@ -283,7 +287,7 @@ public abstract class UIElement {
         }
         return elems;
     }
-
+    
     public UIElement getChildAtIndex(int i) {
         if (i<0||i>children.size()-1) return null;
         return children.get(i);
@@ -291,8 +295,7 @@ public abstract class UIElement {
     
     public void markLayoutDirty() {
         layoutDirty = true;
-        if (parent != null)
-            parent.markLayoutDirty();
+        if (parent != null) parent.markLayoutDirty();
     }
     
     public boolean isLayoutDirty() {
@@ -301,8 +304,7 @@ public abstract class UIElement {
     
     public void markSubtreeDirty() {
         subtreeDirty = true;
-        if (parent != null)
-            parent.markSubtreeDirty();
+        if (parent != null) parent.markSubtreeDirty();
     }
     
     public boolean isSubtreeDirty() {
@@ -311,8 +313,23 @@ public abstract class UIElement {
     
     public void clearSubtreeDirtyMark() {
         subtreeDirty = false;
-        for (UIElement c : children)
-            c.clearSubtreeDirtyMark();
+        for (UIElement c : children) c.clearSubtreeDirtyMark();
+    }
+
+    public void markSubtreeNeedsInitialising() {
+        subtreeNeedsInitialising = true;
+        if (parent!=null) parent.markSubtreeNeedsInitialising();
+    }
+
+    public boolean subtreeNeedsInitialising() {
+        return subtreeNeedsInitialising;
+    }
+    
+    public void initialiseSubtree() {
+        if (this instanceof UIComponent component) component.initialiseIfNeeded();
+        
+        for (UIElement child : children) child.initialiseSubtree();
+        subtreeNeedsInitialising = false;
     }
     
     /**
@@ -684,7 +701,7 @@ public abstract class UIElement {
             if (parent.getBoxMode() == UIBoxMode.FLEX)
                 Logger.throwException("Cannot use parental units on parent with box mode flex");
             return pair.value * parent.getMeasuredContentHeight();
-
+            
             case PARENT_BOX_WIDTH:
             if (parent == null)
                 return pair.value * SWMain.getUIWindow().getWidth();
@@ -963,7 +980,7 @@ public abstract class UIElement {
     public float getMeasuredWidth() {return this.measuredWidth;}
     
     public float getMeasuredHeight() {return this.measuredHeight;}
-
+    
     public float getResolvedX() {return this.resolvedX;}
     
     public float getResolvedY() {return this.resolvedY;}

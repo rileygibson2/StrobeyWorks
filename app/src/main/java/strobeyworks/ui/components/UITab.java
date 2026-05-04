@@ -16,6 +16,7 @@ import strobeyworks.ui.primitives.UIPair;
 import strobeyworks.ui.primitives.UIQuad;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Vec4;
+import static strobeyworks.ui.UIColors.col;
 
 public class UITab extends UIComponent implements IOSubscriber {
     
@@ -33,18 +34,18 @@ public class UITab extends UIComponent implements IOSubscriber {
         flowWrap(false);
         padding(new UIQuad(px(5), px(0), px(0), px(0)));
 
-        color(UIColors.color(UIColors.GRAY_01));
+        color(col(UIColors.GRAY_008));
         cornerRadius(new Vec4(20f, 20f, 0f, 0f));
-        borderColor(UIColors.color(UIColors.GREEN));
+        borderColor(col(UIColors.GREEN));
         borderBottom(false);
         
         for (int i=0; i<numTabs; i++) {
             UIRectangle rect = new UIRectangle(sw(0.12f), pbh(0.9f));
             addChild(rect);
 
-            rect.cornerRadius(new Vec4(15f, 15f, 0f, 0f))
-            .color(UIColors.color(UIColors.TRANSPARENT))
-            .borderColor(UIColors.color(UIColors.GREEN))
+            rect.cornerRadius(new Vec4(10f, 10f, 0f, 0f))
+            .color(col(UIColors.TRANSPARENT))
+            .borderColor(col(UIColors.GREEN))
             .borderBottom(false)
             .marginLeft(sw(0.005f))
             .marginTop(pbh(0.1f));
@@ -53,9 +54,9 @@ public class UITab extends UIComponent implements IOSubscriber {
         elemLeft = new UIRectangle(pcw(0f), pbh(0.2f));
         elemLeft.position(UIPositionMode.ABSOLUTE)
         .offsetTop(pbh(0.8f));
-        elemLeft.color(UIColors.color(UIColors.TRANSPARENT))
+        elemLeft.color(col(UIColors.TRANSPARENT))
         //elemLeft.color(new Vec4(1f, 0f, 0f, 0.2f))
-        .borderColor(UIColors.color(UIColors.GREEN))
+        .borderColor(col(UIColors.GREEN))
         .cornerRadius(new Vec4(0f, 0f, 20f, 0f))
         .borderTop(false)
         .borderLeft(false);
@@ -64,13 +65,18 @@ public class UITab extends UIComponent implements IOSubscriber {
         elemRight = new UIRectangle(pcw(0f), pbh(0.2f));
         elemRight.position(UIPositionMode.ABSOLUTE)
         .offsetTop(pbh(0.8f));
-        elemRight.color(UIColors.color(UIColors.TRANSPARENT))
+        elemRight.color(col(UIColors.TRANSPARENT))
         //elemRight.color(new Vec4(1f, 0f, 0f, 0.2f))
-        .borderColor(UIColors.color(UIColors.GREEN))
+        .borderColor(col(UIColors.GREEN))
         .cornerRadius(new Vec4(0f, 0f, 0f, 20f))
         .borderTop(false)
         .borderRight(false);
         addChild(elemRight);
+    }
+
+    @Override
+    public void initialise() {
+        setTab(1);
     }
 
     public void setTab(int tab) {

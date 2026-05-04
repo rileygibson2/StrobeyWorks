@@ -1,4 +1,4 @@
-package strobeyworks.lightsources;
+package strobeyworks.render.lightsources;
 
 import static org.lwjgl.opengl.GL11.GL_DEPTH_COMPONENT;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
@@ -103,22 +103,33 @@ public abstract class LightSource {
     }
 
     public void enableShadow(boolean enabled) {this.shadowEnabled = enabled;}
+
     public boolean shadowEnabled() {return this.shadowEnabled;}
 
-    public void setColor(Vec3 color) {this.color = color;}
-    public void setRed(float red) {this.color = new Vec3(red, color.y, color.z);}
-    public void setGreen(float green) {this.color = new Vec3(color.x, green, color.z);}
-    public void setBlue(float blue) {this.color = new Vec3(color.x, color.y, blue);}
 
+    public void setColor(Vec3 color) {this.color = color;}
+
+    public void setRed(float red) {this.color.x = red;}
+
+    public void setGreen(float green) {this.color.y = green;}
+
+    public void setBlue(float blue) {this.color.z = blue;}
 
     public void setIntensity(float intensity) {this.intensity = intensity;}
+
     public void setShadowFBO(int fBO) {this.shadowFBO = fBO;}
+
     public void setShadowDepthTexture(int depthTexture) {this.shadowDepthTexture = depthTexture;}
     
     public Vec3 getColor() {return color;}
+
     public float getIntensity() {return intensity;}
+
     public int getShadowFBO() {return this.shadowFBO;}
+
     public int getShadowDepthTexture() {return this.shadowDepthTexture;}
+
     public Matrix4f getLightSpaceMatrix() {return this.lightSpaceMatrix;}
+
     public SceneObject getIndicator() {return this.indicator;}
 }

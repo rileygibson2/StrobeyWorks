@@ -1,9 +1,12 @@
 package strobeyworks.ui;
 
+import static org.lwjgl.opengl.GL11.GL_BLEND;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
+import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
+import static org.lwjgl.opengl.GL11.GL_SRC_ALPHA;
 import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
 import static org.lwjgl.opengl.GL11.glBlendFunc;
 import static org.lwjgl.opengl.GL11.glClear;
@@ -20,16 +23,11 @@ import static org.lwjgl.opengl.GL15.glGenBuffers;
 import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
 import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
-import static strobeyworks.ui.primitives.UIPair.pch;
+import static strobeyworks.ui.UIColors.col;
 import static strobeyworks.ui.primitives.UIPair.pcw;
 import static strobeyworks.ui.primitives.UIPair.px;
 import static strobeyworks.ui.primitives.UIPair.sh;
 import static strobeyworks.ui.primitives.UIPair.sw;
-import static org.lwjgl.opengl.GL11.GL_BLEND;
-import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
-import static org.lwjgl.opengl.GL11.GL_SRC_ALPHA;
-import static org.lwjgl.opengl.GL11.glBlendFunc;
-import static org.lwjgl.opengl.GL11.glEnable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -43,7 +41,10 @@ import strobeyworks.platform.Animation;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.Renderer;
 import strobeyworks.platform.ShaderManager;
-import strobeyworks.platform.Animation.AnimationForm;
+import strobeyworks.render.SceneRenderer;
+import strobeyworks.render.lightsources.LightSource;
+import strobeyworks.render.scenes.Scene;
+import strobeyworks.ui.components.UICheckBox;
 import strobeyworks.ui.components.UISlider;
 import strobeyworks.ui.components.UITab;
 import strobeyworks.ui.primitives.UIElement;
@@ -60,14 +61,15 @@ import strobeyworks.utils.Vec4;
 
 public class UIRenderer extends Renderer {
     
+    private static UIRenderer instance;
+
     private int uiProgram;
     private Matrix4f projectionMatrix;
     
-    float[] quadVertices = {
+    private float[] quadVertices = {
         -0.5f, -0.5f, 0.0f,
         0.5f, -0.5f, 0.0f,
         0.5f,  0.5f, 0.0f,
-        
         0.5f,  0.5f, 0.0f,
         -0.5f,  0.5f, 0.0f,
         -0.5f, -0.5f, 0.0f
@@ -79,7 +81,12 @@ public class UIRenderer extends Renderer {
     
     protected Set<Animation> animations;
     
-    public UIRenderer() {
+    public static UIRenderer getInstance() {
+        if (instance==null) instance = new UIRenderer();
+        return instance;
+    }
+
+    private UIRenderer() {
         visibleUIElements = new ArrayList<>();
         animations = new HashSet<Animation>();
     }
@@ -90,35 +97,54 @@ public class UIRenderer extends Renderer {
         addToRoot(tab);
         
         UIRectangle pane2 = new UIRectangle(sw(1f), sh(0.89f));
-        pane2.color(UIColors.color(UIColors.GRAY_01))
+        pane2.color(col(UIColors.GRAY_008))
         .cornerRadius(new Vec4(0f, 0f, 20f, 20f))
-        .borderColor(UIColors.color(UIColors.GREEN))
+        .borderColor(col(UIColors.GREEN))
         .borderThickness(1.5f)
         .borderTop(false)
         .padding(new UIQuad(px(5)))
         .justifyContent(UIJustifyContent.CENTER)
         .alignItems(UIAlignItems.CENTER)
-        .alignContent(UIAlignContent.CENTER)
+        //.alignContent(UIAlignContent.CENTER)
         .flowDirection(UIFlowDirection.COLUMN)
         .flowWrap(false);
         
         addToRoot(pane2);
         
         List<UISlider> sliders = new ArrayList<>();
-        int num = 8;
+        int num = 4;
         for (int i=0; i<num; i++) {
             UISlider slider = new UISlider(sw(0.9f), sh(0.08f));
             slider.marginTop(px(10));
             pane2.addChild(slider);
             sliders.add(slider);
         }
+
+        UICheckBox checkBox = new UICheckBox(sw(0.1f), sw(0.1f), true);
+        checkBox.marginTop(px(10));
+        pane2.addChild(checkBox);
+
+        Scene scene = SceneRenderer.getInstance().getScene();
+        LightSource spot = scene.getSpotLights().get(0);
+        Vec3 c = spot.getColor();
+        sliders.get(0).setValue(spot.getIntensity());
+        sliders.get(1).setValue(c.x);
+        sliders.get(2).setValue(c.y);
+        sliders.get(3).setValue(c.z);
+        checkBox.setValue(spot.shadowEnabled());
         
-        Animation a = new Animation(num, (i, value) -> {
-            sliders.get(i).setValue(value);
+        sliders.get(0).setValueChangedCallback((v) -> {spot.setIntensity(v);});
+        sliders.get(1).setValueChangedCallback((v) -> {spot.setRed(v);});
+        sliders.get(2).setValueChangedCallback((v) -> {spot.setGreen(v);});
+        sliders.get(3).setValueChangedCallback((v) -> {spot.setBlue(v);});
+        checkBox.setValueChangedCallback((v) -> {spot.enableShadow(v);});
+        
+        Animation a = new Animation(3, (i, value) -> {
+            sliders.get(i+1).userSetValue(value);
         });
-        a.setWidth(0.5f);
+        a.setWidth(1f);
         a.setSpeed(0.2f);
-        a.setPhase(0f, 0.2f);
+        //a.setPhase(0f, 0.2f);
         SWMain.getUIWindow().getRenderer().addAnimation(a);
         
     }
@@ -126,20 +152,20 @@ public class UIRenderer extends Renderer {
     public void addToRoot(UIElement e) {
         rootUIElement.addChild(e);
     }
+
+    public void handleIOEvent(IOEvent event) {
+        if (rootUIElement==null) return;
+        rootUIElement.eventTraverse(event);
+    }
     
     public void rebuildVisibleElementList() {
         visibleUIElements = rootUIElement.getVisibleChildren();
         rootUIElement.clearSubtreeDirtyMark();
     }
     
-    public void handleIOEvent(IOEvent event) {
-        if (rootUIElement==null) return;
-        rootUIElement.eventTraverse(event);
-    }
-    
-    public void init() {
+    public void initialise() {
         rootUIElement = new UIRectangle(sw(1f), sh(1f));
-        ((UIRectangle) rootUIElement).color(UIColors.color(UIColors.BLACK))
+        ((UIRectangle) rootUIElement).color(col(UIColors.BLACK))
         .position(UIPositionMode.SCREEN)
         .box(UIBoxMode.FIXED)
         .flowDirection(UIFlowDirection.COLUMN);
@@ -184,11 +210,23 @@ public class UIRenderer extends Renderer {
             rootUIElement.layoutMeasure();
             rootUIElement.layoutAdvance(rootUIElement.getMeasuredX(), rootUIElement.getMeasuredY());
         }
-        if (rootUIElement.isSubtreeDirty()) rebuildVisibleElementList();
+        
+        if (rootUIElement.isSubtreeDirty()) {
+            rebuildVisibleElementList();
+            rootUIElement.clearSubtreeDirtyMark();
+        }
+        
+        if (rootUIElement.subtreeNeedsInitialising()) {
+            rootUIElement.initialiseSubtree();
+            if (rootUIElement.isLayoutDirty()) {
+                rootUIElement.layoutMeasure();
+                rootUIElement.layoutAdvance(rootUIElement.getMeasuredX(), rootUIElement.getMeasuredY());
+            }
+        }
         
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
+        
         glClearColor(0f, 0f, 0f, 1f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glDisable(GL_DEPTH_TEST);

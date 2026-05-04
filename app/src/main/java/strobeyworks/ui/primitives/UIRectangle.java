@@ -1,8 +1,9 @@
 package strobeyworks.ui.primitives;
 
+import static strobeyworks.ui.UIColors.col;
+
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.ui.UIColors;
-import strobeyworks.utils.Vec3;
 import strobeyworks.utils.Vec4;
 
 public class UIRectangle extends UIElement {
@@ -20,16 +21,16 @@ public class UIRectangle extends UIElement {
     private boolean borderTop;
     private boolean borderBottom;
     
-    private Vec4 debugColor = UIColors.color(UIColors.RED);
+    private Vec4 debugColor = col(UIColors.RED);
     private boolean debugEnabled;
     
     public UIRectangle(UIPair width, UIPair height) {
         super(width, height);
-        color = UIColors.color(UIColors.TRANSPARENT);
+        color = col(UIColors.TRANSPARENT);
         cornerRadius = new Vec4(0f);
         
         borderEnabled = false;
-        borderColor = UIColors.color(UIColors.WHITE);
+        borderColor = col(UIColors.WHITE);
         borderThickness = 2f;
         borderLeft = true;
         borderRight = true;
@@ -41,11 +42,11 @@ public class UIRectangle extends UIElement {
     
     public UIRectangle() {
         super();
-        color = UIColors.color(UIColors.TRANSPARENT);
+        color = col(UIColors.TRANSPARENT);
         cornerRadius = new Vec4(0f);
         
         borderEnabled = false;
-        borderColor = UIColors.color(UIColors.WHITE);
+        borderColor = col(UIColors.WHITE);
         borderThickness = 2f;
         borderLeft = true;
         borderRight = true;
@@ -83,6 +84,11 @@ public class UIRectangle extends UIElement {
         this.cornerRadius = cornerRadii;
         return this;
     }
+
+    public UIRectangle cornerRadius(float topLeft, float topRight, float bottomRight, float bottomLeft) {
+        this.cornerRadius = new Vec4(topLeft, topRight, bottomRight, bottomLeft);
+        return this;
+    }
     
     public UIRectangle cornerRadius(float cornerRadius) {
         this.cornerRadius = new Vec4(cornerRadius);
@@ -102,6 +108,7 @@ public class UIRectangle extends UIElement {
     
     public UIRectangle borderThickness(float borderThickness) {
         this.borderThickness = borderThickness;
+        enableBorder(true);
         return this;
     }
     
@@ -129,4 +136,6 @@ public class UIRectangle extends UIElement {
         this.debugEnabled = debugEnabled;
         return this;
     }
+
+    public Vec4 getColor() {return this.color;}
 }

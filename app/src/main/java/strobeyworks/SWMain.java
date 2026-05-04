@@ -14,6 +14,7 @@ import strobeyworks.ui.UIRenderer;
 public class SWMain {
     
     private static SWMain instance;
+
     private static Window renderWindow;
     private static Window uiWindow;
     private static ShaderManager shaderManager;
@@ -25,12 +26,12 @@ public class SWMain {
     private static long totalFrameCount;
     private static boolean running;
     
-    private SWMain() {}
-    
     public static SWMain getInstance() {
         if (instance==null) instance = new SWMain();
         return instance;
     }
+
+    private SWMain() {}
     
     public static ShaderManager getShaderManager() {return shaderManager;}
     
@@ -42,10 +43,10 @@ public class SWMain {
         Logger.info("Setting up");
         shaderManager = new ShaderManager();
         
-        renderWindow = new Window(new SceneRenderer(), 1500, 900, "Render");
+        renderWindow = new Window(SceneRenderer.getInstance(), 1500, 900, "Render");
         renderWindow.init();
         
-        uiWindow = new Window(new UIRenderer(), 500, 500, "UI");
+        uiWindow = new Window(UIRenderer.getInstance(), 500, 500, "UI");
         uiWindow.init();
     }
     

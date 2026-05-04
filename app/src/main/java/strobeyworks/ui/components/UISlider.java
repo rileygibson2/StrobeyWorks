@@ -1,22 +1,22 @@
 package strobeyworks.ui.components;
 
+import static strobeyworks.ui.UIColors.col;
 import static strobeyworks.ui.primitives.UIPair.pch;
 import static strobeyworks.ui.primitives.UIPair.pcw;
 import static strobeyworks.ui.primitives.UIPair.px;
 
-import strobeyworks.SWMain;
-import strobeyworks.logger.Logger;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.IOSubscriber;
 import strobeyworks.ui.UIColors;
 import strobeyworks.ui.primitives.UICircle;
 import strobeyworks.ui.primitives.UIPair;
 import strobeyworks.ui.primitives.UIRectangle;
+import strobeyworks.utils.Utils;
 
-public class UISlider extends UIComponent implements IOSubscriber {
+public class UISlider extends UIInteractableComponent<Float> implements IOSubscriber {
     
-    private UIRectangle rect;
     private UICircle circle;
+    private UIRectangle fRect;
     
     private float bounds = 0.99f;
     
@@ -24,6 +24,7 @@ public class UISlider extends UIComponent implements IOSubscriber {
     
     public UISlider(UIPair width, UIPair height) {
         super(width, height);
+        this.value = 0f;
         
         box(UIBoxMode.FIXED);
         flowDirection(UIFlowDirection.ROW);
@@ -31,45 +32,72 @@ public class UISlider extends UIComponent implements IOSubscriber {
         padding(px(0));
         alignItems(UIAlignItems.CENTER);
         
-        rect = new UIRectangle(pcw(1f), pch(1f));
-        rect.position(UIPositionMode.FLOW)
-        .margin(px(0));
-        addChild(rect);
+        // Main box
         
-        rect.borderColor(UIColors.color(UIColors.GREEN))
-        .color(UIColors.color(UIColors.TRANSPARENT))
-        .cornerRadius(20f);
+        borderColor(col(UIColors.GREEN));
+        color(col(UIColors.GRAY_008));
+        cornerRadius(20f);
         
+        // Following circle
         circle = new UICircle(pch(0.9f), pch(0.9f));
         circle.position(UIPositionMode.ABSOLUTE)
         .margin(px(0))
         .offsetTop(pch(0.05f))
         .offsetLeft(pch(0.05f));
-        addChild(circle);
         
-        circle.borderColor(UIColors.color(UIColors.GREEN))
-        .color(UIColors.color(UIColors.TRANSPARENT))
+        circle.borderColor(col(UIColors.GREEN))
+        .color(col(UIColors.GRAY_008))
         .oval(false);
+
+        UICircle c2 = new UICircle(pcw(0.8f), pch(0.8f));
+        c2.position(UIPositionMode.ABSOLUTE)
+        .offsetTop(pcw(0.1f))
+        .offsetLeft(pch(0.1f));
+        
+        c2.borderColor(col(UIColors.GREEN))
+        .color(col(UIColors.GRAY_008))
+        .oval(false);
+
+        fRect = new UIRectangle(pcw(0f), pch(1f));
+        fRect.position(UIPositionMode.ABSOLUTE);
+        
+        fRect.color(col(UIColors.GREEN))
+        .cornerRadius(100f, 0f, 0f, 20f);
+
+        addChild(fRect);
+        addChild(circle);
+        circle.addChild(c2);
+    }
+
+    @Override
+    public void initialise() {
+        valueUpdated();
     }
     
-    public UISlider setValue(float value) {
-        value = Math.max(Math.min(value, 1f), 0f);
-        
+    @Override
+    public void valueUpdated() {
         float offset = (1-bounds)*0.5f;
-        float rectW = rect.resolveLocal(rect.getWidth());
+        float parentW = resolveLocal(getWidth());
         float circW = circle.resolveLocal(circle.getWidth());
-        float travel = rectW-circW;
+        float fullTravel = parentW-circW;
         
-        float v = offset*travel+value*(travel*bounds);
-        circle.offsetLeft(px(v));
-        return this;
+        float cV = offset*fullTravel+value*(fullTravel*bounds);
+        circle.offsetLeft(px(cV));
+
+        float rV = value*fullTravel*bounds+circW*0.5f;
+        fRect.width(px(rV));
+
+        float a = Utils.smoothFalloffBefore(0.05f, value);
+        fRect.getColor().a = a;
+
+        Math.pow(2, 2);
     }
     
     private void setValueFromMouse(float mouseX) {
         float localX = mouseX - getResolvedX();
         float value = localX / getResolvedWidth();
         
-        setValue(value);
+        userSetValue(Math.max(Math.min(value, 1f), 0f));
     }
     
     @Override

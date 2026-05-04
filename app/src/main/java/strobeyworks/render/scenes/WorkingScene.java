@@ -1,13 +1,13 @@
 package strobeyworks.render.scenes;
 
 import strobeyworks.SWMain;
-import strobeyworks.lightsources.DirectionalLight;
-import strobeyworks.lightsources.LightSource;
-import strobeyworks.lightsources.SpotLight;
 import strobeyworks.object.Mesh;
 import strobeyworks.object.Mesh.MeshType;
 import strobeyworks.platform.Animation;
 import strobeyworks.render.ObjLoader;
+import strobeyworks.render.lightsources.DirectionalLight;
+import strobeyworks.render.lightsources.LightSource;
+import strobeyworks.render.lightsources.SpotLight;
 import strobeyworks.object.SceneObject;
 import strobeyworks.utils.Vec2;
 import strobeyworks.utils.Vec3;

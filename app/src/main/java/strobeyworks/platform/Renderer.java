@@ -4,9 +4,9 @@ public abstract class Renderer {
     
     private Window parentWindow;
 
-    public Renderer() {}
+    protected Renderer() {}
 
-    public abstract void init();
+    public abstract void initialise();
     public abstract void render();
 
     public abstract void handleIOEvent(IOEvent event);
