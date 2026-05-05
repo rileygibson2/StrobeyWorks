@@ -1,40 +1,51 @@
 package strobeyworks.ui.components;
 
-import strobeyworks.ui.primitives.UIPair;
+import strobeyworks.ui.core.UIPair;
+import strobeyworks.utils.Bindable;
+import strobeyworks.utils.BindableObserver;
 
-public abstract class UIInteractableComponent<T> extends UIComponent {
+public abstract class UIInteractableComponent<T> extends UIComponent implements BindableObserver<T> {
     
-    protected T value;
-
-    @FunctionalInterface
-    public interface UIInteractableCallback<T> {
-        void implement(T value);
-    }
-
-    private UIInteractableCallback<T> valueChangedCallback;
-
+    private Bindable<T> boundValue;
+    private T localValue;
+    
     public UIInteractableComponent(UIPair width, UIPair height) {
         super(width, height);
     }
-
+    
     public UIInteractableComponent() {
         super();
     }
-
-    public abstract void valueUpdated();
-
-    public void userSetValue(T value) {
-        this.value = value;
-        valueUpdated();
-        if (valueChangedCallback!=null) valueChangedCallback.implement(value);
-    }
-
+    
+    protected abstract void implementValue();
+    
     public void setValue(T value) {
-        this.value = value;
-        valueUpdated();
+        if (isBound()) boundValue.setValue(value);
+        else {
+            localValue = value;
+            implementValue();
+        }
     }
-
-    public void setValueChangedCallback(UIInteractableCallback<T> valueChangedCallback) {
-        this.valueChangedCallback = valueChangedCallback;
+    
+    public T getValue() {
+        if (isBound()) return boundValue.getValue();
+        return localValue;
+    }
+    
+    @Override
+    public void bindableValueChanged(Bindable<T> v) {
+        implementValue();
+    }
+    
+    public void bindTo(Bindable<T> bindable) {
+        if (boundValue != null) boundValue.unbind(this);
+        this.boundValue = bindable;
+        boundValue.bind(this);
+        
+        if (isInitialised()) implementValue();
+    }
+    
+    public boolean isBound() {
+        return this.boundValue!=null;
     }
 }

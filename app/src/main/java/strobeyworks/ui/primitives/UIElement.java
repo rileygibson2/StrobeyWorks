@@ -1,6 +1,6 @@
 package strobeyworks.ui.primitives;
 
-import static strobeyworks.ui.primitives.UIPair.px;
+import static strobeyworks.ui.core.UIPair.px;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +12,12 @@ import strobeyworks.logger.Logger;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.ui.components.UIComponent;
+import strobeyworks.ui.core.UIColors;
+import strobeyworks.ui.core.UIPair;
+import strobeyworks.ui.core.UIQuad;
+import strobeyworks.utils.Vec4;
+
+import static strobeyworks.ui.core.UIColors.col;
 
 public abstract class UIElement {
     
@@ -167,6 +173,9 @@ public abstract class UIElement {
     private float measuredHeight;
     
     private UIClickCallback clickCallback;
+
+    private Vec4 debugColor = col(UIColors.RED);
+    private boolean debugEnabled;
     
     // Functional
     private Matrix4f modelMatrix;
@@ -192,6 +201,8 @@ public abstract class UIElement {
         this.layoutDirty = true;
         this.subtreeDirty = false;
         this.subtreeNeedsInitialising = false;
+
+        this.debugEnabled = false;
         
         children = new ArrayList<>();
         updateModelMatrix();
@@ -214,12 +225,17 @@ public abstract class UIElement {
         
         this.layoutDirty = true;
         this.subtreeDirty = false;
+
+        this.debugEnabled = false;
         
         children = new ArrayList<>();
         updateModelMatrix();
     }
     
-    public abstract void setRenderUniforms(ShaderManager sM);
+    public void setRenderUniforms(ShaderManager sM) {
+        sM.setUniformVec4("uDebugColor", debugColor);
+        sM.setUniformInt("uDebugEnabled", debugEnabled ? 1 : 0);
+    }
     
     /**
     * UI interaction
@@ -692,28 +708,28 @@ public abstract class UIElement {
             if (parent == null)
                 return pair.value * SWMain.getUIWindow().getWidth();
             if (parent.getBoxMode() == UIBoxMode.FLEX)
-                Logger.throwException("Cannot use parental units on parent with box mode flex");
+                Logger.throwRuntimeException("Cannot use parental units on parent with box mode flex");
             return pair.value * parent.getMeasuredContentWidth();
             
             case PARENT_CONTENT_HEIGHT:
             if (parent == null)
                 return pair.value * SWMain.getUIWindow().getHeight();
             if (parent.getBoxMode() == UIBoxMode.FLEX)
-                Logger.throwException("Cannot use parental units on parent with box mode flex");
+                Logger.throwRuntimeException("Cannot use parental units on parent with box mode flex");
             return pair.value * parent.getMeasuredContentHeight();
             
             case PARENT_BOX_WIDTH:
             if (parent == null)
                 return pair.value * SWMain.getUIWindow().getWidth();
             if (parent.getBoxMode() == UIBoxMode.FLEX)
-                Logger.throwException("Cannot use parental units on parent with box mode flex");
+                Logger.throwRuntimeException("Cannot use parental units on parent with box mode flex");
             return pair.value * parent.getMeasuredWidth();
             
             case PARENT_BOX_HEIGHT:
             if (parent == null)
                 return pair.value * SWMain.getUIWindow().getHeight();
             if (parent.getBoxMode() == UIBoxMode.FLEX)
-                Logger.throwException("Cannot use parental units on parent with box mode flex");
+                Logger.throwRuntimeException("Cannot use parental units on parent with box mode flex");
             return pair.value * parent.getMeasuredHeight();
             
             default:
@@ -930,14 +946,14 @@ public abstract class UIElement {
     }
     
     public UIElement width(UIPair width) {
-        if (boxMode==UIBoxMode.FLEX) Logger.throwException("Cannot set width of box in UIBoxMode Flex");
+        if (boxMode==UIBoxMode.FLEX) Logger.throwRuntimeException("Cannot set width of box in UIBoxMode Flex");
         this.width = width;
         markLayoutDirty();
         return this;
     }
     
     public UIElement height(UIPair height) {
-        if (boxMode==UIBoxMode.FLEX) Logger.throwException("Cannot set height of box in UIBoxMode Flex");
+        if (boxMode==UIBoxMode.FLEX) Logger.throwRuntimeException("Cannot set height of box in UIBoxMode Flex");
         this.height = height;
         markLayoutDirty();
         return this;
@@ -946,6 +962,11 @@ public abstract class UIElement {
     public UIElement visible(boolean visible) {
         this.visible = visible;
         markSubtreeDirty();
+        return this;
+    }
+
+    public UIElement enableDebugColor(boolean debugEnabled) {
+        this.debugEnabled = debugEnabled;
         return this;
     }
     

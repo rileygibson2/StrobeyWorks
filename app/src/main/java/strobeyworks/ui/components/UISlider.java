@@ -1,15 +1,15 @@
 package strobeyworks.ui.components;
 
-import static strobeyworks.ui.UIColors.col;
-import static strobeyworks.ui.primitives.UIPair.pch;
-import static strobeyworks.ui.primitives.UIPair.pcw;
-import static strobeyworks.ui.primitives.UIPair.px;
+import static strobeyworks.ui.core.UIColors.col;
+import static strobeyworks.ui.core.UIPair.pch;
+import static strobeyworks.ui.core.UIPair.pcw;
+import static strobeyworks.ui.core.UIPair.px;
 
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.IOSubscriber;
-import strobeyworks.ui.UIColors;
+import strobeyworks.ui.core.UIColors;
+import strobeyworks.ui.core.UIPair;
 import strobeyworks.ui.primitives.UICircle;
-import strobeyworks.ui.primitives.UIPair;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Utils;
 
@@ -17,14 +17,12 @@ public class UISlider extends UIInteractableComponent<Float> implements IOSubscr
     
     private UICircle circle;
     private UIRectangle fRect;
-    
     private float bounds = 0.99f;
     
     private boolean dragging;
     
     public UISlider(UIPair width, UIPair height) {
         super(width, height);
-        this.value = 0f;
         
         box(UIBoxMode.FIXED);
         flowDirection(UIFlowDirection.ROW);
@@ -71,11 +69,13 @@ public class UISlider extends UIInteractableComponent<Float> implements IOSubscr
 
     @Override
     public void initialise() {
-        valueUpdated();
+        if (!isBound()) setValue(0f);
+        else implementValue();
     }
     
     @Override
-    public void valueUpdated() {
+    protected void implementValue() {
+        float value = getValue();
         float offset = (1-bounds)*0.5f;
         float parentW = resolveLocal(getWidth());
         float circW = circle.resolveLocal(circle.getWidth());
@@ -97,7 +97,7 @@ public class UISlider extends UIInteractableComponent<Float> implements IOSubscr
         float localX = mouseX - getResolvedX();
         float value = localX / getResolvedWidth();
         
-        userSetValue(Math.max(Math.min(value, 1f), 0f));
+        setValue(Math.max(Math.min(value, 1f), 0f));
     }
     
     @Override

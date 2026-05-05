@@ -2,6 +2,7 @@ package strobeyworks.render.lightsources;
 
 import org.joml.Matrix4f;
 
+import strobeyworks.utils.Bindable;
 import strobeyworks.utils.Vec3;
 
 public class DirectionalLight extends LightSource {

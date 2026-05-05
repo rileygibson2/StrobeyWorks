@@ -67,8 +67,12 @@ public class Logger {
         System.err.println(LogColorEnum.YELLOW.ansi+"[WARNING] ["+getCaller().getSimpleName()+"]: "+m+LogColorEnum.RESET.ansi);
     }
 
-    public static void throwException(String m) {
+    public static void throwRuntimeException(String m) {
         throw new RuntimeException("["+getCaller().getSimpleName()+"]: "+m);
+    }
+
+    public static void throwRuntimeException(String m, Exception e) {
+        throw new RuntimeException("["+getCaller().getSimpleName()+"]: "+m, e);
     }
     
     public static void ln() {System.out.println();}

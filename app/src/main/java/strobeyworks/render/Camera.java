@@ -33,7 +33,7 @@ public class Camera {
         fov = 60f;
     }
 
-    public void init() {
+    public void initialise() {
         updateMatrices();
     }
     

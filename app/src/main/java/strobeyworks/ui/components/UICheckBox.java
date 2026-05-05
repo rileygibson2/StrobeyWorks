@@ -1,18 +1,17 @@
 package strobeyworks.ui.components;
 
-import static strobeyworks.ui.UIColors.col;
-import static strobeyworks.ui.primitives.UIPair.pch;
-import static strobeyworks.ui.primitives.UIPair.pcw;
-import static strobeyworks.ui.primitives.UIPair.pbh;
-import static strobeyworks.ui.primitives.UIPair.pbw;
+import static strobeyworks.ui.core.UIColors.col;
+import static strobeyworks.ui.core.UIPair.pbh;
+import static strobeyworks.ui.core.UIPair.pbw;
+import static strobeyworks.ui.core.UIPair.pch;
+import static strobeyworks.ui.core.UIPair.pcw;
 
-import strobeyworks.logger.Logger;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.IOSubscriber;
-import strobeyworks.ui.UIColors;
+import strobeyworks.ui.core.UIColors;
+import strobeyworks.ui.core.UIPair;
 import strobeyworks.ui.primitives.UICircle;
 import strobeyworks.ui.primitives.UIElement;
-import strobeyworks.ui.primitives.UIPair;
 import strobeyworks.ui.primitives.UIRectangle;
 
 public class UICheckBox extends UIInteractableComponent<Boolean> implements IOSubscriber {
@@ -21,7 +20,6 @@ public class UICheckBox extends UIInteractableComponent<Boolean> implements IOSu
     
     public UICheckBox(UIPair width, UIPair height, boolean circular) {
         super(width, height);
-        this.value = false;
         
         box(UIBoxMode.FIXED);
         flowDirection(UIFlowDirection.ROW);
@@ -62,12 +60,13 @@ public class UICheckBox extends UIInteractableComponent<Boolean> implements IOSu
     
     @Override
     public void initialise() {
-        valueUpdated();
+        if (!isBound()) setValue(false);
+        else implementValue();
     }
-    
+
     @Override
-    public void valueUpdated() {
-        inner.visible(value);
+    protected void implementValue() {
+        inner.visible(getValue());
     }
     
     @Override
@@ -79,7 +78,8 @@ public class UICheckBox extends UIInteractableComponent<Boolean> implements IOSu
     public boolean handleIOEvent(IOEvent event) {
         switch (event.getEventType()) {
             case LEFT_PRESS :
-            userSetValue(!value);
+            setValue(!getValue());
+            return false;
             
             default:
             return true;

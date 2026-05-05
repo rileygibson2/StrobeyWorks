@@ -10,6 +10,7 @@ public abstract class Renderer {
     public abstract void render();
 
     public abstract void handleIOEvent(IOEvent event);
+    public abstract void handleWindowResize();
 
     public abstract void addAnimation(Animation a);
     public abstract void removeAnimation(Animation a);

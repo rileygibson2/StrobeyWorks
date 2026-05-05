@@ -1,9 +1,10 @@
 package strobeyworks.ui.primitives;
 
-import static strobeyworks.ui.UIColors.col;
+import static strobeyworks.ui.core.UIColors.col;
 
 import strobeyworks.platform.ShaderManager;
-import strobeyworks.ui.UIColors;
+import strobeyworks.ui.core.UIColors;
+import strobeyworks.ui.core.UIPair;
 import strobeyworks.utils.Vec4;
 
 public class UICircle extends UIElement {
@@ -42,6 +43,7 @@ public class UICircle extends UIElement {
         debugEnabled = false;
     }
     
+    @Override
     public void setRenderUniforms(ShaderManager sM) {
         sM.setUniformInt("uPrimType", oval ? PRIM_TYPE_OVAL : PRIM_TYPE_CIRCLE);
         sM.setUniformVec4("uColor", color);
@@ -50,8 +52,7 @@ public class UICircle extends UIElement {
         sM.setUniformVec4("uBorderColor", borderColor);
         sM.setUniformFloat("uBorderThickness", borderThickness);
         
-        sM.setUniformVec4("uDebugColor", debugColor);
-        sM.setUniformInt("uDebugEnabled", debugEnabled ? 1 : 0);
+        super.setRenderUniforms(sM);
     }
     
     public UICircle color(Vec4 color) {

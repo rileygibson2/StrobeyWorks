@@ -40,7 +40,7 @@ public abstract class Scene {
         specularShininess = 32f;
     }
 
-    public abstract void init();
+    public abstract void initialise();
 
     public void update() {
         for (Animation a : animations) a.trigger();

@@ -1,6 +1,6 @@
 package strobeyworks.ui.components;
 
-import strobeyworks.ui.primitives.UIPair;
+import strobeyworks.ui.core.UIPair;
 import strobeyworks.ui.primitives.UIRectangle;
 
 public abstract class UIComponent extends UIRectangle {

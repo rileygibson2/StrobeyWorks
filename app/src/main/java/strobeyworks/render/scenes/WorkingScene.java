@@ -23,7 +23,8 @@ public class WorkingScene extends Scene {
         super();
     }
     
-    public void init() {
+    @Override
+    public void initialise() {
         LightSource light = new DirectionalLight(
             new Vec3(-1f, -0.2f, 0f),
             lightColor,

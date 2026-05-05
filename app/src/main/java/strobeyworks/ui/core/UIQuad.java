@@ -1,4 +1,4 @@
-package strobeyworks.ui.primitives;
+package strobeyworks.ui.core;
 
 public class UIQuad {
     

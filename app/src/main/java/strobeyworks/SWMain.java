@@ -44,12 +44,11 @@ public class SWMain {
         shaderManager = new ShaderManager();
         
         renderWindow = new Window(SceneRenderer.getInstance(), 1500, 900, "Render");
-        renderWindow.init();
+        renderWindow.initialise();
         
         uiWindow = new Window(UIRenderer.getInstance(), 500, 500, "UI");
-        uiWindow.init();
+        uiWindow.initialise();
     }
-    
     
     private void start() {
         lastTime = System.nanoTime();

@@ -1,9 +1,10 @@
 package strobeyworks.ui.primitives;
 
-import static strobeyworks.ui.UIColors.col;
+import static strobeyworks.ui.core.UIColors.col;
 
 import strobeyworks.platform.ShaderManager;
-import strobeyworks.ui.UIColors;
+import strobeyworks.ui.core.UIColors;
+import strobeyworks.ui.core.UIPair;
 import strobeyworks.utils.Vec4;
 
 public class UIRectangle extends UIElement {
@@ -21,9 +22,6 @@ public class UIRectangle extends UIElement {
     private boolean borderTop;
     private boolean borderBottom;
     
-    private Vec4 debugColor = col(UIColors.RED);
-    private boolean debugEnabled;
-    
     public UIRectangle(UIPair width, UIPair height) {
         super(width, height);
         color = col(UIColors.TRANSPARENT);
@@ -36,8 +34,6 @@ public class UIRectangle extends UIElement {
         borderRight = true;
         borderTop = true;
         borderBottom = true;
-        
-        debugEnabled = false;
     }
     
     public UIRectangle() {
@@ -52,8 +48,6 @@ public class UIRectangle extends UIElement {
         borderRight = true;
         borderTop = true;
         borderBottom = true;
-        
-        debugEnabled = false;
     }
     
     public void setRenderUniforms(ShaderManager sM) {
@@ -71,8 +65,7 @@ public class UIRectangle extends UIElement {
             borderLeft ? 1f : 0f
         ));
         
-        sM.setUniformVec4("uDebugColor", debugColor);
-        sM.setUniformInt("uDebugEnabled", debugEnabled ? 1 : 0);
+        super.setRenderUniforms(sM);
     }
     
     public UIRectangle color(Vec4 color) {
@@ -129,11 +122,6 @@ public class UIRectangle extends UIElement {
     
     public UIRectangle borderBottom(boolean borderBottom) {
         this.borderBottom = borderBottom;
-        return this;
-    }
-    
-    public UIRectangle enableDebugColor(boolean debugEnabled) {
-        this.debugEnabled = debugEnabled;
         return this;
     }
 

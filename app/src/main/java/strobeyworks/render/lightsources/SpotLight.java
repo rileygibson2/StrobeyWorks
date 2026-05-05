@@ -2,6 +2,7 @@ package strobeyworks.render.lightsources;
 
 import org.joml.Matrix4f;
 
+import strobeyworks.utils.Bindable;
 import strobeyworks.utils.Utils;
 import strobeyworks.utils.Vec3;
 

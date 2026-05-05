@@ -77,7 +77,7 @@ public class Window {
         renderer.setParentWindow(this);
     }
     
-    public void init() {
+    public void initialise() {
         // print GLFW errors to stderr
         GLFWErrorCallback.createPrint(System.err).set();
         
@@ -128,6 +128,7 @@ public class Window {
             this.width = w;
             this.height = h;
             glViewport(0, 0, w, h);
+            if (renderer!=null) renderer.handleWindowResize();
         });
         
         lastFrameTime = System.nanoTime();

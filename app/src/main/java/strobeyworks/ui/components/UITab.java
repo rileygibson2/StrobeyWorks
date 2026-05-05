@@ -1,22 +1,22 @@
 package strobeyworks.ui.components;
 
-import static strobeyworks.ui.primitives.UIPair.pch;
-import static strobeyworks.ui.primitives.UIPair.pcw;
-import static strobeyworks.ui.primitives.UIPair.pbh;
-import static strobeyworks.ui.primitives.UIPair.pbw;
-import static strobeyworks.ui.primitives.UIPair.px;
-import static strobeyworks.ui.primitives.UIPair.sw;
+import static strobeyworks.ui.core.UIColors.col;
+import static strobeyworks.ui.core.UIPair.pbh;
+import static strobeyworks.ui.core.UIPair.pbw;
+import static strobeyworks.ui.core.UIPair.pch;
+import static strobeyworks.ui.core.UIPair.pcw;
+import static strobeyworks.ui.core.UIPair.px;
+import static strobeyworks.ui.core.UIPair.sw;
 
 import strobeyworks.logger.Logger;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.IOSubscriber;
-import strobeyworks.ui.UIColors;
+import strobeyworks.ui.core.UIColors;
+import strobeyworks.ui.core.UIPair;
+import strobeyworks.ui.core.UIQuad;
 import strobeyworks.ui.primitives.UIElement;
-import strobeyworks.ui.primitives.UIPair;
-import strobeyworks.ui.primitives.UIQuad;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Vec4;
-import static strobeyworks.ui.UIColors.col;
 
 public class UITab extends UIComponent implements IOSubscriber {
     

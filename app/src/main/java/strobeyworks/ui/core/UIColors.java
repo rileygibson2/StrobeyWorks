@@ -1,4 +1,4 @@
-package strobeyworks.ui;
+package strobeyworks.ui.core;
 
 import strobeyworks.utils.Vec4;
 

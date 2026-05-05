@@ -78,14 +78,17 @@ public class SceneRenderer extends Renderer {
     public void handleIOEvent(IOEvent event) {}
 
     @Override
+    public void handleWindowResize() {}
+
+    @Override
     public void addAnimation(Animation a) {}
 
     @Override
     public void removeAnimation(Animation a) {}
     
     public void initialise() {
-        camera.init();
-        scene.init();
+        camera.initialise();
+        scene.initialise();
 
         camera.setPosition(new Vec3(0.4f, 5.9f, 6.8f));
         camera.setOrientation(-93f, -32f, 66f);
@@ -155,8 +158,8 @@ public class SceneRenderer extends Renderer {
             SceneObject indicator = light.getIndicator();
             sM.setUniformMat4("uModel", indicator.getModelMatrix());
             sM.setUniformVec3("uObjectColor", indicator.getColor());
-            sM.setUniformFloat("uIntensity", light.getIntensity());
-            sM.setUniformVec3("uColor", light.getColor());
+            sM.setUniformFloat("uIntensity", light.getIntensity().getValue());
+            sM.setUniformVec3("uColor", light.getColorVec3());
             
             Mesh m = indicator.getMesh();
             sM.bindVAO(m.getVAO());
@@ -175,7 +178,7 @@ public class SceneRenderer extends Renderer {
         int dirCount = Math.min(scene.getDirectionalLights().size(), MAX_DIRECTIONAL_SHADOWS);
         for (int i = 0; i < dirCount; i++) {
             DirectionalLight light = scene.getDirectionalLights().get(i);
-            if (!light.shadowEnabled()||light.getIntensity()<0) continue;
+            if (!light.shadowEnabled()||light.getIntensity().getValue()<0) continue;
             
             glBindFramebuffer(GL_FRAMEBUFFER, light.getShadowFBO());
             glClear(GL_DEPTH_BUFFER_BIT);
@@ -197,7 +200,7 @@ public class SceneRenderer extends Renderer {
         int spotCount = Math.min(scene.getSpotLights().size(), MAX_SPOT_SHADOWS);
         for (int i = 0; i < spotCount; i++) {
             SpotLight light = scene.getSpotLights().get(i);
-            if (!light.shadowEnabled()||light.getIntensity()<0) continue;
+            if (!light.shadowEnabled()||light.getIntensity().getValue()<0) continue;
             
             glBindFramebuffer(GL_FRAMEBUFFER, light.getShadowFBO());
             glClear(GL_DEPTH_BUFFER_BIT);
@@ -249,8 +252,8 @@ public class SceneRenderer extends Renderer {
             DirectionalLight light = directionalLights.get(i);
             
             sM.setUniformVec3("uDirectionalLights[" + i + "].direction", light.getDirection());
-            sM.setUniformVec3("uDirectionalLights[" + i + "].color", light.getColor());
-            sM.setUniformFloat("uDirectionalLights[" + i + "].intensity", light.getIntensity());
+            sM.setUniformVec3("uDirectionalLights[" + i + "].color", light.getColorVec3());
+            sM.setUniformFloat("uDirectionalLights[" + i + "].intensity", light.getIntensity().getValue());
             
             sM.setUniformMat4("uDirectionalLightSpaceMatrices[" + i + "]", light.getLightSpaceMatrix());
             sM.setUniformInt("uDirectionalShadowEnabled[" + i + "]", light.shadowEnabled() ? 1 : 0);
@@ -272,8 +275,8 @@ public class SceneRenderer extends Renderer {
             
             sM.setUniformVec3("uSpotLights[" + i + "].position", light.getPosition());
             sM.setUniformVec3("uSpotLights[" + i + "].direction", light.getDirection());
-            sM.setUniformVec3("uSpotLights[" + i + "].color", light.getColor());
-            sM.setUniformFloat("uSpotLights[" + i + "].intensity", light.getIntensity());
+            sM.setUniformVec3("uSpotLights[" + i + "].color", light.getColorVec3());
+            sM.setUniformFloat("uSpotLights[" + i + "].intensity", light.getIntensity().getValue());
             
             sM.setUniformFloat("uSpotLights[" + i + "].innerCutoffCos", light.getInnerCutoffCos());
             sM.setUniformFloat("uSpotLights[" + i + "].outerCutoffCos", light.getOuterCutoffCos());
