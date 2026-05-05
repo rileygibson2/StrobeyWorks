@@ -73,31 +73,55 @@ public class Animation {
         setPhase(0f, 1f);
     }
     
-    public void setNumElements(int numElems) {
+    public Animation setNumElements(int numElems) {
         this.numElems = numElems;
         calculatePhases();
+        return this;
     }
 
-    public void setCallback(AnimationCallback callback) {this.callback = callback;}
+    public Animation setCallback(AnimationCallback callback) {
+        this.callback = callback;
+        return this;
+    }
 
-    public void setForm(AnimationForm form) {this.form = form;}
+    public Animation setForm(AnimationForm form) {
+        this.form = form;
+        return this;
+    }
 
-    public void setWidth(float width) {this.width = width;}
+    public Animation setWidth(float width) {
+        this.width = width;
+        return this;
+    }
     
-    public void setSpeed(float speed) {this.speed = speed;}
+    public Animation setSpeed(float speed) {
+        this.speed = speed;
+        return this;
+    }
+
+    public Animation setBPM(float bpm) {
+        this.speed = bpm/60f;
+        return this;
+    }
     
-    public void setPhase(float phaseLow, float phaseHigh) {
+    public Animation setPhase(float phaseLow, float phaseHigh) {
         this.phaseLow = phaseLow;
         this.phaseHigh = phaseHigh;
         calculatePhases();
+        return this;
     }
 
-    public void setMinMax(float minVal, float maxVal) {
+    public Animation setMinMax(float minVal, float maxVal) {
         this.minVal = minVal;
         this.maxVal = maxVal;
+        return this;
     }
 
-    public void shufflePhase() {shuffle(phases);}
+    public Animation shufflePhase() {
+        calculatePhases();
+        shuffle(phases);
+        return this;
+    }
     
     private void calculatePhases() {
         float pLow = phaseLow*TWOPI;

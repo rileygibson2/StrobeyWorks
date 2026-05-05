@@ -7,6 +7,7 @@ import static strobeyworks.ui.core.UIPair.px;
 
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.IOSubscriber;
+import strobeyworks.platform.IOEvent.IOEventType;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIPair;
 import strobeyworks.ui.primitives.UICircle;
@@ -70,11 +71,11 @@ public class UISlider extends UIInteractableComponent<Float> implements IOSubscr
     @Override
     public void initialise() {
         if (!isBound()) setValue(0f);
-        else implementValue();
+        else implementValueOnUI();
     }
     
     @Override
-    protected void implementValue() {
+    protected void implementValueOnUI() {
         float value = getValue();
         float offset = (1-bounds)*0.5f;
         float parentW = resolveLocal(getWidth());
@@ -111,7 +112,7 @@ public class UISlider extends UIInteractableComponent<Float> implements IOSubscr
             case LEFT_PRESS :
             if (dragging) return false;
             dragging = true;
-            event.getIO().subscribe(this);
+            event.getIO().subscribe(IOEventType.DRAG, this);
 
             setValueFromMouse(event.getMouseX());
             return false;
@@ -126,7 +127,7 @@ public class UISlider extends UIInteractableComponent<Float> implements IOSubscr
             case LEFT_RELEASE :
             if (!dragging) return false;
             dragging = false;
-            event.getIO().unsubscribe(this);
+            event.getIO().unsubscribe(IOEventType.DRAG, this);
             
             setValueFromMouse(event.getMouseX());
             return false;

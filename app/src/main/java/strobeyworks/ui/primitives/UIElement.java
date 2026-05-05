@@ -245,14 +245,14 @@ public abstract class UIElement {
         return true;
     }
     
-    public void eventTraverse(IOEvent event) {
+    public void ioEventTraverse(IOEvent event) {
         if (!containsResolved(event.getMouseX(), event.getMouseY())) return;
         if (!handleIOEvent(event)) return; // Swallow if element requests
         
         
         for (UIElement c : children) {
             if (!c.isVisible()) continue;
-            c.eventTraverse(event);;
+            c.ioEventTraverse(event);;
         }
     }
     
@@ -443,10 +443,16 @@ public abstract class UIElement {
         //Set fixed box w and h and wrap limits
         if (boxMode==UIBoxMode.FIXED) {
             float w = resolveLocal(width);
+            float h = resolveLocal(height);
+
+            // Text special case
+            if (this instanceof UIText) {
+                w = ((UIText) this).getResolvedTextWidth();
+                h = ((UIText) this).getResolvedTextHeight();
+            }
+
             if (minWidth!=null) w = Math.max(w, resolveLocal(minWidth));
             measuredWidth = w;
-            
-            float h = resolveLocal(height);
             if (minHeight!=null) h = Math.max(h, resolveLocal(minHeight));
             measuredHeight = h;
             

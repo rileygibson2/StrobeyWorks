@@ -8,11 +8,13 @@ import static org.lwjgl.glfw.GLFW.GLFW_RELEASE;
 import static org.lwjgl.glfw.GLFW.glfwGetCursorPos;
 import static org.lwjgl.glfw.GLFW.glfwGetKey;
 import static org.lwjgl.glfw.GLFW.glfwGetMouseButton;
+import static org.lwjgl.glfw.GLFW.glfwSetCharCallback;
 import static org.lwjgl.glfw.GLFW.glfwSetKeyCallback;
 import static org.lwjgl.glfw.GLFW.glfwSetMouseButtonCallback;
 import static org.lwjgl.glfw.GLFW.glfwSetScrollCallback;
 import static org.lwjgl.glfw.GLFW.glfwSetWindowShouldClose;
 
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -36,20 +38,26 @@ public class IO {
     public double scrollDX;
     public double scrollDY;
     
-    private Set<IOSubscriber> subscribers;
+    private EnumMap<IOEventType, Set<IOSubscriber>> subscribers;
     
     public IO(Window parentWindow, long windowID) {
         this.parentWindow = parentWindow;
         this.windowID = windowID;
-        subscribers = new HashSet<>();
+        
+        subscribers = new EnumMap<>(IOEventType.class);
+        for (IOEventType type : IOEventType.values()) subscribers.put(type, new HashSet<>());
     }
     
-    public void subscribe(IOSubscriber subscriber) {
-        subscribers.add(subscriber);
+    public void subscribe(IOEventType eventType, IOSubscriber subscriber) {
+        subscribers.get(eventType).add(subscriber);
     }
     
-    public void unsubscribe(IOSubscriber subscriber) {
-        subscribers.remove(subscriber);
+    public void unsubscribe(IOEventType eventType, IOSubscriber subscriber) {
+        subscribers.get(eventType).remove(subscriber);
+    }
+    
+    private void publish(IOEvent event) {
+        for (IOSubscriber s : subscribers.get(event.getEventType())) s.receiveIOEvent(event);
     }
     
     public void setupCallbacks() {
@@ -58,7 +66,15 @@ public class IO {
             if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
                 glfwSetWindowShouldClose(win, true);
             }
+            
+            if (action == GLFW_PRESS) publish(IOEvent.keyDown(this, key));
+            if (action == GLFW_RELEASE) publish(IOEvent.keyUp(this, key));
         });
+        
+        glfwSetCharCallback(windowID, (win, codepoint) -> {
+            publish(IOEvent.charTyped(this, (int) codepoint));
+        });
+        
         
         glfwSetScrollCallback(windowID, (win, xOffset, yOffset) -> {
             scrollDX += xOffset;
@@ -69,32 +85,17 @@ public class IO {
             double[] mouseX = new double[1];
             double[] mouseY = new double[1];
             glfwGetCursorPos(windowID, mouseX, mouseY);
-            IOEvent event = null;
             
             if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
                 leftPressed = true;
-                event = new IOEvent(
-                    this,
-                    IOEventType.LEFT_PRESS,
-                    (float) mouseX[0],
-                    (float) mouseY[0]
-                );
+                publish(IOEvent.leftPress(this, (float) mouseX[0], (float) mouseY[0]));
             }
             
             if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
                 leftPressed = false;
-                event = new IOEvent(
-                    this,
-                    IOEventType.LEFT_RELEASE,
-                    (float) mouseX[0],
-                    (float) mouseY[0]
-                );
+                publish(IOEvent.leftRelease(this, (float) mouseX[0], (float) mouseY[0]));
             }
             
-            if (event!=null) {
-                parentWindow.getRenderer().handleIOEvent(event);
-                for (IOSubscriber s : subscribers) s.receiveIOEvent(event);
-            }
         });
     }
     
@@ -116,14 +117,7 @@ public class IO {
         rightPressed = glfwGetMouseButton(windowID, GLFW_MOUSE_BUTTON_RIGHT)==GLFW_PRESS;
         
         if (leftPressed && (mouseDX != 0 || mouseDY != 0)) {
-            IOEvent event = new IOEvent(
-                this,
-                IOEventType.DRAG,
-                (float) xPos[0],
-                (float) yPos[0]
-            );
-            
-            for (IOSubscriber s : subscribers) s.receiveIOEvent(event);
+            publish(IOEvent.drag(this, (float) xPos[0], (float) yPos[0]));
         }
     }
     

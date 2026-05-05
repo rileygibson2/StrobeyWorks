@@ -17,16 +17,21 @@ import static org.lwjgl.opengl.GL11.glTexParameteri;
 import static org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE;
 import static org.lwjgl.stb.STBTruetype.stbtt_BakeFontBitmap;
 import static org.lwjgl.stb.STBTruetype.stbtt_GetBakedQuad;
+import static org.lwjgl.stb.STBTruetype.stbtt_GetFontVMetrics;
+import static org.lwjgl.stb.STBTruetype.stbtt_InitFont;
+import static org.lwjgl.stb.STBTruetype.stbtt_ScaleForPixelHeight;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.stb.STBTTAlignedQuad;
 import org.lwjgl.stb.STBTTBakedChar;
+import org.lwjgl.stb.STBTTFontinfo;
 import org.lwjgl.system.MemoryStack;
 
 import strobeyworks.logger.Logger;
@@ -42,6 +47,14 @@ public class UIFont {
     private int charCount;
     private float fontSize;
     
+    private STBTTFontinfo fontInfo;
+    private ByteBuffer fontBuffer;
+    
+    private float ascent;
+    private float descent;
+    private float lineGap;
+    private float lineHeight;
+    
     public void loadFromTTF(String fontName, float fontSize) {
         this.fontSize = fontSize;
         
@@ -51,7 +64,30 @@ public class UIFont {
         this.charCount = 96;
         
         try {
-            ByteBuffer fontBuffer = loadFontResourceToByteBuffer(fontName);
+            fontBuffer = loadFontResourceToByteBuffer(fontName);
+            
+            fontInfo = STBTTFontinfo.create();
+            
+            if (!stbtt_InitFont(fontInfo, fontBuffer)) {
+                throw new RuntimeException("Failed to init font: " + fontName);
+            }
+            
+            try (MemoryStack stack = MemoryStack.stackPush()) {
+                IntBuffer ascentBuf = stack.mallocInt(1);
+                IntBuffer descentBuf = stack.mallocInt(1);
+                IntBuffer lineGapBuf = stack.mallocInt(1);
+                
+                stbtt_GetFontVMetrics(fontInfo, ascentBuf, descentBuf, lineGapBuf);
+                
+                float scale = stbtt_ScaleForPixelHeight(fontInfo, fontSize);
+                
+                ascent = ascentBuf.get(0) * scale;
+                descent = descentBuf.get(0) * scale;
+                lineGap = lineGapBuf.get(0) * scale;
+                
+                lineHeight = ascent - descent + lineGap;
+            }
+            
             ByteBuffer atlasBitmap = BufferUtils.createByteBuffer(atlasWidth * atlasHeight);
             
             glyphData = STBTTBakedChar.malloc(charCount);
@@ -98,6 +134,7 @@ public class UIFont {
             Logger.throwRuntimeException("Could not load font: " + fontName, e);
         }
     }
+    
     
     public float[] buildTextVertices(String text, float x, float y) {
         ArrayList<Float> vertices = new ArrayList<>();
@@ -173,6 +210,35 @@ public class UIFont {
         vertices.add(v);
     }
     
+    public float measureTextWidth(String text) {
+        float width = 0f;
+        
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            
+            if (c < firstChar || c >= firstChar + charCount) {
+                continue;
+            }
+            
+            STBTTBakedChar glyph = glyphData.get(c - firstChar);
+            width += glyph.xadvance();
+        }
+        
+        return width;
+    }
+    
+    public float measureTextHeight(String text) {
+        int lineCount = 1;
+        
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == '\n') {
+                lineCount++;
+            }
+        }
+        
+        return lineCount * lineHeight;
+    }
+    
     
     
     private ByteBuffer loadFontResourceToByteBuffer(String fontName) throws IOException {
@@ -205,4 +271,25 @@ public class UIFont {
     public int getFirstChar() {
         return firstChar;
     }
+    
+    public float getFontSize() {
+        return this.fontSize;
+    }
+    
+    public float getAscent() {
+        return ascent;
+    }
+    
+    public float getDescent() {
+        return descent;
+    }
+    
+    public float getLineGap() {
+        return lineGap;
+    }
+    
+    public float getLineHeight() {
+        return lineHeight;
+    }
+    
 }

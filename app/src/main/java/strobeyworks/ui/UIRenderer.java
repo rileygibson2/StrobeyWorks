@@ -17,6 +17,7 @@ import static org.lwjgl.opengl.GL11.glEnable;
 import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
 import static org.lwjgl.opengl.GL13.glActiveTexture;
 import static org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER;
+import static org.lwjgl.opengl.GL15.GL_DYNAMIC_DRAW;
 import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
 import static org.lwjgl.opengl.GL15.glBufferData;
 import static org.lwjgl.opengl.GL15.glGenBuffers;
@@ -28,8 +29,6 @@ import static strobeyworks.ui.core.UIPair.pcw;
 import static strobeyworks.ui.core.UIPair.px;
 import static strobeyworks.ui.core.UIPair.sh;
 import static strobeyworks.ui.core.UIPair.sw;
-import static org.lwjgl.opengl.GL15.GL_DYNAMIC_DRAW;
-
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -49,6 +48,7 @@ import strobeyworks.render.scenes.Scene;
 import strobeyworks.ui.components.UICheckBox;
 import strobeyworks.ui.components.UISlider;
 import strobeyworks.ui.components.UITab;
+import strobeyworks.ui.components.UITextInput;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.core.UIQuad;
@@ -101,7 +101,7 @@ public class UIRenderer extends Renderer {
     
     private void buildTest() {
         UIFont font = new UIFont();
-        font.loadFromTTF("RobotoMono-Medium.ttf", 20f);
+        font.loadFromTTF("RobotoMono-Medium.ttf", 30f);
         
         UITab tab = new UITab(pcw(1f), sh(0.1f), 5);
         tab.marginTop(px(2));
@@ -121,12 +121,14 @@ public class UIRenderer extends Renderer {
         .flowWrap(false);
         
         addToRoot(pane2);
-
-        UIText text = new UIText(sw(0.3f), sh(0.3f), font, "Hello");
-        text.color(col(UIColors.GREEN));
-        text.enableDebugColor(true);
-        pane2.addChild(text);
         
+        UITextInput<String> text = new UITextInput<>(sw(0.4f), sh(0.2f), font);
+        text.borderColor(col(UIColors.GREEN))
+        .cornerRadius(10f);
+        text.setText("Hello");
+
+        pane2.addChild(text);
+
         List<UISlider> sliders = new ArrayList<>();
         int num = 4;
         for (int i=0; i<num; i++) {
@@ -163,9 +165,9 @@ public class UIRenderer extends Renderer {
         rootUIElement.addChild(e);
     }
     
-    public void handleIOEvent(IOEvent event) {
+    public void receiveIOEvent(IOEvent event) {
         if (rootUIElement==null) return;
-        rootUIElement.eventTraverse(event);
+        rootUIElement.ioEventTraverse(event);
     }
     
     @Override
@@ -281,11 +283,13 @@ public class UIRenderer extends Renderer {
     
     private void renderText(ShaderManager sM, UIText tE) {
         UIFont font = tE.getFont();
+        float baselineY = tE.getResolvedY() + font.getAscent();
+
         
         float[] vertices = font.buildTextVertices(
             tE.getText(),
             tE.getResolvedX(),
-            tE.getResolvedY()
+            baselineY
         );
         
         sM.useProgram(textProgram);

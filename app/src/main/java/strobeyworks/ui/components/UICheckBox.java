@@ -61,11 +61,11 @@ public class UICheckBox extends UIInteractableComponent<Boolean> implements IOSu
     @Override
     public void initialise() {
         if (!isBound()) setValue(false);
-        else implementValue();
+        else implementValueOnUI();
     }
 
     @Override
-    protected void implementValue() {
+    protected void implementValueOnUI() {
         inner.visible(getValue());
     }
     

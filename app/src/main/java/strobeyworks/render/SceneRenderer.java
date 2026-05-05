@@ -75,7 +75,7 @@ public class SceneRenderer extends Renderer {
     }
 
     @Override
-    public void handleIOEvent(IOEvent event) {}
+    public void receiveIOEvent(IOEvent event) {}
 
     @Override
     public void handleWindowResize() {}

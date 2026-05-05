@@ -20,24 +20,31 @@ public class Logger {
 
     public static boolean verbose() {return verbose;}
     
-    public static void info(String m) {
+    public static void info(Object message) {
+        String m = String.valueOf(message);
         Class<?> caller = getCaller();
         String col = getColorFor(caller);
         if (col==null) {col = LogColorEnum.GREEN.ansi;}
         System.out.println(col+"["+caller.getSimpleName()+"]: "+m+LogColorEnum.RESET.ansi);
     }
     
-    private static void debug(String callerName, String m) {
+    private static void debug(Object callerName, String message) {
+        String m = String.valueOf(message);
         System.out.println(LogColorEnum.YELLOW.ansi+"[DEBUG] ["+callerName+"]: "+m+LogColorEnum.RESET.ansi);
     }
 
-    public static void debug(String m) {debug(getCaller().getSimpleName(), m);}
+    public static void debug(Object message) {
+        String m = String.valueOf(message);
+        debug(getCaller().getSimpleName(), m);
+    }
 
-    public static void debugAt(long t, String m) {
+    public static void debugAt(long t, Object message) {
+        String m = String.valueOf(message);
         if (SWMain.getTotalFrameCount()==t) debug(getCaller().getSimpleName(), m);
     }
 
-    public static void debugAtInterval(long i, String m) {
+    public static void debugAtInterval(long i, Object message) {
+        String m = String.valueOf(message);
         if (SWMain.getTotalFrameCount()%i==0) debug(getCaller().getSimpleName(), m);
     }
 
@@ -59,19 +66,23 @@ public class Logger {
         debug(getCaller().getSimpleName(), s+"]");
     }
     
-    public static void error(String m) {
+    public static void error(Object message) {
+        String m = String.valueOf(message);
         System.err.println(LogColorEnum.RED.ansi+"[ERROR] ["+getCaller().getSimpleName()+"]: "+m+LogColorEnum.RESET.ansi);
     }
 
-    public static void warn(String m) {
+    public static void warn(Object message) {
+        String m = String.valueOf(message);
         System.err.println(LogColorEnum.YELLOW.ansi+"[WARNING] ["+getCaller().getSimpleName()+"]: "+m+LogColorEnum.RESET.ansi);
     }
 
-    public static void throwRuntimeException(String m) {
+    public static void throwRuntimeException(Object message) {
+        String m = String.valueOf(message);
         throw new RuntimeException("["+getCaller().getSimpleName()+"]: "+m);
     }
 
-    public static void throwRuntimeException(String m, Exception e) {
+    public static void throwRuntimeException(Object message, Exception e) {
+        String m = String.valueOf(message);
         throw new RuntimeException("["+getCaller().getSimpleName()+"]: "+m, e);
     }
     

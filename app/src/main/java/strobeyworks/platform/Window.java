@@ -38,6 +38,7 @@ import org.lwjgl.opengl.GLCapabilities;
 import strobeyworks.logger.LogColor;
 import strobeyworks.logger.LogColorEnum;
 import strobeyworks.logger.Logger;
+import strobeyworks.platform.IOEvent.IOEventType;
 
 
 @LogColor(LogColorEnum.PURPLE)
@@ -93,13 +94,17 @@ public class Window {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         
-        // Create window and setup IO
+        // Create window
         windowID = glfwCreateWindow(width, height, title, NULL, NULL);
         if (windowID == NULL) {
             throw new RuntimeException("Failed to create GLFW window");
         }
+
+        // Setup IO
+
         io = new IO(this, windowID);
         io.setupCallbacks();
+        for (IOEventType type : IOEventType.values()) io.subscribe(type, renderer);
         
         // Center the window on the main monitor
         long monitor = glfwGetPrimaryMonitor();

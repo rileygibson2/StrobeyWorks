@@ -17,13 +17,13 @@ public abstract class UIInteractableComponent<T> extends UIComponent implements 
         super();
     }
     
-    protected abstract void implementValue();
+    protected abstract void implementValueOnUI();
     
     public void setValue(T value) {
         if (isBound()) boundValue.setValue(value);
         else {
             localValue = value;
-            implementValue();
+            implementValueOnUI();
         }
     }
     
@@ -34,7 +34,7 @@ public abstract class UIInteractableComponent<T> extends UIComponent implements 
     
     @Override
     public void bindableValueChanged(Bindable<T> v) {
-        implementValue();
+        implementValueOnUI();
     }
     
     public void bindTo(Bindable<T> bindable) {
@@ -42,7 +42,7 @@ public abstract class UIInteractableComponent<T> extends UIComponent implements 
         this.boundValue = bindable;
         boundValue.bind(this);
         
-        if (isInitialised()) implementValue();
+        if (isInitialised()) implementValueOnUI();
     }
     
     public boolean isBound() {
