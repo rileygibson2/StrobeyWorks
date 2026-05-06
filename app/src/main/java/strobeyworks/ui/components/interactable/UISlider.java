@@ -1,4 +1,4 @@
-package strobeyworks.ui.components;
+package strobeyworks.ui.components.interactable;
 
 import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UIPair.pch;
@@ -14,7 +14,7 @@ import strobeyworks.ui.primitives.UICircle;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Utils;
 
-public class UISlider extends UIInteractableComponent<Float> implements IOSubscriber {
+public class UISlider<T> extends UIInteractableComponent<T, Float> implements IOSubscriber {
     
     private UICircle circle;
     private UIRectangle fRect;
@@ -23,7 +23,7 @@ public class UISlider extends UIInteractableComponent<Float> implements IOSubscr
     private boolean dragging;
     
     public UISlider(UIPair width, UIPair height) {
-        super(width, height);
+        super(width, height, null);
         
         box(UIBoxMode.FIXED);
         flowDirection(UIFlowDirection.ROW);
@@ -69,14 +69,13 @@ public class UISlider extends UIInteractableComponent<Float> implements IOSubscr
     }
 
     @Override
-    public void initialise() {
-        if (!isBound()) setValue(0f);
-        else implementValueOnUI();
+    protected Float getDefaultLocalValue() {
+        return 0f;
     }
     
     @Override
-    protected void implementValueOnUI() {
-        float value = getValue();
+    protected void implementLocalValueOnUI() {
+        float value = getLocalValue();
         float offset = (1-bounds)*0.5f;
         float parentW = resolveLocal(getWidth());
         float circW = circle.resolveLocal(circle.getWidth());
@@ -98,7 +97,7 @@ public class UISlider extends UIInteractableComponent<Float> implements IOSubscr
         float localX = mouseX - getResolvedX();
         float value = localX / getResolvedWidth();
         
-        setValue(Math.max(Math.min(value, 1f), 0f));
+        setLocalValue(Math.max(Math.min(value, 1f), 0f));
     }
     
     @Override

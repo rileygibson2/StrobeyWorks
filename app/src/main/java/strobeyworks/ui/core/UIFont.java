@@ -215,16 +215,32 @@ public class UIFont {
         
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
-            
-            if (c < firstChar || c >= firstChar + charCount) {
-                continue;
-            }
+            if (c < firstChar || c >= firstChar + charCount) continue;
             
             STBTTBakedChar glyph = glyphData.get(c - firstChar);
             width += glyph.xadvance();
         }
         
         return width;
+    }
+
+    public int getCursorIndexAt(String text, float x) {
+        if (x<=0f) return 0;
+
+        float cursorX = 0f;
+        
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c < firstChar || c >= firstChar + charCount) continue;
+            
+            STBTTBakedChar glyph = glyphData.get(c - firstChar);
+            float advance = glyph.xadvance();
+
+            if (x<cursorX+glyph.xadvance()*0.5f) return i;
+            cursorX += advance;
+        }
+        
+        return text.length();
     }
     
     public float measureTextHeight(String text) {

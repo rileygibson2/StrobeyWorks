@@ -1,4 +1,4 @@
-package strobeyworks.ui.components;
+package strobeyworks.ui.components.interactable;
 
 import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UIPair.pbh;
@@ -14,12 +14,12 @@ import strobeyworks.ui.primitives.UICircle;
 import strobeyworks.ui.primitives.UIElement;
 import strobeyworks.ui.primitives.UIRectangle;
 
-public class UICheckBox extends UIInteractableComponent<Boolean> implements IOSubscriber {
+public class UICheckBox extends UIInteractableComponent<Boolean, Boolean> implements IOSubscriber {
     
     private UIElement inner;
     
     public UICheckBox(UIPair width, UIPair height, boolean circular) {
-        super(width, height);
+        super(width, height, null);
         
         box(UIBoxMode.FIXED);
         flowDirection(UIFlowDirection.ROW);
@@ -57,16 +57,15 @@ public class UICheckBox extends UIInteractableComponent<Boolean> implements IOSu
             addChild(inner);
         }
     }
-    
+
     @Override
-    public void initialise() {
-        if (!isBound()) setValue(false);
-        else implementValueOnUI();
+    protected Boolean getDefaultLocalValue() {
+        return false;
     }
 
     @Override
-    protected void implementValueOnUI() {
-        inner.visible(getValue());
+    protected void implementLocalValueOnUI() {
+        inner.visible(getLocalValue());
     }
     
     @Override
@@ -78,7 +77,7 @@ public class UICheckBox extends UIInteractableComponent<Boolean> implements IOSu
     public boolean handleIOEvent(IOEvent event) {
         switch (event.getEventType()) {
             case LEFT_PRESS :
-            setValue(!getValue());
+            setLocalValue(!getLocalValue());
             return false;
             
             default:

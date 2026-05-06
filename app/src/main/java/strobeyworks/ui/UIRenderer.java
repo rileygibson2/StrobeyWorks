@@ -45,10 +45,10 @@ import strobeyworks.platform.ShaderManager;
 import strobeyworks.render.SceneRenderer;
 import strobeyworks.render.lightsources.LightSource;
 import strobeyworks.render.scenes.Scene;
-import strobeyworks.ui.components.UICheckBox;
-import strobeyworks.ui.components.UISlider;
 import strobeyworks.ui.components.UITab;
-import strobeyworks.ui.components.UITextInput;
+import strobeyworks.ui.components.interactable.UICheckBox;
+import strobeyworks.ui.components.interactable.UISlider;
+import strobeyworks.ui.components.interactable.UITextInput;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.core.UIQuad;
@@ -125,11 +125,11 @@ public class UIRenderer extends Renderer {
         UITextInput<String> text = new UITextInput<>(sw(0.4f), sh(0.2f), font);
         text.borderColor(col(UIColors.GREEN))
         .cornerRadius(10f);
-        text.setText("Hello");
+        text.setLocalValue("Hello");
 
         pane2.addChild(text);
 
-        List<UISlider> sliders = new ArrayList<>();
+        List<UISlider<Float>> sliders = new ArrayList<>();
         int num = 4;
         for (int i=0; i<num; i++) {
             UISlider slider = new UISlider(sw(0.9f), sh(0.08f));
@@ -152,7 +152,7 @@ public class UIRenderer extends Renderer {
         checkBox.bindTo(spot.getShadowEnabled());
         
         Animation a = new Animation(3, (i, value) -> {
-            sliders.get(i+1).setValue(value);
+            sliders.get(i+1).setLocalValue(value);
         });
         a.setWidth(1f);
         a.setSpeed(0.2f);
