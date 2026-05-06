@@ -1,5 +1,13 @@
 package strobeyworks.utils;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+
+import org.lwjgl.BufferUtils;
+
+import strobeyworks.ui.core.UIFont;
+
 public final class Utils {
     private Utils() {}
     
@@ -65,7 +73,26 @@ public final class Utils {
     
     public static float roundToDp(float value, int dp) {
         float scale = (float) Math.pow(10, dp);
-        return Math.round(value * scale) / scale;
+        return Math.round(value*scale)/scale;
     }
     
+    public static boolean isWhole(float value) {
+        return Math.abs(value-Math.round(value))<0.000001f;
+    }
+    
+    public static ByteBuffer loadResourceToByteBuffer(String resourcePath) throws IOException {
+        try (InputStream in = UIFont.class.getResourceAsStream(resourcePath)) {
+            if (in == null) {
+                throw new IOException("Font resource not found: " + resourcePath);
+            }
+            
+            byte[] bytes = in.readAllBytes();
+            
+            ByteBuffer buffer = BufferUtils.createByteBuffer(bytes.length);
+            buffer.put(bytes);
+            buffer.flip();
+            
+            return buffer;
+        }
+    }
 }

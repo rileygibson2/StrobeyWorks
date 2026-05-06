@@ -5,23 +5,19 @@ import strobeyworks.ui.core.UIPair;
 import strobeyworks.utils.Bindable;
 import strobeyworks.utils.BindableObserver;
 
-public abstract class UIInteractableComponent<B, L> extends UIComponent implements BindableObserver<B> {
+public abstract class UIInteractableComponent<E, L> extends UIComponent implements BindableObserver<E> {
 
-    private UIInteractableAdaptor<B, L> adaptor;
-    private Bindable<B> boundValue;
+    private UIValueAdaptor<E, L> adaptor;
+    private Bindable<E> binding;
     private L localValue;
     
-    public UIInteractableComponent(UIPair width, UIPair height, UIInteractableAdaptor<B, L> adaptor) {
+    public UIInteractableComponent(UIPair width, UIPair height, UIValueAdaptor<E, L> adaptor) {
         super(width, height);
         this.adaptor = adaptor;
     }
     
-    public UIInteractableComponent(UIInteractableAdaptor<B, L> adaptor) {
+    public UIInteractableComponent(UIValueAdaptor<E, L> adaptor) {
         super();  
-        this.adaptor = adaptor;
-    }
-
-    protected void setAdaptor(UIInteractableAdaptor<B, L> adaptor) {
         this.adaptor = adaptor;
     }
     
@@ -31,15 +27,18 @@ public abstract class UIInteractableComponent<B, L> extends UIComponent implemen
     
     @Override
     public void initialise() {
-        if (isBound()) setLocalValue(adaptor.adaptBoundToLocal(boundValue.getValue()));
+        if (hasBinding()) setLocalValue(adaptor.adaptExternalToLocal(binding.getValue()));
         else if (!hasLocalValue()) setLocalValue(getDefaultLocalValue());
         else implementLocalValueOnUI();
     }
     
-    public void commitLocalValue() {
-        if (!isBound()) return;
-        B newBoundValue = adaptor.adaptLocalToBound(localValue);
-        if (newBoundValue!=null) boundValue.setValue(newBoundValue);
+    public boolean commitLocalValue() {
+        E validated = adaptor.adaptLocalToExternal(localValue);
+        if (validated==null) return false;
+
+        if (hasBinding()) binding.setValue(validated); // This will set local value again on call back
+        else setLocalValue(adaptor.adaptExternalToLocal(validated));
+        return true;
     }
     
     public void setLocalValue(L value) {
@@ -51,25 +50,21 @@ public abstract class UIInteractableComponent<B, L> extends UIComponent implemen
         return localValue;
     }
     
-    public B getBoundValue() {
-        return isBound() ? boundValue.getValue() : null;
-    }
-    
     @Override
-    public void bindableValueChanged(Bindable<B> v) {
-        setLocalValue(adaptor.adaptBoundToLocal(v.getValue()));
+    public void bindableValueChanged(Bindable<E> v) {
+        setLocalValue(adaptor.adaptExternalToLocal(v.getValue()));
     }
     
-    public void bindTo(Bindable<B> value) {
-        if (boundValue != null) boundValue.unbind(this);
-        this.boundValue = value;
-        boundValue.bind(this);
+    public void bindTo(Bindable<E> binding) {
+        if (binding!=null) binding.unbind(this);
+        this.binding = binding;
+        binding.bind(this);
         
-        if (isInitialised()) setLocalValue(adaptor.adaptBoundToLocal(value.getValue()));
+        if (isInitialised()) setLocalValue(adaptor.adaptExternalToLocal(binding.getValue()));
     }
     
-    public boolean isBound() {
-        return this.boundValue!=null;
+    public boolean hasBinding() {
+        return this.binding!=null;
     }
     
     public boolean hasLocalValue() {

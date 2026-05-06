@@ -22,7 +22,6 @@ import static org.lwjgl.stb.STBTruetype.stbtt_InitFont;
 import static org.lwjgl.stb.STBTruetype.stbtt_ScaleForPixelHeight;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -35,6 +34,7 @@ import org.lwjgl.stb.STBTTFontinfo;
 import org.lwjgl.system.MemoryStack;
 
 import strobeyworks.logger.Logger;
+import strobeyworks.utils.Utils;
 
 public class UIFont {
     
@@ -64,7 +64,7 @@ public class UIFont {
         this.charCount = 96;
         
         try {
-            fontBuffer = loadFontResourceToByteBuffer(fontName);
+            fontBuffer = Utils.loadResourceToByteBuffer("/fonts/"+fontName);
             
             fontInfo = STBTTFontinfo.create();
             
@@ -253,28 +253,7 @@ public class UIFont {
         }
         
         return lineCount * lineHeight;
-    }
-    
-    
-    
-    private ByteBuffer loadFontResourceToByteBuffer(String fontName) throws IOException {
-        String resourcePath = "/fonts/" + fontName;
-        
-        try (InputStream in = UIFont.class.getResourceAsStream(resourcePath)) {
-            if (in == null) {
-                throw new IOException("Font resource not found: " + resourcePath);
-            }
-            
-            byte[] bytes = in.readAllBytes();
-            
-            ByteBuffer buffer = BufferUtils.createByteBuffer(bytes.length);
-            buffer.put(bytes);
-            buffer.flip();
-            
-            return buffer;
-        }
-    }
-    
+    } 
     
     public int getTextureId() {
         return textureId;

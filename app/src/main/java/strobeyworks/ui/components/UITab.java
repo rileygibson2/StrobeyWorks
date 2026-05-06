@@ -2,15 +2,12 @@ package strobeyworks.ui.components;
 
 import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UIPair.pbh;
-import static strobeyworks.ui.core.UIPair.pbw;
-import static strobeyworks.ui.core.UIPair.pch;
 import static strobeyworks.ui.core.UIPair.pcw;
 import static strobeyworks.ui.core.UIPair.px;
 import static strobeyworks.ui.core.UIPair.sw;
 
 import strobeyworks.logger.Logger;
 import strobeyworks.platform.IOEvent;
-import strobeyworks.platform.IOSubscriber;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIPair;
 import strobeyworks.ui.core.UIQuad;
@@ -18,7 +15,7 @@ import strobeyworks.ui.primitives.UIElement;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Vec4;
 
-public class UITab extends UIComponent implements IOSubscriber {
+public class UITab extends UIComponent {
     
     private int numTabs;
 
@@ -28,6 +25,8 @@ public class UITab extends UIComponent implements IOSubscriber {
     public UITab(UIPair width, UIPair height, int numTabs) {
         super(width, height);
         this.numTabs = numTabs;
+        
+        setInteractable(true);
 
         box(UIBoxMode.FIXED);
         flowDirection(UIFlowDirection.ROW);
@@ -95,23 +94,15 @@ public class UITab extends UIComponent implements IOSubscriber {
     }
     
     @Override
-    public void receiveIOEvent(IOEvent event) {
-        handleIOEvent(event);
-    }
-    
-    @Override
-    public boolean handleIOEvent(IOEvent event) {
+    public void handleIOEvent(IOEvent event) {
         switch (event.getEventType()) {
             case LEFT_PRESS :
 
             for (int i=0; i<numTabs; i++) {
                 if (getChildAtIndex(i).containsResolved(event.getMouseX(), event.getMouseY())) setTab(i+1);
             }
-
-            return true;
             
-            default:
-            return true;
+            default: return;
         }
     }
 }

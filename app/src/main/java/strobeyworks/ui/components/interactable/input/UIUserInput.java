@@ -1,4 +1,4 @@
-package strobeyworks.ui.components.interactable;
+package strobeyworks.ui.components.interactable.input;
 
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER;
@@ -15,13 +15,15 @@ import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.IOEvent.IOEventType;
 import strobeyworks.platform.IOSubscriber;
 import strobeyworks.ui.UIRenderer;
+import strobeyworks.ui.components.interactable.UIInteractableComponent;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.core.UIPair;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
+import strobeyworks.utils.Vec4;
 
-public class UIUserInput<T> extends UIInteractableComponent<T, String> implements IOSubscriber {
+public class UIUserInput<T> extends UIInteractableComponent<T, String> {
     
     private UIInputRule<T> inputRule;
     private UIText textElem;
@@ -29,10 +31,14 @@ public class UIUserInput<T> extends UIInteractableComponent<T, String> implement
     private Animation flash;
     
     private int cursorPos;
+    private Vec4 cachedColor;
+    private boolean invalidInput;
     
     public UIUserInput(UIPair width, UIPair height, UIFont font, UIInputRule<T> inputRule) {
         super(width, height, inputRule);
         this.inputRule = inputRule;
+
+        setFocussable(true);
         
         box(UIBoxMode.FIXED);
         flowDirection(UIFlowDirection.ROW);
@@ -90,40 +96,35 @@ public class UIUserInput<T> extends UIInteractableComponent<T, String> implement
         cursorPos = Math.min(cursorPos, localValue.length()); // Incase external update of value changed length of text
         repositionCursor();
     }
-    
+
     @Override
-    public void receiveIOEvent(IOEvent event) {
-        handleIOEvent(event);
-    }
-    
-    @Override
-    public boolean handleIOEvent(IOEvent event) {
-        switch (event.getEventType()) {
-            case LEFT_PRESS :
-            handleGotFocus(event);
-            event.getIO().subscribe(IOEventType.CHAR_TYPED, this);
-            event.getIO().subscribe(IOEventType.KEY_DOWN, this);
-            return false;
-            
-            case KEY_DOWN :
-            handleKeyDown(event.getKeyCode());
-            return false;
-            
-            case CHAR_TYPED :
-            handleCharTyped((char) event.getKeyCode());
-            return false;
-            
-            default:
-            return true;
-        }
-    }
-    
-    private void handleGotFocus(IOEvent event) {
+    public void gotFocus(IOEvent event) {
         float internalX = event.getMouseX()-textElem.getResolvedX();
         cursorPos = textElem.getFont().getCursorIndexAt(getLocalValue(), internalX);
         
         repositionCursor();
         UIRenderer.getInstance().addAnimation(flash);
+    }
+
+    @Override
+    public void lostFocus(IOEvent event) {
+        UIRenderer.getInstance().removeAnimation(flash);
+        cursor.visible(false);
+    }
+    
+    @Override
+    public void handleIOEvent(IOEvent event) {
+        switch (event.getEventType()) {
+            case KEY_DOWN :
+            handleKeyDown(event.getKeyCode());
+            break;
+            
+            case CHAR_TYPED :
+            handleCharTyped((char) event.getKeyCode());
+            break;
+            
+            default: break;
+        }
     }
     
     private void handleKeyDown(int keyCode) {
@@ -140,23 +141,42 @@ public class UIUserInput<T> extends UIInteractableComponent<T, String> implement
         if (keyCode == GLFW_KEY_BACKSPACE) handleBackSpace();
         
         if (keyCode == GLFW_KEY_ENTER) {
-            if (inputRule.commitValid(getLocalValue())) commitLocalValue();
+            boolean success = commitLocalValue();
+            if (!success) {
+                if (!invalidInput) cachedColor = textElem.getColor(); // Protect against multiple failed attempts in a row
+                invalidInput = true;
+                textElem.color(col(UIColors.RED));
+            }
+
             cursorPos = getLocalValue().length();
             repositionCursor();
         }
     }
     
     private void handleBackSpace() {
+        if (invalidInput) {
+            textElem.color(cachedColor);
+            cachedColor = null;
+            invalidInput = false;
+        }
+
         if (cursorPos==0) return;
         String localValue = getLocalValue();
         String left = localValue.substring(0, cursorPos-1);
         String right = localValue.substring(cursorPos);
         
+        cursorPos = Math.max(cursorPos-1, 0);
         setLocalValue(left+right);
         repositionCursor();
     }
     
     private void handleCharTyped(char c) {
+        if (invalidInput) {
+            textElem.color(cachedColor);
+            cachedColor = null;
+            invalidInput = false;
+        }
+
         String localValue = getLocalValue();
         String left = localValue.substring(0, cursorPos);
         String right = localValue.substring(cursorPos);

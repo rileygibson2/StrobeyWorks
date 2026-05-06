@@ -172,13 +172,16 @@ public abstract class UIElement {
     private float measuredWidth;
     private float measuredHeight;
     
-    private UIClickCallback clickCallback;
-
-    private Vec4 debugColor = col(UIColors.RED);
-    private boolean debugEnabled;
+    //IO
+    private boolean isInteractable;
+    private boolean isFocussable;
+    private boolean wantsPointer;
     
     // Functional
     private Matrix4f modelMatrix;
+
+    private Vec4 debugColor = col(UIColors.RED);
+    private boolean debugEnabled;
     
     public UIElement(UIPair width, UIPair height) {
         this.width = width;
@@ -201,6 +204,10 @@ public abstract class UIElement {
         this.layoutDirty = true;
         this.subtreeDirty = false;
         this.subtreeNeedsInitialising = false;
+
+        this.isInteractable = false;
+        this.isFocussable = false;
+        this.wantsPointer = false;
 
         this.debugEnabled = false;
         
@@ -226,6 +233,9 @@ public abstract class UIElement {
         this.layoutDirty = true;
         this.subtreeDirty = false;
 
+        this.isFocussable = false;
+        this.wantsPointer = false;
+
         this.debugEnabled = false;
         
         children = new ArrayList<>();
@@ -240,20 +250,54 @@ public abstract class UIElement {
     /**
     * UI interaction
     */
-    
-    public boolean handleIOEvent(IOEvent event) {
-        return true;
+
+    public void setInteractable(boolean interactable) {
+        this.isInteractable = interactable;
     }
+
+    public void setFocussable(boolean focussable) {
+        this.isFocussable = focussable;
+        setInteractable(true);
+    }
+
+    public void setWantsPointer(boolean wantsPointer) {
+        this.wantsPointer = wantsPointer;
+        setInteractable(true);
+    }
+
+    public boolean isInteractable() {
+        return this.isInteractable;
+    }
+
+    public boolean isFocussable() {
+        return this.isFocussable;
+    }
+
+    public boolean wantsPointer() {
+        return this.wantsPointer;
+    }
+
+    public void gotFocus(IOEvent event) {}
+
+    public void lostFocus(IOEvent event) {}
+
+    public void gotPointer(IOEvent event) {}
+
+    public void lostPointer(IOEvent event) {}
+
+    public void handleIOEvent(IOEvent event) {}
     
-    public void ioEventTraverse(IOEvent event) {
-        if (!containsResolved(event.getMouseX(), event.getMouseY())) return;
-        if (!handleIOEvent(event)) return; // Swallow if element requests
-        
-        
+    public UIElement getDeepestElementAt(float x, float y) {
+        if (!containsResolved(x, y)) return null;
+        UIElement hit = null;
+
         for (UIElement c : children) {
             if (!c.isVisible()) continue;
-            c.ioEventTraverse(event);;
+            UIElement result = c.getDeepestElementAt(x, y);
+            if (result!=null) hit = result;
         }
+
+        return hit!=null ? hit : this;
     }
     
     /**
@@ -771,11 +815,6 @@ public abstract class UIElement {
     /**
     * Setters
     */
-    
-    public UIElement setClickCallback(UIClickCallback clickCallback) {
-        this.clickCallback = clickCallback;
-        return this;
-    }
     
     public UIElement box(UIBoxMode boxMode) {
         this.boxMode = boxMode;

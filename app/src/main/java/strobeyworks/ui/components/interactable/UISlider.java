@@ -6,25 +6,23 @@ import static strobeyworks.ui.core.UIPair.pcw;
 import static strobeyworks.ui.core.UIPair.px;
 
 import strobeyworks.platform.IOEvent;
-import strobeyworks.platform.IOSubscriber;
-import strobeyworks.platform.IOEvent.IOEventType;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIPair;
 import strobeyworks.ui.primitives.UICircle;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Utils;
 
-public class UISlider extends UIInteractableComponent<Float, Float> implements IOSubscriber {    
+public class UISlider extends UIInteractableComponent<Float, Float> {    
     
     private UICircle circle;
     private UIRectangle fRect;
     private float bounds = 0.99f;
     
-    private boolean dragging;
-    
     public UISlider(UIPair width, UIPair height) {
-        super(width, height, UIInteractableAdaptor.FLOAT_IDENTITY);
+        super(width, height, UIValueAdaptor.FLOAT_IDENTITY);
         
+        setWantsPointer(true);
+
         box(UIBoxMode.FIXED);
         flowDirection(UIFlowDirection.ROW);
         flowWrap(false);
@@ -98,42 +96,25 @@ public class UISlider extends UIInteractableComponent<Float, Float> implements I
         setLocalValue(Math.max(Math.min(value, 1f), 0f));
         commitLocalValue();
     }
-    
+
     @Override
-    public void receiveIOEvent(IOEvent event) {
-        handleIOEvent(event);
+    public void gotPointer(IOEvent event) {
+        setValueFromMouse(event.getMouseX());
+    }
+
+    @Override
+    public void lostPointer(IOEvent event) {
+        setValueFromMouse(event.getMouseX());
     }
     
     @Override
-    public boolean handleIOEvent(IOEvent event) {
+    public void handleIOEvent(IOEvent event) {
         switch (event.getEventType()) {
-            case LEFT_PRESS :
-            if (dragging) return false;
-            dragging = true;
-            event.getIO().subscribe(IOEventType.DRAG, this);
-            event.getIO().subscribe(IOEventType.LEFT_RELEASE, this);
-            
-            setValueFromMouse(event.getMouseX());
-            return false;
-            
             case DRAG :
-            if (dragging) {
-                setValueFromMouse(event.getMouseX());
-                return false;
-            }
-            return true;
-            
-            case LEFT_RELEASE :
-            if (!dragging) return false;
-            dragging = false;
-            event.getIO().unsubscribe(IOEventType.DRAG, this);
-            event.getIO().unsubscribe(IOEventType.LEFT_RELEASE, this);
-            
             setValueFromMouse(event.getMouseX());
-            return false;
+            break;
             
-            default:
-            return true;
+            default: return;
         }
     }
 }

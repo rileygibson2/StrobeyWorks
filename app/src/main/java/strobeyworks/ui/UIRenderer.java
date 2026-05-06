@@ -41,6 +41,7 @@ import strobeyworks.SWMain;
 import strobeyworks.logger.Logger;
 import strobeyworks.platform.Animation;
 import strobeyworks.platform.IOEvent;
+import strobeyworks.platform.IOEvent.IOEventType;
 import strobeyworks.platform.Renderer;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.render.SceneRenderer;
@@ -48,18 +49,21 @@ import strobeyworks.render.lightsources.LightSource;
 import strobeyworks.render.scenes.Scene;
 import strobeyworks.ui.components.UITab;
 import strobeyworks.ui.components.interactable.UICheckBox;
-import strobeyworks.ui.components.interactable.UIInputRule;
 import strobeyworks.ui.components.interactable.UISlider;
-import strobeyworks.ui.components.interactable.UIUserInput;
+import strobeyworks.ui.components.interactable.input.UIFloatInputRule;
+import strobeyworks.ui.components.interactable.input.UIStringInputRule;
+import strobeyworks.ui.components.interactable.input.UIUserInput;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.core.UIQuad;
+import strobeyworks.ui.core.UITexture;
 import strobeyworks.ui.primitives.UIElement;
+import strobeyworks.ui.primitives.UIElement.UIAlignContent;
 import strobeyworks.ui.primitives.UIElement.UIAlignItems;
 import strobeyworks.ui.primitives.UIElement.UIBoxMode;
 import strobeyworks.ui.primitives.UIElement.UIFlowDirection;
-import strobeyworks.ui.primitives.UIElement.UIJustifyContent;
 import strobeyworks.ui.primitives.UIElement.UIPositionMode;
+import strobeyworks.ui.primitives.UIIcon;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
 import strobeyworks.utils.Vec4;
@@ -70,6 +74,7 @@ public class UIRenderer extends Renderer {
     
     private int shapeProgram;
     private int textProgram;
+    private int iconProgram;
     
     private Matrix4f projectionMatrix;
     
@@ -87,7 +92,9 @@ public class UIRenderer extends Renderer {
     private int textVBO;
     
     private List<UIElement> visibleUIElements;
-    private UIElement rootUIElement;
+    private UIElement root;
+    private UIElement focussed;
+    private UIElement pointer;
     
     protected Set<Animation> animations;
     
@@ -116,21 +123,32 @@ public class UIRenderer extends Renderer {
         .borderThickness(1.5f)
         .borderTop(false)
         .padding(new UIQuad(px(5)))
-        .justifyContent(UIJustifyContent.CENTER)
+        //.justifyContent(UIJustifyContent.CENTER)
         .alignItems(UIAlignItems.CENTER)
-        //.alignContent(UIAlignContent.CENTER)
+        .alignContent(UIAlignContent.CENTER)
         .flowDirection(UIFlowDirection.COLUMN)
         .flowWrap(false);
         
         addToRoot(pane2);
+
+        UITexture tex = new UITexture("test.png");
+        UIIcon icon = new UIIcon(sw(0.06f), sh(0.03f), tex);
+        icon.tint(col(UIColors.GREEN));
+        pane2.addChild(icon);
         
-        UIUserInput<Float> input = new UIUserInput<>(sw(0.4f), sh(0.2f), font, UIInputRule.floatInput(3, 0f, 1f, 2));
+        UIFloatInputRule inputRule = new UIFloatInputRule();
+        inputRule.maxCharacters(5)
+        .maxPrecision(2)
+        .inputMinMax(0f, 100f)
+        .mappedMinMax(0f, 1f);
+        
+        UIUserInput<Float> input = new UIUserInput<>(sw(0.2f), sh(0.08f), font, inputRule);
         input.borderColor(col(UIColors.GREEN))
-        .cornerRadius(10f);
-        //text.setLocalValue("Hello");
-
+        .cornerRadius(10f)
+        .marginTop(px(20));
+        
         pane2.addChild(input);
-
+        
         List<UISlider> sliders = new ArrayList<>();
         int num = 4;
         for (int i=0; i<num; i++) {
@@ -147,7 +165,7 @@ public class UIRenderer extends Renderer {
         Scene scene = SceneRenderer.getInstance().getScene();
         LightSource spot = scene.getSpotLights().get(0);
         
-        //input.bindTo(spot.getIntensity());
+        input.bindTo(spot.getIntensity());
         sliders.get(0).bindTo(spot.getIntensity());
         sliders.get(1).bindTo(spot.getRed());
         sliders.get(2).bindTo(spot.getGreen());
@@ -166,39 +184,90 @@ public class UIRenderer extends Renderer {
     }
     
     public void addToRoot(UIElement e) {
-        rootUIElement.addChild(e);
+        root.addChild(e);
     }
     
     public void receiveIOEvent(IOEvent event) {
-        if (rootUIElement==null) return;
-        rootUIElement.ioEventTraverse(event);
+        if (root==null) return;
+        
+        switch (event.getEventType()) {
+            case KEY_DOWN:
+            case KEY_UP:
+            case CHAR_TYPED:
+            if (focussed!=null) focussed.handleIOEvent(event);
+            return;
+            
+            case DRAG:
+            case LEFT_RELEASE:
+            if (pointer!=null) {
+                pointer.handleIOEvent(event);
+                
+                if (event.getEventType()==IOEventType.LEFT_RELEASE) {
+                    pointer.lostPointer(event);
+                    pointer = null;
+                }
+            }
+            return;
+            
+            case LEFT_PRESS:
+            UIElement e = root.getDeepestElementAt(event.getMouseX(), event.getMouseY());
+            UIElement target = e;
+            
+            while (target!=null&&!target.isInteractable()) { // Track up until found interactable element
+                target = target.getParent();
+            }
+            
+            boolean handled = false;
+            
+            if (focussed!=null&&focussed!=target) {
+                focussed.lostFocus(event);
+                focussed = null;
+            }
+            
+            if (target!=null&&target.isFocussable()) {
+                focussed = target;
+                focussed.gotFocus(event);
+                handled = true;
+            }
+            
+            if (target!=null&&target.wantsPointer()) {
+                pointer = target;
+                pointer.gotPointer(event);
+                handled = true;
+            }
+            
+            if (target!=null&&!handled) target.handleIOEvent(event);
+            
+            default: break;
+        }
     }
     
     @Override
     public void handleWindowResize() {
         buildProjectionMatrix();
-        rootUIElement.markLayoutDirty();
+        root.markLayoutDirty();
     }
     
     public void rebuildVisibleElementList() {
-        visibleUIElements = rootUIElement.getVisibleChildren();
-        rootUIElement.clearSubtreeDirtyMark();
+        visibleUIElements = root.getVisibleChildren();
+        root.clearSubtreeDirtyMark();
     }
     
     public void initialise() {
-        rootUIElement = new UIRectangle(sw(1f), sh(1f));
-        ((UIRectangle) rootUIElement).color(col(UIColors.BLACK))
+        root = new UIRectangle(sw(1f), sh(1f));
+        ((UIRectangle) root).color(col(UIColors.BLACK))
         .position(UIPositionMode.SCREEN)
         .box(UIBoxMode.FIXED)
         .flowDirection(UIFlowDirection.COLUMN);
         
-        rootUIElement.markLayoutDirty();
-        rootUIElement.markSubtreeDirty();
+        root.markLayoutDirty();
+        root.markSubtreeDirty();
         
         ShaderManager sM = SWMain.getShaderManager();
         
         shapeProgram = sM.createProgram("ui/ui_shapes.vert", "ui/ui_shapes.frag");
         textProgram = sM.createProgram("ui/ui_text.vert", "ui/ui_text.frag");
+        iconProgram = sM.createProgram("ui/ui_icon.vert", "ui/ui_icon.frag");
         
         // Shape setup
         quadVAO = glGenVertexArrays();
@@ -246,21 +315,21 @@ public class UIRenderer extends Renderer {
         // Updates
         for (Animation a : animations) a.trigger();
         
-        if (rootUIElement.isLayoutDirty()) {
-            rootUIElement.layoutMeasure();
-            rootUIElement.layoutAdvance(rootUIElement.getMeasuredX(), rootUIElement.getMeasuredY());
+        if (root.isLayoutDirty()) {
+            root.layoutMeasure();
+            root.layoutAdvance(root.getMeasuredX(), root.getMeasuredY());
         }
         
-        if (rootUIElement.isSubtreeDirty()) {
+        if (root.isSubtreeDirty()) {
             rebuildVisibleElementList();
-            rootUIElement.clearSubtreeDirtyMark();
+            root.clearSubtreeDirtyMark();
         }
         
-        if (rootUIElement.subtreeNeedsInitialising()) {
-            rootUIElement.initialiseSubtree();
-            if (rootUIElement.isLayoutDirty()) {
-                rootUIElement.layoutMeasure();
-                rootUIElement.layoutAdvance(rootUIElement.getMeasuredX(), rootUIElement.getMeasuredY());
+        if (root.subtreeNeedsInitialising()) {
+            root.initialiseSubtree();
+            if (root.isLayoutDirty()) {
+                root.layoutMeasure();
+                root.layoutAdvance(root.getMeasuredX(), root.getMeasuredY());
             }
         }
         
@@ -276,6 +345,7 @@ public class UIRenderer extends Renderer {
         // Draw objects
         for (UIElement e : visibleUIElements) {
             if (e instanceof UIText) renderText(sM, (UIText) e);
+            else if (e instanceof UIIcon) renderIcon(sM, (UIIcon) e);
             else renderShape(sM, e);
         }
         
@@ -288,7 +358,7 @@ public class UIRenderer extends Renderer {
     private void renderText(ShaderManager sM, UIText tE) {
         UIFont font = tE.getFont();
         float baselineY = tE.getResolvedY() + font.getAscent();
-
+        
         
         float[] vertices = font.buildTextVertices(
             tE.getText(),
@@ -318,14 +388,32 @@ public class UIRenderer extends Renderer {
     private void renderShape(ShaderManager sM, UIElement e) {
         sM.useProgram(shapeProgram);
         sM.setCurrentProgram(shapeProgram);
-
+        
         sM.setUniformMat4("uProjection", projectionMatrix);
         sM.setUniformMat4("uModel", e.getModelMatrix());
         e.setRenderUniforms(sM);
-
+        
         sM.bindVAO(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
+    
+    private void renderIcon(ShaderManager sM, UIIcon icon) {
+        sM.useProgram(iconProgram);
+        sM.setCurrentProgram(iconProgram);
+        
+        sM.setUniformMat4("uProjection", projectionMatrix);
+        sM.setUniformMat4("uModel", icon.getModelMatrix());
+        sM.setUniformVec4("uTint", icon.getTint());
+        sM.setUniformVec4("uUVRect", icon.getUVRect());
+        
+        glActiveTexture(GL_TEXTURE0);
+        sM.bindTexture(icon.getTextureId());
+        sM.setUniformInt("uTexture", 0);
+        
+        sM.bindVAO(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+    
     
     private void buildProjectionMatrix() {
         projectionMatrix = new Matrix4f().ortho(
