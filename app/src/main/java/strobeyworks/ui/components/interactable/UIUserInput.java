@@ -1,15 +1,14 @@
 package strobeyworks.ui.components.interactable;
 
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER;
 import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UIPair.pch;
 import static strobeyworks.ui.core.UIPair.pcw;
 import static strobeyworks.ui.core.UIPair.px;
 
-import strobeyworks.logger.Logger;
 import strobeyworks.platform.Animation;
 import strobeyworks.platform.Animation.AnimationForm;
 import strobeyworks.platform.IOEvent;
@@ -22,16 +21,18 @@ import strobeyworks.ui.core.UIPair;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
 
-public class UITextInput<T> extends UIInteractableComponent<T, String> implements IOSubscriber {
+public class UIUserInput<T> extends UIInteractableComponent<T, String> implements IOSubscriber {
     
+    private UIInputRule<T> inputRule;
     private UIText textElem;
     private UIRectangle cursor;
     private Animation flash;
     
     private int cursorPos;
     
-    public UITextInput(UIPair width, UIPair height, UIFont font) {
-        super(width, height, null);
+    public UIUserInput(UIPair width, UIPair height, UIFont font, UIInputRule<T> inputRule) {
+        super(width, height, inputRule);
+        this.inputRule = inputRule;
         
         box(UIBoxMode.FIXED);
         flowDirection(UIFlowDirection.ROW);
@@ -47,7 +48,8 @@ public class UITextInput<T> extends UIInteractableComponent<T, String> implement
         .offsetLeft(pcw(0.1f))
         .offsetTop(pch(0.1f));
         cursor.color(col(UIColors.GREEN))
-        .cornerRadius(10f);
+        .cornerRadius(10f)
+        .visible(false);
         
         textElem = new UIText(font);
         textElem.color(col(UIColors.GREEN));
@@ -72,10 +74,10 @@ public class UITextInput<T> extends UIInteractableComponent<T, String> implement
         float r = getMeasuredHeight();
         cursor.height(px(tH));
         cursor.offsetTop(px((int) ((r-tH)*0.5)));
-
+        
         super.initialise();
     }
-
+    
     @Override
     protected String getDefaultLocalValue() {
         return "";
@@ -83,7 +85,10 @@ public class UITextInput<T> extends UIInteractableComponent<T, String> implement
     
     @Override
     protected void implementLocalValueOnUI() {
-        textElem.setText(getLocalValue());
+        String localValue = getLocalValue();
+        textElem.setText(localValue);
+        cursorPos = Math.min(cursorPos, localValue.length()); // Incase external update of value changed length of text
+        repositionCursor();
     }
     
     @Override
@@ -116,7 +121,7 @@ public class UITextInput<T> extends UIInteractableComponent<T, String> implement
     private void handleGotFocus(IOEvent event) {
         float internalX = event.getMouseX()-textElem.getResolvedX();
         cursorPos = textElem.getFont().getCursorIndexAt(getLocalValue(), internalX);
-
+        
         repositionCursor();
         UIRenderer.getInstance().addAnimation(flash);
     }
@@ -134,17 +139,20 @@ public class UITextInput<T> extends UIInteractableComponent<T, String> implement
         
         if (keyCode == GLFW_KEY_BACKSPACE) handleBackSpace();
         
-        if (keyCode == GLFW_KEY_ENTER) commitLocalValue();
+        if (keyCode == GLFW_KEY_ENTER) {
+            if (inputRule.commitValid(getLocalValue())) commitLocalValue();
+            cursorPos = getLocalValue().length();
+            repositionCursor();
+        }
     }
-
+    
     private void handleBackSpace() {
         if (cursorPos==0) return;
         String localValue = getLocalValue();
         String left = localValue.substring(0, cursorPos-1);
         String right = localValue.substring(cursorPos);
-
+        
         setLocalValue(left+right);
-        cursorPos--;
         repositionCursor();
     }
     
@@ -153,6 +161,8 @@ public class UITextInput<T> extends UIInteractableComponent<T, String> implement
         String left = localValue.substring(0, cursorPos);
         String right = localValue.substring(cursorPos);
         String nS = left+c+right;
+
+        if (!inputRule.draftValid(nS)) return;
         
         setLocalValue(nS);
         cursorPos++;
@@ -163,4 +173,6 @@ public class UITextInput<T> extends UIInteractableComponent<T, String> implement
         float x = textElem.getFont().measureTextWidth(getLocalValue().substring(0, cursorPos));
         cursor.offsetLeft(px(x+resolveLocal(getPadding().left)));
     }
+    
+
 }

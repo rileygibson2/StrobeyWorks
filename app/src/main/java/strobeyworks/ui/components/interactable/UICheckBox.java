@@ -19,7 +19,7 @@ public class UICheckBox extends UIInteractableComponent<Boolean, Boolean> implem
     private UIElement inner;
     
     public UICheckBox(UIPair width, UIPair height, boolean circular) {
-        super(width, height, null);
+        super(width, height, UIInteractableAdaptor.BOOLEAN_IDENTITY);
         
         box(UIBoxMode.FIXED);
         flowDirection(UIFlowDirection.ROW);
@@ -78,6 +78,7 @@ public class UICheckBox extends UIInteractableComponent<Boolean, Boolean> implem
         switch (event.getEventType()) {
             case LEFT_PRESS :
             setLocalValue(!getLocalValue());
+            commitLocalValue();
             return false;
             
             default:

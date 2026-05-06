@@ -14,7 +14,7 @@ import strobeyworks.ui.primitives.UICircle;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Utils;
 
-public class UISlider<T> extends UIInteractableComponent<T, Float> implements IOSubscriber {
+public class UISlider extends UIInteractableComponent<Float, Float> implements IOSubscriber {    
     
     private UICircle circle;
     private UIRectangle fRect;
@@ -23,7 +23,7 @@ public class UISlider<T> extends UIInteractableComponent<T, Float> implements IO
     private boolean dragging;
     
     public UISlider(UIPair width, UIPair height) {
-        super(width, height, null);
+        super(width, height, UIInteractableAdaptor.FLOAT_IDENTITY);
         
         box(UIBoxMode.FIXED);
         flowDirection(UIFlowDirection.ROW);
@@ -47,7 +47,7 @@ public class UISlider<T> extends UIInteractableComponent<T, Float> implements IO
         circle.borderColor(col(UIColors.GREEN))
         .color(col(UIColors.GRAY_008))
         .oval(false);
-
+        
         UICircle c2 = new UICircle(pcw(0.8f), pch(0.8f));
         c2.position(UIPositionMode.ABSOLUTE)
         .offsetTop(pcw(0.1f))
@@ -56,18 +56,18 @@ public class UISlider<T> extends UIInteractableComponent<T, Float> implements IO
         c2.borderColor(col(UIColors.GREEN))
         .color(col(UIColors.GRAY_008))
         .oval(false);
-
+        
         fRect = new UIRectangle(pcw(0f), pch(1f));
         fRect.position(UIPositionMode.ABSOLUTE);
         
         fRect.color(col(UIColors.GREEN))
         .cornerRadius(100f, 0f, 0f, 20f);
-
+        
         addChild(fRect);
         addChild(circle);
         circle.addChild(c2);
     }
-
+    
     @Override
     protected Float getDefaultLocalValue() {
         return 0f;
@@ -83,14 +83,12 @@ public class UISlider<T> extends UIInteractableComponent<T, Float> implements IO
         
         float cV = offset*fullTravel+value*(fullTravel*bounds);
         circle.offsetLeft(px(cV));
-
+        
         float rV = value*fullTravel*bounds+circW*0.5f;
         fRect.width(px(rV));
-
+        
         float a = Utils.smoothFalloffBefore(0.05f, value);
         fRect.getColor().a = a;
-
-        Math.pow(2, 2);
     }
     
     private void setValueFromMouse(float mouseX) {
@@ -98,6 +96,7 @@ public class UISlider<T> extends UIInteractableComponent<T, Float> implements IO
         float value = localX / getResolvedWidth();
         
         setLocalValue(Math.max(Math.min(value, 1f), 0f));
+        commitLocalValue();
     }
     
     @Override
@@ -112,7 +111,8 @@ public class UISlider<T> extends UIInteractableComponent<T, Float> implements IO
             if (dragging) return false;
             dragging = true;
             event.getIO().subscribe(IOEventType.DRAG, this);
-
+            event.getIO().subscribe(IOEventType.LEFT_RELEASE, this);
+            
             setValueFromMouse(event.getMouseX());
             return false;
             
@@ -127,6 +127,7 @@ public class UISlider<T> extends UIInteractableComponent<T, Float> implements IO
             if (!dragging) return false;
             dragging = false;
             event.getIO().unsubscribe(IOEventType.DRAG, this);
+            event.getIO().unsubscribe(IOEventType.LEFT_RELEASE, this);
             
             setValueFromMouse(event.getMouseX());
             return false;

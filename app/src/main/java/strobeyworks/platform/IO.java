@@ -57,7 +57,8 @@ public class IO {
     }
     
     private void publish(IOEvent event) {
-        for (IOSubscriber s : subscribers.get(event.getEventType())) s.receiveIOEvent(event);
+        Set<IOSubscriber> snapshot = new HashSet<>(subscribers.get(event.getEventType()));
+        for (IOSubscriber s : snapshot) s.receiveIOEvent(event);
     }
     
     public void setupCallbacks() {

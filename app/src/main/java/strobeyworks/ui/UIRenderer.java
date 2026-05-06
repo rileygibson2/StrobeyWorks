@@ -38,6 +38,7 @@ import java.util.Set;
 import org.joml.Matrix4f;
 
 import strobeyworks.SWMain;
+import strobeyworks.logger.Logger;
 import strobeyworks.platform.Animation;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.Renderer;
@@ -47,8 +48,9 @@ import strobeyworks.render.lightsources.LightSource;
 import strobeyworks.render.scenes.Scene;
 import strobeyworks.ui.components.UITab;
 import strobeyworks.ui.components.interactable.UICheckBox;
+import strobeyworks.ui.components.interactable.UIInputRule;
 import strobeyworks.ui.components.interactable.UISlider;
-import strobeyworks.ui.components.interactable.UITextInput;
+import strobeyworks.ui.components.interactable.UIUserInput;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.core.UIQuad;
@@ -122,14 +124,14 @@ public class UIRenderer extends Renderer {
         
         addToRoot(pane2);
         
-        UITextInput<String> text = new UITextInput<>(sw(0.4f), sh(0.2f), font);
-        text.borderColor(col(UIColors.GREEN))
+        UIUserInput<Float> input = new UIUserInput<>(sw(0.4f), sh(0.2f), font, UIInputRule.floatInput(3, 0f, 1f, 2));
+        input.borderColor(col(UIColors.GREEN))
         .cornerRadius(10f);
-        text.setLocalValue("Hello");
+        //text.setLocalValue("Hello");
 
-        pane2.addChild(text);
+        pane2.addChild(input);
 
-        List<UISlider<Float>> sliders = new ArrayList<>();
+        List<UISlider> sliders = new ArrayList<>();
         int num = 4;
         for (int i=0; i<num; i++) {
             UISlider slider = new UISlider(sw(0.9f), sh(0.08f));
@@ -145,6 +147,7 @@ public class UIRenderer extends Renderer {
         Scene scene = SceneRenderer.getInstance().getScene();
         LightSource spot = scene.getSpotLights().get(0);
         
+        //input.bindTo(spot.getIntensity());
         sliders.get(0).bindTo(spot.getIntensity());
         sliders.get(1).bindTo(spot.getRed());
         sliders.get(2).bindTo(spot.getGreen());
@@ -153,6 +156,7 @@ public class UIRenderer extends Renderer {
         
         Animation a = new Animation(3, (i, value) -> {
             sliders.get(i+1).setLocalValue(value);
+            sliders.get(i+1).commitLocalValue();
         });
         a.setWidth(1f);
         a.setSpeed(0.2f);
