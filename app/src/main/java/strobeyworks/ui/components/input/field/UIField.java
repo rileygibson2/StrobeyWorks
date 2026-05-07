@@ -1,4 +1,4 @@
-package strobeyworks.ui.components.interactable.input;
+package strobeyworks.ui.components.input.field;
 
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER;
@@ -9,13 +9,12 @@ import static strobeyworks.ui.core.UIPair.pch;
 import static strobeyworks.ui.core.UIPair.pcw;
 import static strobeyworks.ui.core.UIPair.px;
 
+import strobeyworks.logger.Logger;
 import strobeyworks.platform.Animation;
 import strobeyworks.platform.Animation.AnimationForm;
 import strobeyworks.platform.IOEvent;
-import strobeyworks.platform.IOEvent.IOEventType;
-import strobeyworks.platform.IOSubscriber;
 import strobeyworks.ui.UIRenderer;
-import strobeyworks.ui.components.interactable.UIInteractableComponent;
+import strobeyworks.ui.components.input.UIValueControl;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.core.UIPair;
@@ -23,9 +22,11 @@ import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
 import strobeyworks.utils.Vec4;
 
-public class UIUserInput<T> extends UIInteractableComponent<T, String> {
+public class UIField<T> extends UIValueControl<T, String> {
     
-    private UIInputRule<T> inputRule;
+    private UIFieldRule<T> inputRule;
+
+    protected UIRectangle wrapper;
     private UIText textElem;
     private UIRectangle cursor;
     private Animation flash;
@@ -34,21 +35,23 @@ public class UIUserInput<T> extends UIInteractableComponent<T, String> {
     private Vec4 cachedColor;
     private boolean invalidInput;
     
-    public UIUserInput(UIPair width, UIPair height, UIFont font, UIInputRule<T> inputRule) {
+    public UIField(UIPair width, UIPair height, UIFont font, UIFieldRule<T> inputRule) {
         super(width, height, inputRule);
         this.inputRule = inputRule;
-
+        
         setFocussable(true);
         
-        box(UIBoxMode.FIXED);
-        flowDirection(UIFlowDirection.ROW);
-        borderColor(col(UIColors.GREEN));
-        //justifyContent(UIJustifyContent.CENTER);
         alignItems(UIAlignItems.CENTER);
+        borderColor(col(UIColors.GREEN));
         paddingLeft(px(10));
         color(col(UIColors.TRANSPARENT));
         cornerRadius(10f);
         
+        wrapper = new UIRectangle(pcw(1f), pch(1f));
+        wrapper.alignItems(UIAlignItems.CENTER);
+        //justifyContent(UIJustifyContent.CENTER)
+        //wrapper.color(col(UIColors.PURPLE));
+
         cursor = new UIRectangle(px(2), pch(0.9f));
         cursor.position(UIPositionMode.ABSOLUTE)
         .offsetLeft(pcw(0.1f))
@@ -60,8 +63,9 @@ public class UIUserInput<T> extends UIInteractableComponent<T, String> {
         textElem = new UIText(font);
         textElem.color(col(UIColors.GREEN));
         
-        addChild(textElem);
-        addChild(cursor);
+        addChild(wrapper);
+        wrapper.addChild(textElem);
+        wrapper.addChild(cursor);
         
         cursorPos = 0;
         
@@ -77,10 +81,10 @@ public class UIUserInput<T> extends UIInteractableComponent<T, String> {
     public void initialise() {
         // Set cursor height
         float tH = textElem.getResolvedTextHeight();
-        float r = getMeasuredHeight();
+        float r = wrapper.getMeasuredHeight();
         cursor.height(px(tH));
         cursor.offsetTop(px((int) ((r-tH)*0.5)));
-        
+
         super.initialise();
     }
     
@@ -96,16 +100,17 @@ public class UIUserInput<T> extends UIInteractableComponent<T, String> {
         cursorPos = Math.min(cursorPos, localValue.length()); // Incase external update of value changed length of text
         repositionCursor();
     }
-
+    
     @Override
     public void gotFocus(IOEvent event) {
         float internalX = event.getMouseX()-textElem.getResolvedX();
+        Logger.debug(getLocalValue());
         cursorPos = textElem.getFont().getCursorIndexAt(getLocalValue(), internalX);
         
         repositionCursor();
         UIRenderer.getInstance().addAnimation(flash);
     }
-
+    
     @Override
     public void lostFocus(IOEvent event) {
         UIRenderer.getInstance().removeAnimation(flash);
@@ -132,25 +137,24 @@ public class UIUserInput<T> extends UIInteractableComponent<T, String> {
             cursorPos = Math.max(cursorPos-1, 0);
             repositionCursor();
         }
-        
-        if (keyCode == GLFW_KEY_RIGHT) {
+        else if (keyCode == GLFW_KEY_RIGHT) {
             cursorPos = Math.min(cursorPos+1, getLocalValue().length());
             repositionCursor();
         }
-        
-        if (keyCode == GLFW_KEY_BACKSPACE) handleBackSpace();
-        
-        if (keyCode == GLFW_KEY_ENTER) {
-            boolean success = commitLocalValue();
-            if (!success) {
-                if (!invalidInput) cachedColor = textElem.getColor(); // Protect against multiple failed attempts in a row
-                invalidInput = true;
-                textElem.color(col(UIColors.RED));
-            }
-
-            cursorPos = getLocalValue().length();
-            repositionCursor();
+        else if (keyCode == GLFW_KEY_BACKSPACE) handleBackSpace();
+        else if (keyCode == GLFW_KEY_ENTER) handleCommit();
+    }
+    
+    protected void handleCommit() {
+        boolean success = commitLocalValue();
+        if (!success) {
+            if (!invalidInput) cachedColor = textElem.getColor(); // Protect against multiple failed attempts in a row
+            invalidInput = true;
+            textElem.color(col(UIColors.RED));
         }
+        
+        cursorPos = getLocalValue().length();
+        repositionCursor();
     }
     
     private void handleBackSpace() {
@@ -159,7 +163,7 @@ public class UIUserInput<T> extends UIInteractableComponent<T, String> {
             cachedColor = null;
             invalidInput = false;
         }
-
+        
         if (cursorPos==0) return;
         String localValue = getLocalValue();
         String left = localValue.substring(0, cursorPos-1);
@@ -176,13 +180,13 @@ public class UIUserInput<T> extends UIInteractableComponent<T, String> {
             cachedColor = null;
             invalidInput = false;
         }
-
+        
         String localValue = getLocalValue();
         String left = localValue.substring(0, cursorPos);
         String right = localValue.substring(cursorPos);
         String nS = left+c+right;
-
-        if (!inputRule.draftValid(nS)) return;
+        
+        if (!inputRule.inputFilter(nS)) return;
         
         setLocalValue(nS);
         cursorPos++;
@@ -191,8 +195,8 @@ public class UIUserInput<T> extends UIInteractableComponent<T, String> {
     
     private void repositionCursor() {
         float x = textElem.getFont().measureTextWidth(getLocalValue().substring(0, cursorPos));
-        cursor.offsetLeft(px(x+resolveLocal(getPadding().left)));
+        cursor.offsetLeft(px(x+wrapper.resolveLocal(wrapper.getPadding().left)));
     }
     
-
+    
 }

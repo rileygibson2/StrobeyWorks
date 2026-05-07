@@ -1,4 +1,4 @@
-package strobeyworks.ui.components.interactable;
+package strobeyworks.ui.components.input;
 
 import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UIPair.pch;
@@ -12,7 +12,7 @@ import strobeyworks.ui.primitives.UICircle;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Utils;
 
-public class UISlider extends UIInteractableComponent<Float, Float> {    
+public class UISlider extends UIValueControl<Float, Float> {    
     
     private UICircle circle;
     private UIRectangle fRect;

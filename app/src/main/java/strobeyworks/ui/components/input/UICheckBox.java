@@ -1,4 +1,4 @@
-package strobeyworks.ui.components.interactable;
+package strobeyworks.ui.components.input;
 
 import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UIPair.pbh;
@@ -14,7 +14,7 @@ import strobeyworks.ui.primitives.UICircle;
 import strobeyworks.ui.primitives.UIElement;
 import strobeyworks.ui.primitives.UIRectangle;
 
-public class UICheckBox extends UIInteractableComponent<Boolean, Boolean> implements IOSubscriber {
+public class UICheckBox extends UIValueControl<Boolean, Boolean> implements IOSubscriber {
     
     private UIElement inner;
     
@@ -81,6 +81,7 @@ public class UICheckBox extends UIInteractableComponent<Boolean, Boolean> implem
             case LEFT_PRESS :
             setLocalValue(!getLocalValue());
             commitLocalValue();
+            break;
             
             default: return;
         }

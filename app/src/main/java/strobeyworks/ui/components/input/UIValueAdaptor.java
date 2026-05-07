@@ -1,4 +1,4 @@
-package strobeyworks.ui.components.interactable;
+package strobeyworks.ui.components.input;
 
 public interface UIValueAdaptor<E, L> {
 

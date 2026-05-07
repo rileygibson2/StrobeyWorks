@@ -47,16 +47,19 @@ import strobeyworks.platform.ShaderManager;
 import strobeyworks.render.SceneRenderer;
 import strobeyworks.render.lightsources.LightSource;
 import strobeyworks.render.scenes.Scene;
+import strobeyworks.ui.components.UIButton;
 import strobeyworks.ui.components.UITab;
-import strobeyworks.ui.components.interactable.UICheckBox;
-import strobeyworks.ui.components.interactable.UISlider;
-import strobeyworks.ui.components.interactable.input.UIFloatInputRule;
-import strobeyworks.ui.components.interactable.input.UIStringInputRule;
-import strobeyworks.ui.components.interactable.input.UIUserInput;
+import strobeyworks.ui.components.input.UICheckBox;
+import strobeyworks.ui.components.input.UISlider;
+import strobeyworks.ui.components.input.field.UIField;
+import strobeyworks.ui.components.input.field.UIFieldRule;
+import strobeyworks.ui.components.input.field.UIFloatField;
+import strobeyworks.ui.components.input.field.UIFloatFieldRule;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.core.UIQuad;
 import strobeyworks.ui.core.UITexture;
+import strobeyworks.ui.core.UITextureManager;
 import strobeyworks.ui.primitives.UIElement;
 import strobeyworks.ui.primitives.UIElement.UIAlignContent;
 import strobeyworks.ui.primitives.UIElement.UIAlignItems;
@@ -111,6 +114,9 @@ public class UIRenderer extends Renderer {
     private void buildTest() {
         UIFont font = new UIFont();
         font.loadFromTTF("RobotoMono-Medium.ttf", 30f);
+
+        UITextureManager.loadTexture("up_arrow.png");
+        UITextureManager.loadTexture("down_arrow.png");
         
         UITab tab = new UITab(pcw(1f), sh(0.1f), 5);
         tab.marginTop(px(2));
@@ -130,24 +136,18 @@ public class UIRenderer extends Renderer {
         .flowWrap(false);
         
         addToRoot(pane2);
-
-        UITexture tex = new UITexture("test.png");
-        UIIcon icon = new UIIcon(sw(0.06f), sh(0.03f), tex);
-        icon.tint(col(UIColors.GREEN));
-        pane2.addChild(icon);
         
-        UIFloatInputRule inputRule = new UIFloatInputRule();
-        inputRule.maxCharacters(5)
-        .maxPrecision(2)
+        UIFloatFieldRule inputRule = UIFieldRule.defaultFloat();
+        inputRule.maxCharacters(3)
+        .maxPrecision(0)
         .inputMinMax(0f, 100f)
         .mappedMinMax(0f, 1f);
         
-        UIUserInput<Float> input = new UIUserInput<>(sw(0.2f), sh(0.08f), font, inputRule);
-        input.borderColor(col(UIColors.GREEN))
-        .cornerRadius(10f)
-        .marginTop(px(20));
+        UIFloatField field = new UIFloatField(sw(0.2f), sh(0.08f), font, inputRule);
+        field.useButtons(0.1f);
+        field.marginTop(px(20));
         
-        pane2.addChild(input);
+        pane2.addChild(field);
         
         List<UISlider> sliders = new ArrayList<>();
         int num = 4;
@@ -165,7 +165,7 @@ public class UIRenderer extends Renderer {
         Scene scene = SceneRenderer.getInstance().getScene();
         LightSource spot = scene.getSpotLights().get(0);
         
-        input.bindTo(spot.getIntensity());
+        field.bindTo(spot.getIntensity());
         sliders.get(0).bindTo(spot.getIntensity());
         sliders.get(1).bindTo(spot.getRed());
         sliders.get(2).bindTo(spot.getGreen());
@@ -321,16 +321,14 @@ public class UIRenderer extends Renderer {
         }
         
         if (root.isSubtreeDirty()) {
-            rebuildVisibleElementList();
-            root.clearSubtreeDirtyMark();
-        }
-        
-        if (root.subtreeNeedsInitialising()) {
             root.initialiseSubtree();
-            if (root.isLayoutDirty()) {
+            if (root.isLayoutDirty()) { // If initalising caused a layout change
                 root.layoutMeasure();
                 root.layoutAdvance(root.getMeasuredX(), root.getMeasuredY());
             }
+
+            rebuildVisibleElementList();
+            root.clearSubtreeDirtyMark();
         }
         
         glEnable(GL_BLEND);

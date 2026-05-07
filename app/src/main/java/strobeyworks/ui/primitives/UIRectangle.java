@@ -28,7 +28,7 @@ public class UIRectangle extends UIElement {
         cornerRadius = new Vec4(0f);
         
         borderEnabled = false;
-        borderColor = col(UIColors.WHITE);
+        borderColor = col(UIColors.TRANSPARENT);
         borderThickness = 2f;
         borderLeft = true;
         borderRight = true;

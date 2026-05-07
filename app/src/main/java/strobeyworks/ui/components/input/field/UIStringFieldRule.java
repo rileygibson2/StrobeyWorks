@@ -1,23 +1,23 @@
-package strobeyworks.ui.components.interactable.input;
+package strobeyworks.ui.components.input.field;
 
-public class UIStringInputRule implements UIInputRule<String>  {
+public class UIStringFieldRule implements UIFieldRule<String>  {
     
     private int maxCharacters;
     private String charRegex;
     
     //"[^0-9]+" Multiple non numbers
     
-    public UIStringInputRule() {
+    protected UIStringFieldRule() {
         this.maxCharacters = Integer.MAX_VALUE;
         this.charRegex = ".*"; // Match everything
     }
 
-    public UIStringInputRule maxCharacters(int maxCharacters) {
+    public UIStringFieldRule maxCharacters(int maxCharacters) {
         this.maxCharacters = maxCharacters;
         return this;
     }
 
-    public UIStringInputRule charRegex(String charRegex) {
+    public UIStringFieldRule charRegex(String charRegex) {
         this.charRegex = charRegex;
         return this;
     }
@@ -34,7 +34,7 @@ public class UIStringInputRule implements UIInputRule<String>  {
     }
     
     @Override
-    public boolean draftValid(String s) {
+    public boolean inputFilter(String s) {
         if (s.length()>maxCharacters) return false;
         
         for (int i=0; i<s.length(); i++) {

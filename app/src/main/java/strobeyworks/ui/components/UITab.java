@@ -15,7 +15,7 @@ import strobeyworks.ui.primitives.UIElement;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Vec4;
 
-public class UITab extends UIComponent {
+public class UITab extends UIRectangle {
     
     private int numTabs;
 

@@ -1,8 +1,8 @@
-package strobeyworks.ui.components.interactable.input;
+package strobeyworks.ui.components.input.field;
 
 import strobeyworks.utils.Utils;
 
-public class UIFloatInputRule implements UIInputRule<Float>  {
+public class UIFloatFieldRule implements UIFieldRule<Float>  {
     
     // Input rules
     private int maxCharacters;
@@ -14,7 +14,7 @@ public class UIFloatInputRule implements UIInputRule<Float>  {
     private float mappedMin;
     private float mappedMax;
     
-    public UIFloatInputRule() {
+    protected UIFloatFieldRule() {
         this.maxCharacters = Integer.MAX_VALUE;
         this.maxPrecision = Integer.MAX_VALUE;
         this.inputMin = 0f;
@@ -23,24 +23,24 @@ public class UIFloatInputRule implements UIInputRule<Float>  {
         this.mappedMax = 1f;
     }
     
-    public UIFloatInputRule maxCharacters(int maxCharacters) {
+    public UIFloatFieldRule maxCharacters(int maxCharacters) {
         this.maxCharacters = maxCharacters;
         return this;
     }
     
-    public UIFloatInputRule maxPrecision(int maxPrecision) {
+    public UIFloatFieldRule maxPrecision(int maxPrecision) {
         this.maxPrecision = maxPrecision;
         return this;
     }
     
-    public UIFloatInputRule inputMinMax(float inputMin, float inputMax) {
+    public UIFloatFieldRule inputMinMax(float inputMin, float inputMax) {
         this.inputMin = inputMin;
         this.inputMax = inputMax;
         mappedMinMax(inputMin, inputMax); // In case not set
         return this;
     }
     
-    public UIFloatInputRule mappedMinMax(float mappedMin, float mappedMax) {
+    public UIFloatFieldRule mappedMinMax(float mappedMin, float mappedMax) {
         this.mappedMin = mappedMin;
         this.mappedMax = mappedMax;
         return this;
@@ -85,7 +85,7 @@ public class UIFloatInputRule implements UIInputRule<Float>  {
     }
     
     @Override
-    public boolean draftValid(String s) {
+    public boolean inputFilter(String s) {
         if (s.length()>maxCharacters) return false;
         
         for (int i=0; i<s.length(); i++) {

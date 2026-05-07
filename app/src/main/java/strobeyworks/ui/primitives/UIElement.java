@@ -1,5 +1,6 @@
 package strobeyworks.ui.primitives;
 
+import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UIPair.px;
 
 import java.util.ArrayList;
@@ -11,13 +12,10 @@ import strobeyworks.SWMain;
 import strobeyworks.logger.Logger;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.ShaderManager;
-import strobeyworks.ui.components.UIComponent;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIPair;
 import strobeyworks.ui.core.UIQuad;
 import strobeyworks.utils.Vec4;
-
-import static strobeyworks.ui.core.UIColors.col;
 
 public abstract class UIElement {
     
@@ -136,7 +134,8 @@ public abstract class UIElement {
     private List<UIElement> children;
     private boolean layoutDirty; // Object layout has changed
     private boolean subtreeDirty; // Composition of subtree has changed
-    private boolean subtreeNeedsInitialising; // Subtree element needs initialising
+    //private boolean subtreeNeedsInitialising; // Subtree element needs initialising
+    private boolean initialised;
     
     // Authored values
     private UIBoxMode boxMode;
@@ -179,7 +178,7 @@ public abstract class UIElement {
     
     // Functional
     private Matrix4f modelMatrix;
-
+    
     private Vec4 debugColor = col(UIColors.RED);
     private boolean debugEnabled;
     
@@ -203,12 +202,11 @@ public abstract class UIElement {
         
         this.layoutDirty = true;
         this.subtreeDirty = false;
-        this.subtreeNeedsInitialising = false;
-
+        
         this.isInteractable = false;
         this.isFocussable = false;
         this.wantsPointer = false;
-
+        
         this.debugEnabled = false;
         
         children = new ArrayList<>();
@@ -232,10 +230,10 @@ public abstract class UIElement {
         
         this.layoutDirty = true;
         this.subtreeDirty = false;
-
+        
         this.isFocussable = false;
         this.wantsPointer = false;
-
+        
         this.debugEnabled = false;
         
         children = new ArrayList<>();
@@ -250,53 +248,53 @@ public abstract class UIElement {
     /**
     * UI interaction
     */
-
+    
     public void setInteractable(boolean interactable) {
         this.isInteractable = interactable;
     }
-
+    
     public void setFocussable(boolean focussable) {
         this.isFocussable = focussable;
         setInteractable(true);
     }
-
+    
     public void setWantsPointer(boolean wantsPointer) {
         this.wantsPointer = wantsPointer;
         setInteractable(true);
     }
-
+    
     public boolean isInteractable() {
         return this.isInteractable;
     }
-
+    
     public boolean isFocussable() {
         return this.isFocussable;
     }
-
+    
     public boolean wantsPointer() {
         return this.wantsPointer;
     }
-
+    
     public void gotFocus(IOEvent event) {}
-
+    
     public void lostFocus(IOEvent event) {}
-
+    
     public void gotPointer(IOEvent event) {}
-
+    
     public void lostPointer(IOEvent event) {}
-
+    
     public void handleIOEvent(IOEvent event) {}
     
     public UIElement getDeepestElementAt(float x, float y) {
         if (!containsResolved(x, y)) return null;
         UIElement hit = null;
-
+        
         for (UIElement c : children) {
             if (!c.isVisible()) continue;
             UIElement result = c.getDeepestElementAt(x, y);
             if (result!=null) hit = result;
         }
-
+        
         return hit!=null ? hit : this;
     }
     
@@ -315,7 +313,6 @@ public abstract class UIElement {
         
         markLayoutDirty();
         markSubtreeDirty();
-        markSubtreeNeedsInitialising();
     }
     
     public void removeChild(UIElement e) {
@@ -376,20 +373,19 @@ public abstract class UIElement {
         for (UIElement c : children) c.clearSubtreeDirtyMark();
     }
 
-    public void markSubtreeNeedsInitialising() {
-        subtreeNeedsInitialising = true;
-        if (parent!=null) parent.markSubtreeNeedsInitialising();
+    public void initialise() {}
+    
+    public boolean isInitialised() {
+        return this.initialised;
     }
 
-    public boolean subtreeNeedsInitialising() {
-        return subtreeNeedsInitialising;
-    }
-    
     public void initialiseSubtree() {
-        if (this instanceof UIComponent component) component.initialiseIfNeeded();
+        if (!initialised) {
+            initialise();
+            initialised = true;
+        }
         
         for (UIElement child : children) child.initialiseSubtree();
-        subtreeNeedsInitialising = false;
     }
     
     /**
@@ -488,13 +484,13 @@ public abstract class UIElement {
         if (boxMode==UIBoxMode.FIXED) {
             float w = resolveLocal(width);
             float h = resolveLocal(height);
-
+            
             // Text special case
             if (this instanceof UIText) {
                 w = ((UIText) this).getResolvedTextWidth();
                 h = ((UIText) this).getResolvedTextHeight();
             }
-
+            
             if (minWidth!=null) w = Math.max(w, resolveLocal(minWidth));
             measuredWidth = w;
             if (minHeight!=null) h = Math.max(h, resolveLocal(minHeight));
@@ -1009,7 +1005,7 @@ public abstract class UIElement {
         markSubtreeDirty();
         return this;
     }
-
+    
     public UIElement enableDebugColor(boolean debugEnabled) {
         this.debugEnabled = debugEnabled;
         return this;

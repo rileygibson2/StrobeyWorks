@@ -5,6 +5,7 @@ import static strobeyworks.ui.core.UIColors.col;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIPair;
 import strobeyworks.ui.core.UITexture;
+import strobeyworks.ui.core.UITextureManager;
 import strobeyworks.utils.Vec4;
 
 public class UIIcon extends UIElement {
@@ -14,15 +15,21 @@ public class UIIcon extends UIElement {
     private UITexture texture;
     private Vec4 tint = col(UIColors.WHITE);
     
-    public UIIcon(UIPair width, UIPair height, UITexture texture) {
+    public UIIcon(UIPair width, UIPair height, String textureName) {
         super(width, height);
-        this.texture = texture;
+        this.texture = UITextureManager.getUITexture(textureName);
+        
+        box(UIBoxMode.FIXED);
+    }
+
+    public UIIcon(UIPair width, UIPair height) {
+        super(width, height);
         
         box(UIBoxMode.FIXED);
     }
     
-    public UIIcon texture(UITexture texture) {
-        this.texture = texture;
+    public UIIcon texture(String textureName) {
+        this.texture = UITextureManager.getUITexture(textureName);
         return this;
     }
     
