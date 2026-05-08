@@ -4,7 +4,9 @@ import static strobeyworks.ui.core.UIColors.col;
 
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.ui.core.UIColors;
-import strobeyworks.ui.core.UIPair;
+import strobeyworks.ui.core.UILength;
+import strobeyworks.ui.style.PrimitiveStyles;
+import strobeyworks.ui.style.UIStyle;
 import strobeyworks.utils.Vec4;
 
 public class UICircle extends UIElement {
@@ -18,18 +20,13 @@ public class UICircle extends UIElement {
     private float borderThickness;
     private boolean oval;
     
-    private Vec4 debugColor = col(UIColors.RED);
-    private boolean debugEnabled;
-    
-    public UICircle(UIPair width, UIPair height) {
+    public UICircle(UILength width, UILength height) {
         super(width, height);
         color = col(UIColors.TRANSPARENT);
         borderEnabled = false;
         borderColor = col(UIColors.WHITE);
         borderThickness = 2f;
         oval = true;
-        
-        debugEnabled = false;
     }
     
     public UICircle() {
@@ -39,8 +36,6 @@ public class UICircle extends UIElement {
         borderColor = col(UIColors.WHITE);
         borderThickness = 2f;
         oval = true;
-        
-        debugEnabled = false;
     }
     
     @Override
@@ -54,20 +49,40 @@ public class UICircle extends UIElement {
         
         super.setRenderUniforms(sM);
     }
+
+    @Override
+    public void applyStyle(UIStyle style) {
+        super.applyStyle(style);
+
+        style.ifPresent(PrimitiveStyles.COLOR, this::color);
+        style.ifPresent(PrimitiveStyles.BORDER_ENABLED, this::borderEnabled);
+        style.ifPresent(PrimitiveStyles.BORDER_COLOR, this::borderColor);
+        style.ifPresent(PrimitiveStyles.BORDER_THICKNESS, this::borderThickness);
+    }
+
+    @Override
+    public UIStyle captureStyle() {
+        UIStyle style = super.captureStyle();
+
+        style.set(PrimitiveStyles.COLOR, color);
+        style.set(PrimitiveStyles.BORDER_ENABLED, borderEnabled);
+        style.set(PrimitiveStyles.BORDER_COLOR, borderColor);
+        style.set(PrimitiveStyles.BORDER_THICKNESS, borderThickness);
+        return style;
+    }
     
     public UICircle color(Vec4 color) {
         this.color = color;
         return this;
     }
     
-    public UICircle enableBorder(boolean borderEnabled) {
+    public UICircle borderEnabled(boolean borderEnabled) {
         this.borderEnabled = borderEnabled;
         return this;
     }
     
     public UICircle borderColor(Vec4 borderColor) {
         this.borderColor = borderColor;
-        enableBorder(true);
         return this;
     }
     
@@ -78,11 +93,6 @@ public class UICircle extends UIElement {
     
     public UICircle oval(boolean oval) {
         this.oval = oval;
-        return this;
-    }
-    
-    public UICircle enableDebugColor(boolean debugEnabled) {
-        this.debugEnabled = debugEnabled;
         return this;
     }
 }

@@ -1,19 +1,16 @@
 package strobeyworks.ui.components;
 
+import static strobeyworks.ui.core.UIColors.col;
+import static strobeyworks.ui.core.UILength.pch;
+import static strobeyworks.ui.core.UILength.pcw;
+
+import strobeyworks.platform.IOEvent;
 import strobeyworks.ui.core.UIColors;
-import strobeyworks.ui.core.UIPair;
-import strobeyworks.ui.core.UITexture;
-import strobeyworks.ui.core.UITextureManager;
+import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.primitives.UIIcon;
 import strobeyworks.ui.primitives.UIRectangle;
-
-import static strobeyworks.ui.core.UIColors.col;
-import static strobeyworks.ui.core.UIPair.pch;
-import static strobeyworks.ui.core.UIPair.pcw;
-import static strobeyworks.ui.core.UIPair.px;
-
-import strobeyworks.logger.Logger;
-import strobeyworks.platform.IOEvent;
+import strobeyworks.ui.style.PrimitiveStyles;
+import strobeyworks.ui.style.UIStyle;
 
 public class UIButton extends UIRectangle {
     
@@ -26,7 +23,7 @@ public class UIButton extends UIRectangle {
     
     private UIButtonCallback callback;
     
-    public UIButton(UIPair width, UIPair height) {
+    public UIButton(UILength width, UILength height) {
         super(width, height);
 
         clickable(true);
@@ -34,6 +31,7 @@ public class UIButton extends UIRectangle {
         
         box(UIBoxMode.FIXED);
         color(col(UIColors.TRANSPARENT));
+        borderEnabled(true);
         borderColor(col(UIColors.GREEN));
         cornerRadius(10f);
         
@@ -41,6 +39,21 @@ public class UIButton extends UIRectangle {
         icon.tint(col(UIColors.GREEN));
         icon.visible(false);
         addChild(icon);
+    }
+
+    @Override
+    public void applyStyle(UIStyle style) {
+        super.applyStyle(style);
+
+        style.ifPresent(PrimitiveStyles.ICON_TINT, v -> icon.tint(v));
+    }
+
+    @Override
+    public UIStyle captureStyle() {
+        UIStyle style = super.captureStyle();
+
+        style.set(PrimitiveStyles.ICON_TINT, icon.getTint());
+        return style;
     }
     
     public UIButton icon(String iconName) {
@@ -56,15 +69,13 @@ public class UIButton extends UIRectangle {
 
     @Override
     public void gotHover(IOEvent event) {
-        Logger.debug("AAAAA");
-        color(col(UIColors.GRAY_05));
+        cacheStyle();
+        applyHoverStyle();
     }
     
     @Override
     public void lostHover(IOEvent event) {
-        
-        Logger.debug("OOOOO");
-        color(col(UIColors.TRANSPARENT));
+        applyCachedStyle();
     }
 
     @Override

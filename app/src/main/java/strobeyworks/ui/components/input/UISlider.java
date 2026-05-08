@@ -1,13 +1,13 @@
 package strobeyworks.ui.components.input;
 
 import static strobeyworks.ui.core.UIColors.col;
-import static strobeyworks.ui.core.UIPair.pch;
-import static strobeyworks.ui.core.UIPair.pcw;
-import static strobeyworks.ui.core.UIPair.px;
+import static strobeyworks.ui.core.UILength.pch;
+import static strobeyworks.ui.core.UILength.pcw;
+import static strobeyworks.ui.core.UILength.px;
 
 import strobeyworks.platform.IOEvent;
 import strobeyworks.ui.core.UIColors;
-import strobeyworks.ui.core.UIPair;
+import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.primitives.UICircle;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Utils;
@@ -18,7 +18,7 @@ public class UISlider extends UIValueControl<Float, Float> {
     private UIRectangle fRect;
     private float bounds = 0.99f;
     
-    public UISlider(UIPair width, UIPair height) {
+    public UISlider(UILength width, UILength height) {
         super(width, height, UIValueAdaptor.FLOAT_IDENTITY);
         
         wantsPointer(true);
@@ -29,8 +29,7 @@ public class UISlider extends UIValueControl<Float, Float> {
         padding(px(0));
         alignItems(UIAlignItems.CENTER);
         
-        // Main box
-        
+        borderEnabled(true);
         borderColor(col(UIColors.GREEN));
         color(col(UIColors.GRAY_008));
         cornerRadius(20f);
@@ -42,7 +41,8 @@ public class UISlider extends UIValueControl<Float, Float> {
         .offsetTop(pch(0.05f))
         .offsetLeft(pch(0.05f));
         
-        circle.borderColor(col(UIColors.GREEN))
+        circle.borderEnabled(true)
+        .borderColor(col(UIColors.GREEN))
         .color(col(UIColors.GRAY_008))
         .oval(false);
         
@@ -51,7 +51,8 @@ public class UISlider extends UIValueControl<Float, Float> {
         .offsetTop(pcw(0.1f))
         .offsetLeft(pch(0.1f));
         
-        c2.borderColor(col(UIColors.GREEN))
+        c2.borderEnabled(true)
+        .borderColor(col(UIColors.GREEN))
         .color(col(UIColors.GRAY_008))
         .oval(false);
         

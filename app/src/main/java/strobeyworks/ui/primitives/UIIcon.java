@@ -3,9 +3,11 @@ package strobeyworks.ui.primitives;
 import static strobeyworks.ui.core.UIColors.col;
 
 import strobeyworks.ui.core.UIColors;
-import strobeyworks.ui.core.UIPair;
+import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.core.UITexture;
 import strobeyworks.ui.core.UITextureManager;
+import strobeyworks.ui.style.PrimitiveStyles;
+import strobeyworks.ui.style.UIStyle;
 import strobeyworks.utils.Vec4;
 
 public class UIIcon extends UIElement {
@@ -15,17 +17,32 @@ public class UIIcon extends UIElement {
     private UITexture texture;
     private Vec4 tint = col(UIColors.WHITE);
     
-    public UIIcon(UIPair width, UIPair height, String textureName) {
+    public UIIcon(UILength width, UILength height, String textureName) {
         super(width, height);
         this.texture = UITextureManager.getUITexture(textureName);
         
         box(UIBoxMode.FIXED);
     }
 
-    public UIIcon(UIPair width, UIPair height) {
+    public UIIcon(UILength width, UILength height) {
         super(width, height);
         
         box(UIBoxMode.FIXED);
+    }
+
+    @Override
+    public void applyStyle(UIStyle style) {
+        super.applyStyle(style);
+
+        style.ifPresent(PrimitiveStyles.TINT, this::tint);
+    }
+
+    @Override
+    public UIStyle captureStyle() {
+        UIStyle style = super.captureStyle();
+
+        style.set(PrimitiveStyles.TINT, tint);
+        return style;
     }
     
     public UIIcon texture(String textureName) {

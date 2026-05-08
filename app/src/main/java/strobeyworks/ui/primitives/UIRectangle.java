@@ -4,7 +4,9 @@ import static strobeyworks.ui.core.UIColors.col;
 
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.ui.core.UIColors;
-import strobeyworks.ui.core.UIPair;
+import strobeyworks.ui.core.UILength;
+import strobeyworks.ui.style.PrimitiveStyles;
+import strobeyworks.ui.style.UIStyle;
 import strobeyworks.utils.Vec4;
 
 public class UIRectangle extends UIElement {
@@ -13,8 +15,7 @@ public class UIRectangle extends UIElement {
     
     private Vec4 color;
     private Vec4 cornerRadius;
-    
-    private boolean borderEnabled;
+    private Boolean borderEnabled;
     private Vec4 borderColor;
     private float borderThickness;
     private boolean borderLeft;
@@ -22,11 +23,10 @@ public class UIRectangle extends UIElement {
     private boolean borderTop;
     private boolean borderBottom;
     
-    public UIRectangle(UIPair width, UIPair height) {
+    public UIRectangle(UILength width, UILength height) {
         super(width, height);
         color = col(UIColors.TRANSPARENT);
         cornerRadius = new Vec4(0f);
-        
         borderEnabled = false;
         borderColor = col(UIColors.TRANSPARENT);
         borderThickness = 2f;
@@ -40,9 +40,8 @@ public class UIRectangle extends UIElement {
         super();
         color = col(UIColors.TRANSPARENT);
         cornerRadius = new Vec4(0f);
-        
         borderEnabled = false;
-        borderColor = col(UIColors.WHITE);
+        borderColor = col(UIColors.TRANSPARENT);
         borderThickness = 2f;
         borderLeft = true;
         borderRight = true;
@@ -54,7 +53,6 @@ public class UIRectangle extends UIElement {
         sM.setUniformInt("uPrimType", PRIM_TYPE);
         sM.setUniformVec4("uColor", color);
         sM.setUniformVec4("uCornerRadius", cornerRadius);
-        
         sM.setUniformInt("uHasBorder", borderEnabled ? 1 : 0);
         sM.setUniformVec4("uBorderColor", borderColor);
         sM.setUniformFloat("uBorderThickness", borderThickness);
@@ -66,6 +64,37 @@ public class UIRectangle extends UIElement {
         ));
         
         super.setRenderUniforms(sM);
+    }
+
+    @Override
+    public void applyStyle(UIStyle style) {
+        super.applyStyle(style);
+
+        style.ifPresent(PrimitiveStyles.COLOR, this::color);
+        style.ifPresent(PrimitiveStyles.CORNER_RADIUS, this::cornerRadius);
+        style.ifPresent(PrimitiveStyles.BORDER_ENABLED, this::borderEnabled);
+        style.ifPresent(PrimitiveStyles.BORDER_COLOR, this::borderColor);
+        style.ifPresent(PrimitiveStyles.BORDER_THICKNESS, this::borderThickness);
+        style.ifPresent(PrimitiveStyles.BORDER_LEFT, this::borderLeft);
+        style.ifPresent(PrimitiveStyles.BORDER_RIGHT, this::borderRight);
+        style.ifPresent(PrimitiveStyles.BORDER_TOP, this::borderTop);
+        style.ifPresent(PrimitiveStyles.BORDER_BOTTOM, this::borderBottom);
+    }
+
+    @Override
+    public UIStyle captureStyle() {
+        UIStyle style = super.captureStyle();
+        
+        style.set(PrimitiveStyles.COLOR, color);
+        style.set(PrimitiveStyles.CORNER_RADIUS, cornerRadius);
+        style.set(PrimitiveStyles.BORDER_ENABLED, borderEnabled);
+        style.set(PrimitiveStyles.BORDER_COLOR, borderColor);
+        style.set(PrimitiveStyles.BORDER_THICKNESS, borderThickness);
+        style.set(PrimitiveStyles.BORDER_LEFT, borderLeft);
+        style.set(PrimitiveStyles.BORDER_RIGHT, borderRight);
+        style.set(PrimitiveStyles.BORDER_TOP, borderTop);
+        style.set(PrimitiveStyles.BORDER_BOTTOM, borderBottom);
+        return style;
     }
     
     public UIRectangle color(Vec4 color) {
@@ -88,20 +117,18 @@ public class UIRectangle extends UIElement {
         return this;
     }
     
-    public UIRectangle enableBorder(boolean borderEnabled) {
+    public UIRectangle borderEnabled(boolean borderEnabled) {
         this.borderEnabled = borderEnabled;
         return this;
     }
     
     public UIRectangle borderColor(Vec4 borderColor) {
         this.borderColor = borderColor;
-        enableBorder(true);
         return this;
     }
     
     public UIRectangle borderThickness(float borderThickness) {
         this.borderThickness = borderThickness;
-        enableBorder(true);
         return this;
     }
     

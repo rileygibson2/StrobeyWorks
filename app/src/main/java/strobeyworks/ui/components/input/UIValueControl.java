@@ -1,6 +1,6 @@
 package strobeyworks.ui.components.input;
 
-import strobeyworks.ui.core.UIPair;
+import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Bindable;
 import strobeyworks.utils.BindableObserver;
@@ -28,7 +28,7 @@ public abstract class UIValueControl<E, L> extends UIRectangle implements Bindab
     private Bindable<E> binding;
     private L localValue;
     
-    public UIValueControl(UIPair width, UIPair height, UIValueAdaptor<E, L> adaptor) {
+    public UIValueControl(UILength width, UILength height, UIValueAdaptor<E, L> adaptor) {
         super(width, height);
         this.adaptor = adaptor;
     }

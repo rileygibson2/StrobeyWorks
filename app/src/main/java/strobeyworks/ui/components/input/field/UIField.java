@@ -5,9 +5,9 @@ import static org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT;
 import static strobeyworks.ui.core.UIColors.col;
-import static strobeyworks.ui.core.UIPair.pch;
-import static strobeyworks.ui.core.UIPair.pcw;
-import static strobeyworks.ui.core.UIPair.px;
+import static strobeyworks.ui.core.UILength.pch;
+import static strobeyworks.ui.core.UILength.pcw;
+import static strobeyworks.ui.core.UILength.px;
 
 import strobeyworks.logger.Logger;
 import strobeyworks.platform.Animation;
@@ -16,7 +16,7 @@ import strobeyworks.platform.IOEvent;
 import strobeyworks.ui.components.input.UIValueControl;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIFont;
-import strobeyworks.ui.core.UIPair;
+import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
@@ -35,13 +35,14 @@ public class UIField<T> extends UIValueControl<T, String> {
     private Vec4 cachedColor;
     private boolean invalidInput;
     
-    public UIField(UIPair width, UIPair height, UIFont font, UIFieldRule<T> inputRule) {
+    public UIField(UILength width, UILength height, UIFont font, UIFieldRule<T> inputRule) {
         super(width, height, inputRule);
         this.inputRule = inputRule;
         
         focussable(true);
         
         alignItems(UIAlignItems.CENTER);
+        borderEnabled(true);
         borderColor(col(UIColors.GREEN));
         paddingLeft(px(10));
         color(col(UIColors.TRANSPARENT));
@@ -195,7 +196,7 @@ public class UIField<T> extends UIValueControl<T, String> {
     
     private void repositionCursor() {
         float x = textElem.getFont().measureTextWidth(getLocalValue().substring(0, cursorPos));
-        cursor.offsetLeft(px(x+wrapper.resolveLocal(wrapper.getPadding().left)));
+        cursor.offsetLeft(px(x+wrapper.resolveLocal(wrapper.getPaddingLeft())));
     }
     
     

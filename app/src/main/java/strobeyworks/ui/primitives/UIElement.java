@@ -1,7 +1,7 @@
 package strobeyworks.ui.primitives;
 
 import static strobeyworks.ui.core.UIColors.col;
-import static strobeyworks.ui.core.UIPair.px;
+import static strobeyworks.ui.core.UILength.px;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,8 +14,8 @@ import strobeyworks.logger.Logger;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.ui.core.UIColors;
-import strobeyworks.ui.core.UIPair;
-import strobeyworks.ui.core.UIQuad;
+import strobeyworks.ui.core.UILength;
+import strobeyworks.ui.style.UIStyle;
 import strobeyworks.utils.Vec4;
 
 public abstract class UIElement {
@@ -135,8 +135,7 @@ public abstract class UIElement {
     private List<UIElement> children;
     private boolean layoutDirty; // Object layout has changed
     private boolean subtreeDirty; // Composition of subtree has changed
-    //private boolean subtreeNeedsInitialising; // Subtree element needs initialising
-    private boolean initialised;
+    private boolean initialised; // Element has been initialised (also indicator of computed layout values existing)
     
     // Authored values
     private UIBoxMode boxMode;
@@ -147,21 +146,33 @@ public abstract class UIElement {
     private UIAlignItems alignItems;
     private UIAlignContent alignContent;
     
-    private UIPair width;
-    private UIPair height;
+    private UILength width;
+    private UILength height;
     
-    private UIQuad padding;
-    private UIQuad margin;
-    private UIQuad offset;
+    private UILength paddingLeft;
+    private UILength paddingRight;
+    private UILength paddingTop;
+    private UILength paddingBottom;
     
-    private UIPair minWidth;
-    private UIPair minHeight;
+    private UILength marginLeft;
+    private UILength marginRight;
+    private UILength marginTop;
+    private UILength marginBottom;
     
-    private UIPair maxWidth;
-    private UIPair maxHeight;
+    private UILength offsetLeft;
+    private UILength offsetRight;
+    private UILength offsetTop;
+    private UILength offsetBottom;
+    
+    private UILength minWidth;
+    private UILength minHeight;
+    
+    private UILength maxWidth;
+    private UILength maxHeight;
     
     private boolean visible;
     
+    // Computed values
     private float resolvedX;
     private float resolvedY;
     private float resolvedWidth;
@@ -172,11 +183,15 @@ public abstract class UIElement {
     private float measuredWidth;
     private float measuredHeight;
     
-    //IO
+    // IO
     private boolean focussable;
     private boolean wantsPointer;
     private boolean hoverable;
     private boolean clickable;
+
+    // Additional styles
+    private UIStyle cachedStyle;
+    private UIStyle hoverStyle;
     
     // Functional
     private Matrix4f modelMatrix;
@@ -184,7 +199,7 @@ public abstract class UIElement {
     private Vec4 debugColor = col(UIColors.RED);
     private boolean debugEnabled;
     
-    public UIElement(UIPair width, UIPair height) {
+    public UIElement(UILength width, UILength height) {
         this.width = width;
         this.height = height;
         
@@ -196,9 +211,20 @@ public abstract class UIElement {
         this.alignItems = UIAlignItems.START;
         this.alignContent = UIAlignContent.START;
         
-        this.padding = new UIQuad(px(0));
-        this.margin = new UIQuad(px(0));
-        this.offset = new UIQuad(px(0));
+        this.paddingLeft = px(0);
+        this.paddingRight = px(0);
+        this.paddingTop = px(0);
+        this.paddingBottom = px(0);
+        
+        this.marginLeft = px(0);
+        this.marginRight = px(0);
+        this.marginTop = px(0);
+        this.marginBottom = px(0);
+        
+        this.offsetLeft = px(0);
+        this.offsetRight = px(0);
+        this.offsetTop = px(0);
+        this.offsetBottom = px(0);
         
         this.visible = true;
         
@@ -225,9 +251,20 @@ public abstract class UIElement {
         this.alignItems = UIAlignItems.START;
         this.alignContent = UIAlignContent.START;
         
-        this.padding = new UIQuad(px(0));
-        this.margin = new UIQuad(px(0));
-        this.offset = new UIQuad(px(0));
+        this.paddingLeft = px(0);
+        this.paddingRight = px(0);
+        this.paddingTop = px(0);
+        this.paddingBottom = px(0);
+        
+        this.marginLeft = px(0);
+        this.marginRight = px(0);
+        this.marginTop = px(0);
+        this.marginBottom = px(0);
+        
+        this.offsetLeft = px(0);
+        this.offsetRight = px(0);
+        this.offsetTop = px(0);
+        this.offsetBottom = px(0);
         
         this.visible = true;
         
@@ -250,9 +287,37 @@ public abstract class UIElement {
         sM.setUniformInt("uDebugEnabled", debugEnabled ? 1 : 0);
     }
     
-    /**
-    * UI interaction
-    */
+    // -----------------------------------------------------------------------------
+    // Styling
+    // -----------------------------------------------------------------------------
+    
+    public void applyStyle(UIStyle style) {}
+
+    public UIStyle captureStyle() {
+        return new UIStyle();
+    }
+
+    public void cacheStyle() {
+        cachedStyle = captureStyle();
+    }
+
+    public UIElement hoverStyle(UIStyle hoverStyle) {
+        this.hoverStyle = hoverStyle;
+        return this;
+    }
+
+    public void applyHoverStyle() {
+        if (hoverStyle!=null) applyStyle(hoverStyle);
+    }
+
+    public void applyCachedStyle() {
+        if (cachedStyle!=null) applyStyle(cachedStyle);
+    }
+    
+    // -----------------------------------------------------------------------------
+    // UI Interaction
+    // -----------------------------------------------------------------------------
+    
     
     public UIElement focussable(boolean focussable) {
         this.focussable = focussable;
@@ -263,12 +328,12 @@ public abstract class UIElement {
         this.wantsPointer = wantsPointer;
         return this;
     }
-
+    
     public UIElement hoverable(boolean hoverable) {
         this.hoverable = hoverable;
         return this;
     }
-
+    
     public UIElement clickable(boolean clickable) {
         this.clickable = clickable;
         return this;
@@ -281,11 +346,11 @@ public abstract class UIElement {
     public boolean wantsPointer() {
         return this.wantsPointer;
     }
-
+    
     public boolean isHoverable() {
         return this.hoverable;
     }
-
+    
     public boolean isClickable() {
         return this.clickable;
     }
@@ -297,11 +362,11 @@ public abstract class UIElement {
     public void gotPointer(IOEvent event) {}
     
     public void lostPointer(IOEvent event) {}
-
+    
     public void gotHover(IOEvent event) {}
-
+    
     public void lostHover(IOEvent event) {}
-
+    
     public void clicked(IOEvent event) {}
     
     public void handleIOEvent(IOEvent event) {}
@@ -318,15 +383,16 @@ public abstract class UIElement {
         
         return hit!=null ? hit : this;
     }
-
+    
     public UIElement findAncestorMatching(Predicate<UIElement> accepts) {
         if (accepts.test(this)) return this;
         return parent!=null ? parent.findAncestorMatching(accepts) : null;
     }
     
-    /**
-    * Tree Management
-    */
+    // -----------------------------------------------------------------------------
+    // Tree Management
+    // -----------------------------------------------------------------------------
+    
     
     public void setParent(UIElement parent) {
         this.parent = parent;
@@ -398,13 +464,13 @@ public abstract class UIElement {
         subtreeDirty = false;
         for (UIElement c : children) c.clearSubtreeDirtyMark();
     }
-
+    
     public void initialise() {}
     
     public boolean isInitialised() {
         return this.initialised;
     }
-
+    
     public void initialiseSubtree() {
         if (!initialised) {
             initialise();
@@ -414,9 +480,10 @@ public abstract class UIElement {
         for (UIElement child : children) child.initialiseSubtree();
     }
     
-    /**
-    * Layout Management
-    */
+    // -----------------------------------------------------------------------------
+    // Layout Management
+    // -----------------------------------------------------------------------------
+    
     
     /**
     * Structure:
@@ -484,10 +551,10 @@ public abstract class UIElement {
     
     
     public void layoutMeasure() {
-        float pL = resolveLocal(padding.left);
-        float pR = resolveLocal(padding.right);
-        float pT = resolveLocal(padding.top);
-        float pB = resolveLocal(padding.bottom);
+        float pL = resolveLocal(paddingLeft);
+        float pR = resolveLocal(paddingRight);
+        float pT = resolveLocal(paddingTop);
+        float pB = resolveLocal(paddingBottom);
         
         float cursorX = pL;
         float cursorY = pT;
@@ -502,8 +569,8 @@ public abstract class UIElement {
         
         // Root case - set own x and y
         if (parent==null) {
-            measuredX = resolveLocal(margin.left);
-            measuredY = resolveLocal(margin.top);
+            measuredX = resolveLocal(marginLeft);
+            measuredY = resolveLocal(marginTop);
         }
         
         //Set fixed box w and h and wrap limits
@@ -536,17 +603,15 @@ public abstract class UIElement {
             c.layoutMeasure();
             
             // Resolve local coords
-            UIQuad margin = c.getMargin();
-            float mL = c.resolveLocal(margin.left);
-            float mR = c.resolveLocal(margin.right);
-            float mT = c.resolveLocal(margin.top);
-            float mB = c.resolveLocal(margin.bottom);
+            float mL = c.resolveLocal(c.getMarginLeft());
+            float mR = c.resolveLocal(c.getMarginRight());
+            float mT = c.resolveLocal(c.getMarginTop());
+            float mB = c.resolveLocal(c.getMarginBottom());
             
-            UIQuad offset = c.getOffset();
-            float oL = c.resolveLocal(offset.left);
-            float oR = c.resolveLocal(offset.right);
-            float oT = c.resolveLocal(offset.top);
-            float oB = c.resolveLocal(offset.bottom);
+            float oL = c.resolveLocal(c.getOffsetLeft());
+            float oR = c.resolveLocal(c.getOffsetRight());
+            float oT = c.resolveLocal(c.getOffsetTop());
+            float oB = c.resolveLocal(c.getOffsetBottom());
             
             UIPositionMode cPosition = c.getPositionMode();
             
@@ -658,8 +723,8 @@ public abstract class UIElement {
                     float lineCrossSize = flowWrap ? line.usedHeight() : contentHeight;
                     
                     for (UIElement c : line.elements) {
-                        float mT = c.resolveLocal(c.getMargin().top);
-                        float mB = c.resolveLocal(c.getMargin().bottom);
+                        float mT = c.resolveLocal(c.getMarginTop());
+                        float mB = c.resolveLocal(c.getMarginBottom());
                         
                         float childMarginBoxHeight = mT + c.measuredHeight + mB;
                         float childCrossOffset = (lineCrossSize - childMarginBoxHeight) * 0.5f;
@@ -673,8 +738,8 @@ public abstract class UIElement {
                     lineCrossSize = flowWrap ? line.usedWidth() : contentWidth;
                     
                     for (UIElement c : line.elements) {
-                        float mL = c.resolveLocal(c.getMargin().left);
-                        float mR = c.resolveLocal(c.getMargin().right);
+                        float mL = c.resolveLocal(c.getMarginLeft());
+                        float mR = c.resolveLocal(c.getMarginRight());
                         
                         float childMarginBoxWidth = mL + c.measuredWidth + mR;
                         float childCrossOffset = (lineCrossSize - childMarginBoxWidth) * 0.5f;
@@ -690,10 +755,10 @@ public abstract class UIElement {
                 line.bottom = Float.NEGATIVE_INFINITY;
                 
                 for (UIElement c : line.elements) {
-                    float mL = c.resolveLocal(c.getMargin().left);
-                    float mR = c.resolveLocal(c.getMargin().right);
-                    float mT = c.resolveLocal(c.getMargin().top);
-                    float mB = c.resolveLocal(c.getMargin().bottom);
+                    float mL = c.resolveLocal(c.getMarginLeft());
+                    float mR = c.resolveLocal(c.getMarginRight());
+                    float mT = c.resolveLocal(c.getMarginTop());
+                    float mB = c.resolveLocal(c.getMarginBottom());
                     
                     line.left = Math.min(line.left, c.measuredX - mL);
                     line.right = Math.max(line.right, c.measuredX + c.measuredWidth + mR);
@@ -752,8 +817,8 @@ public abstract class UIElement {
             }
             else if (c.getPositionMode()==UIPositionMode.FLOW_RELATIVE) {
                 c.layoutAdvance(
-                    resolvedX+c.measuredX+c.resolveLocal(c.getOffset().left),
-                    resolvedY+c.measuredY+c.resolveLocal(c.getOffset().top)
+                    resolvedX+c.measuredX+c.resolveLocal(c.getOffsetLeft()),
+                    resolvedY+c.measuredY+c.resolveLocal(c.getOffsetTop())
                 );
             }
             else c.layoutAdvance(
@@ -765,7 +830,7 @@ public abstract class UIElement {
         layoutDirty = false;
     }
     
-    public float resolveLocal(UIPair pair) {
+    public float resolveLocal(UILength pair) {
         switch (pair.unit) {
             case PIXELS:
             return pair.value;
@@ -818,13 +883,13 @@ public abstract class UIElement {
     
     private float getMeasuredContentWidth() {
         return Math.max(0f,
-            measuredWidth - resolveLocal(padding.left) - resolveLocal(padding.right)
+            measuredWidth - resolveLocal(paddingLeft) - resolveLocal(paddingRight)
         );
     }
     
     private float getMeasuredContentHeight() {
         return Math.max(0f,
-            measuredHeight - resolveLocal(padding.top) - resolveLocal(padding.bottom)
+            measuredHeight - resolveLocal(paddingTop) - resolveLocal(paddingBottom)
         );
     }
     
@@ -834,9 +899,10 @@ public abstract class UIElement {
         .scale(resolvedWidth, resolvedHeight, 1.0f);
     }
     
-    /**
-    * Setters
-    */
+    // -----------------------------------------------------------------------------
+    // Setters
+    // -----------------------------------------------------------------------------
+    
     
     public UIElement box(UIBoxMode boxMode) {
         this.boxMode = boxMode;
@@ -880,146 +946,140 @@ public abstract class UIElement {
         return this;
     }
     
-    public UIElement minWidth(UIPair minWidth) {
+    public UIElement minWidth(UILength minWidth) {
         this.minWidth = minWidth;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement minHeight(UIPair minHeight) {
+    public UIElement minHeight(UILength minHeight) {
         this.minHeight = minHeight;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement maxWidth(UIPair maxWidth) {
+    public UIElement maxWidth(UILength maxWidth) {
         this.maxWidth = maxWidth;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement maxHeight(UIPair maxHeight) {
+    public UIElement maxHeight(UILength maxHeight) {
         this.maxHeight = maxHeight;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement padding(UIPair padding) {
-        this.padding = new UIQuad(padding);
+    public UIElement padding(UILength padding) {
+        this.paddingLeft = padding.clone();
+        this.paddingRight = padding.clone();
+        this.paddingTop = padding.clone();
+        this.paddingBottom = padding.clone();
+        
         markLayoutDirty();
         return this;
     }
     
-    public UIElement padding(UIQuad padding) {
-        this.padding = padding;
+    public UIElement paddingLeft(UILength left) {
+        this.paddingLeft = left;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement paddingLeft(UIPair left) {
-        this.padding.left = left;
+    public UIElement paddingRight(UILength right) {
+        this.paddingRight = right;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement paddingRight(UIPair right) {
-        this.padding.right = right;
+    public UIElement paddingTop(UILength top) {
+        this.paddingTop = top;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement paddingTop(UIPair top) {
-        this.padding.top = top;
+    public UIElement paddingBottom(UILength bottom) {
+        this.paddingBottom = bottom;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement paddingBottom(UIPair bottom) {
-        this.padding.bottom = bottom;
+    public UIElement margin(UILength margin) {
+        this.marginLeft = margin.clone();
+        this.marginRight = margin.clone();
+        this.marginTop = margin.clone();
+        this.marginBottom = margin.clone();
+        
         markLayoutDirty();
         return this;
     }
     
-    public UIElement margin(UIPair margin) {
-        this.margin = new UIQuad(margin);
+    public UIElement marginLeft(UILength left) {
+        this.marginLeft = left;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement margin(UIQuad margin) {
-        this.margin = margin;
+    public UIElement marginRight(UILength right) {
+        this.marginRight = right;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement marginLeft(UIPair left) {
-        this.margin.left = left;
+    public UIElement marginTop(UILength top) {
+        this.marginTop = top;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement marginRight(UIPair right) {
-        this.margin.right = right;
+    public UIElement marginBottom(UILength bottom) {
+        this.marginBottom = bottom;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement marginTop(UIPair top) {
-        this.margin.top = top;
+    public UIElement offset(UILength offset) {
+        this.offsetLeft = offset.clone();
+        this.offsetRight = offset.clone();
+        this.offsetTop = offset.clone();
+        this.offsetBottom = offset.clone();
+        
         markLayoutDirty();
         return this;
     }
     
-    public UIElement marginBottom(UIPair bottom) {
-        this.margin.bottom = bottom;
+    public UIElement offsetLeft(UILength left) {
+        this.offsetLeft = left;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement offset(UIPair offset) {
-        this.offset = new UIQuad(offset);
+    public UIElement offsetRight(UILength right) {
+        this.offsetRight = right;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement offset(UIQuad offset) {
-        this.offset = offset;
+    public UIElement offsetTop(UILength top) {
+        this.offsetTop = top;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement offsetLeft(UIPair left) {
-        this.offset.left = left;
+    public UIElement offsetBottom(UILength bottom) {
+        this.offsetBottom = bottom;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement offsetRight(UIPair right) {
-        this.offset.right = right;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement offsetTop(UIPair top) {
-        this.offset.top = top;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement offsetBottom(UIPair bottom) {
-        this.offset.bottom = bottom;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement width(UIPair width) {
+    public UIElement width(UILength width) {
         if (boxMode==UIBoxMode.FLEX) Logger.throwRuntimeException("Cannot set width of box in UIBoxMode Flex");
         this.width = width;
         markLayoutDirty();
         return this;
     }
     
-    public UIElement height(UIPair height) {
+    public UIElement height(UILength height) {
         if (boxMode==UIBoxMode.FLEX) Logger.throwRuntimeException("Cannot set height of box in UIBoxMode Flex");
         this.height = height;
         markLayoutDirty();
@@ -1037,9 +1097,10 @@ public abstract class UIElement {
         return this;
     }
     
-    /**
-    * Getters
-    */
+    // -----------------------------------------------------------------------------
+    // Getters
+    // -----------------------------------------------------------------------------
+    
     
     public UIBoxMode getBoxMode() {return this.boxMode;}
     
@@ -1057,9 +1118,9 @@ public abstract class UIElement {
     
     public UIElement getParent() {return this.parent;}
     
-    public UIPair getWidth() {return this.width;}
+    public UILength getWidth() {return this.width;}
     
-    public UIPair getHeight() {return this.height;}
+    public UILength getHeight() {return this.height;}
     
     public float getMeasuredX() {return this.measuredX;}
     
@@ -1077,11 +1138,29 @@ public abstract class UIElement {
     
     public float getResolvedHeight() {return this.resolvedHeight;}
     
-    public UIQuad getPadding() {return this.padding;}
+    public UILength getPaddingLeft() {return this.paddingLeft;}
     
-    public UIQuad getMargin() {return this.margin;}
+    public UILength getPaddingRight() {return this.paddingRight;}
     
-    public UIQuad getOffset() {return this.offset;}
+    public UILength getPaddingTop() {return this.paddingTop;}
+    
+    public UILength getPaddingBottom() {return this.paddingBottom;}
+    
+    public UILength getMarginLeft() {return this.marginLeft;}
+    
+    public UILength getMarginRight() {return this.marginRight;}
+    
+    public UILength getMarginTop() {return this.marginTop;}
+    
+    public UILength getMarginBottom() {return this.marginBottom;}
+    
+    public UILength getOffsetLeft() {return this.offsetLeft;}
+    
+    public UILength getOffsetRight() {return this.offsetRight;}
+    
+    public UILength getOffsetTop() {return this.offsetTop;}
+    
+    public UILength getOffsetBottom() {return this.offsetBottom;}
     
     public boolean isVisible() {return this.visible;}
     

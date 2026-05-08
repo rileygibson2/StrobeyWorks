@@ -25,10 +25,10 @@ import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
 import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 import static strobeyworks.ui.core.UIColors.col;
-import static strobeyworks.ui.core.UIPair.pcw;
-import static strobeyworks.ui.core.UIPair.px;
-import static strobeyworks.ui.core.UIPair.sh;
-import static strobeyworks.ui.core.UIPair.sw;
+import static strobeyworks.ui.core.UILength.pcw;
+import static strobeyworks.ui.core.UILength.px;
+import static strobeyworks.ui.core.UILength.sh;
+import static strobeyworks.ui.core.UILength.sw;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -124,7 +124,7 @@ public class UIRenderer extends Renderer {
         .borderColor(col(UIColors.GREEN))
         .borderThickness(1.5f)
         .borderTop(false)
-        .padding(new UIQuad(px(5)))
+        .padding(px(5))
         //.justifyContent(UIJustifyContent.CENTER)
         .alignItems(UIAlignItems.CENTER)
         .alignContent(UIAlignContent.CENTER)
