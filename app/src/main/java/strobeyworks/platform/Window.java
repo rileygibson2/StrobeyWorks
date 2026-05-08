@@ -11,6 +11,7 @@ import static org.lwjgl.glfw.GLFW.GLFW_VISIBLE;
 import static org.lwjgl.glfw.GLFW.glfwCreateWindow;
 import static org.lwjgl.glfw.GLFW.glfwDefaultWindowHints;
 import static org.lwjgl.glfw.GLFW.glfwDestroyWindow;
+import static org.lwjgl.glfw.GLFW.glfwFocusWindow;
 import static org.lwjgl.glfw.GLFW.glfwGetPrimaryMonitor;
 import static org.lwjgl.glfw.GLFW.glfwGetVideoMode;
 import static org.lwjgl.glfw.GLFW.glfwInit;
@@ -30,6 +31,11 @@ import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
 import static org.lwjgl.opengl.GL11.glEnable;
 import static org.lwjgl.opengl.GL11.glViewport;
 import static org.lwjgl.system.MemoryUtil.NULL;
+import static org.lwjgl.glfw.GLFW.GLFW_FLOATING;
+import static org.lwjgl.glfw.GLFW.GLFW_TRUE;
+import static org.lwjgl.glfw.GLFW.GLFW_FALSE;
+import static org.lwjgl.glfw.GLFW.glfwWindowHint;
+
 
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
@@ -63,6 +69,9 @@ public class Window {
     
     private String title;
     private String titleData;
+    private boolean stayFocussed;
+    private float screenPosX;
+    private float screenPosY;
     
     private Renderer renderer;
     
@@ -74,8 +83,20 @@ public class Window {
         this.fpsTimer = 0.0;
         this.framesTimer = 0;
         this.title = title;
+        this.stayFocussed = false;
+        this.screenPosX = 0.5f;
+        this.screenPosY = 0.5f;
         
         renderer.setParentWindow(this);
+    }
+
+    public void stayFocussed() {
+        this.stayFocussed = true;
+    }
+
+    public void setScreenPos(float screenPosX, float screenPosY) {
+        this.screenPosX = screenPosX;
+        this.screenPosY = screenPosY;
     }
     
     public void initialise() {
@@ -95,6 +116,8 @@ public class Window {
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         
         // Create window
+        glfwWindowHint(GLFW_FLOATING, stayFocussed ? GLFW_TRUE : GLFW_FALSE);
+
         windowID = glfwCreateWindow(width, height, title, NULL, NULL);
         if (windowID == NULL) {
             throw new RuntimeException("Failed to create GLFW window");
@@ -106,10 +129,14 @@ public class Window {
         io.setupCallbacks();
         for (IOEventType type : IOEventType.values()) io.subscribe(type, renderer);
         
-        // Center the window on the main monitor
+        // Position window
         long monitor = glfwGetPrimaryMonitor();
         var vid = glfwGetVideoMode(monitor);
-        glfwSetWindowPos(windowID, (vid.width() - width) / 2, (vid.height() - height) / 2);
+        glfwSetWindowPos(
+            windowID,
+            (int) ((vid.width()-width)*screenPosX),
+            (int) ((vid.height()-height)*screenPosY)
+        );
         
         // Make context current
         glfwMakeContextCurrent(windowID);
@@ -180,6 +207,14 @@ public class Window {
         
         if (io!=null) io.endFrame();
         glfwSwapBuffers(windowID);
+    }
+
+    public void focus() {
+        glfwFocusWindow(windowID);
+    }
+
+    public long getWindowID() {
+        return windowID;
     }
     
     public Renderer getRenderer() {return this.renderer;}

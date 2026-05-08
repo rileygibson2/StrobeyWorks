@@ -21,7 +21,7 @@ public class UISlider extends UIValueControl<Float, Float> {
     public UISlider(UIPair width, UIPair height) {
         super(width, height, UIValueAdaptor.FLOAT_IDENTITY);
         
-        setWantsPointer(true);
+        wantsPointer(true);
 
         box(UIBoxMode.FIXED);
         flowDirection(UIFlowDirection.ROW);

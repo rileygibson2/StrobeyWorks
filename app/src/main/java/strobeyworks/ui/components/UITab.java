@@ -26,7 +26,7 @@ public class UITab extends UIRectangle {
         super(width, height);
         this.numTabs = numTabs;
         
-        setInteractable(true);
+        clickable(true);
 
         box(UIBoxMode.FIXED);
         flowDirection(UIFlowDirection.ROW);

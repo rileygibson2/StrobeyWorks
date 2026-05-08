@@ -8,7 +8,7 @@ import strobeyworks.logger.Logger;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.platform.Window;
 import strobeyworks.render.SceneRenderer;
-import strobeyworks.ui.UIRenderer;
+import strobeyworks.ui.core.UIRenderer;
 
 
 public class SWMain {
@@ -44,9 +44,12 @@ public class SWMain {
         shaderManager = new ShaderManager();
         
         renderWindow = new Window(SceneRenderer.getInstance(), 1500, 900, "Render");
-        renderWindow.initialise();
         
         uiWindow = new Window(UIRenderer.getInstance(), 500, 500, "UI");
+        uiWindow.stayFocussed();
+        uiWindow.setScreenPos(0.8f, 0.5f);
+        
+        renderWindow.initialise();
         uiWindow.initialise();
     }
     

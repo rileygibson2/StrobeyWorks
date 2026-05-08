@@ -5,6 +5,7 @@ import static strobeyworks.ui.core.UIPair.px;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 import org.joml.Matrix4f;
 
@@ -172,9 +173,10 @@ public abstract class UIElement {
     private float measuredHeight;
     
     //IO
-    private boolean isInteractable;
-    private boolean isFocussable;
+    private boolean focussable;
     private boolean wantsPointer;
+    private boolean hoverable;
+    private boolean clickable;
     
     // Functional
     private Matrix4f modelMatrix;
@@ -203,9 +205,10 @@ public abstract class UIElement {
         this.layoutDirty = true;
         this.subtreeDirty = false;
         
-        this.isInteractable = false;
-        this.isFocussable = false;
+        this.focussable = false;
         this.wantsPointer = false;
+        this.hoverable = false;
+        this.clickable = false;
         
         this.debugEnabled = false;
         
@@ -231,8 +234,10 @@ public abstract class UIElement {
         this.layoutDirty = true;
         this.subtreeDirty = false;
         
-        this.isFocussable = false;
+        this.focussable = false;
         this.wantsPointer = false;
+        this.hoverable = false;
+        this.clickable = false;
         
         this.debugEnabled = false;
         
@@ -249,30 +254,40 @@ public abstract class UIElement {
     * UI interaction
     */
     
-    public void setInteractable(boolean interactable) {
-        this.isInteractable = interactable;
+    public UIElement focussable(boolean focussable) {
+        this.focussable = focussable;
+        return this;
     }
     
-    public void setFocussable(boolean focussable) {
-        this.isFocussable = focussable;
-        setInteractable(true);
-    }
-    
-    public void setWantsPointer(boolean wantsPointer) {
+    public UIElement wantsPointer(boolean wantsPointer) {
         this.wantsPointer = wantsPointer;
-        setInteractable(true);
+        return this;
     }
-    
-    public boolean isInteractable() {
-        return this.isInteractable;
+
+    public UIElement hoverable(boolean hoverable) {
+        this.hoverable = hoverable;
+        return this;
+    }
+
+    public UIElement clickable(boolean clickable) {
+        this.clickable = clickable;
+        return this;
     }
     
     public boolean isFocussable() {
-        return this.isFocussable;
+        return this.focussable;
     }
     
     public boolean wantsPointer() {
         return this.wantsPointer;
+    }
+
+    public boolean isHoverable() {
+        return this.hoverable;
+    }
+
+    public boolean isClickable() {
+        return this.clickable;
     }
     
     public void gotFocus(IOEvent event) {}
@@ -282,6 +297,12 @@ public abstract class UIElement {
     public void gotPointer(IOEvent event) {}
     
     public void lostPointer(IOEvent event) {}
+
+    public void gotHover(IOEvent event) {}
+
+    public void lostHover(IOEvent event) {}
+
+    public void clicked(IOEvent event) {}
     
     public void handleIOEvent(IOEvent event) {}
     
@@ -296,6 +317,11 @@ public abstract class UIElement {
         }
         
         return hit!=null ? hit : this;
+    }
+
+    public UIElement findAncestorMatching(Predicate<UIElement> accepts) {
+        if (accepts.test(this)) return this;
+        return parent!=null ? parent.findAncestorMatching(accepts) : null;
     }
     
     /**

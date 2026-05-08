@@ -117,7 +117,12 @@ public class IO {
         leftPressed = glfwGetMouseButton(windowID, GLFW_MOUSE_BUTTON_LEFT)==GLFW_PRESS;
         rightPressed = glfwGetMouseButton(windowID, GLFW_MOUSE_BUTTON_RIGHT)==GLFW_PRESS;
         
-        if (leftPressed && (mouseDX != 0 || mouseDY != 0)) {
+        if (mouseX!=prevMouseX||mouseY!=prevMouseY) {
+            publish(IOEvent.mouseMove(this, (float) xPos[0], (float) yPos[0]));
+        }
+
+
+        if (leftPressed&&(mouseDX!=0||mouseDY!=0)) {
             publish(IOEvent.drag(this, (float) xPos[0], (float) yPos[0]));
         }
     }

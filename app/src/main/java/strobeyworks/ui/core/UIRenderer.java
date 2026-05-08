@@ -1,4 +1,4 @@
-package strobeyworks.ui;
+package strobeyworks.ui.core;
 
 import static org.lwjgl.opengl.GL11.GL_BLEND;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
@@ -55,11 +55,6 @@ import strobeyworks.ui.components.input.field.UIField;
 import strobeyworks.ui.components.input.field.UIFieldRule;
 import strobeyworks.ui.components.input.field.UIFloatField;
 import strobeyworks.ui.components.input.field.UIFloatFieldRule;
-import strobeyworks.ui.core.UIColors;
-import strobeyworks.ui.core.UIFont;
-import strobeyworks.ui.core.UIQuad;
-import strobeyworks.ui.core.UITexture;
-import strobeyworks.ui.core.UITextureManager;
 import strobeyworks.ui.primitives.UIElement;
 import strobeyworks.ui.primitives.UIElement.UIAlignContent;
 import strobeyworks.ui.primitives.UIElement.UIAlignItems;
@@ -95,9 +90,10 @@ public class UIRenderer extends Renderer {
     private int textVBO;
     
     private List<UIElement> visibleUIElements;
-    private UIElement root;
-    private UIElement focussed;
-    private UIElement pointer;
+    private UIElement rootElement;
+    private UIElement focussedElement;
+    private UIElement pointerElement;
+    private UIElement hoveredElement;
     
     protected Set<Animation> animations;
     
@@ -114,7 +110,7 @@ public class UIRenderer extends Renderer {
     private void buildTest() {
         UIFont font = new UIFont();
         font.loadFromTTF("RobotoMono-Medium.ttf", 30f);
-
+        
         UITextureManager.loadTexture("up_arrow.png");
         UITextureManager.loadTexture("down_arrow.png");
         
@@ -184,84 +180,37 @@ public class UIRenderer extends Renderer {
     }
     
     public void addToRoot(UIElement e) {
-        root.addChild(e);
+        rootElement.addChild(e);
     }
     
-    public void receiveIOEvent(IOEvent event) {
-        if (root==null) return;
-        
-        switch (event.getEventType()) {
-            case KEY_DOWN:
-            case KEY_UP:
-            case CHAR_TYPED:
-            if (focussed!=null) focussed.handleIOEvent(event);
-            return;
-            
-            case DRAG:
-            case LEFT_RELEASE:
-            if (pointer!=null) {
-                pointer.handleIOEvent(event);
-                
-                if (event.getEventType()==IOEventType.LEFT_RELEASE) {
-                    pointer.lostPointer(event);
-                    pointer = null;
-                }
-            }
-            return;
-            
-            case LEFT_PRESS:
-            UIElement e = root.getDeepestElementAt(event.getMouseX(), event.getMouseY());
-            UIElement target = e;
-            
-            while (target!=null&&!target.isInteractable()) { // Track up until found interactable element
-                target = target.getParent();
-            }
-            
-            boolean handled = false;
-            
-            if (focussed!=null&&focussed!=target) {
-                focussed.lostFocus(event);
-                focussed = null;
-            }
-            
-            if (target!=null&&target.isFocussable()) {
-                focussed = target;
-                focussed.gotFocus(event);
-                handled = true;
-            }
-            
-            if (target!=null&&target.wantsPointer()) {
-                pointer = target;
-                pointer.gotPointer(event);
-                handled = true;
-            }
-            
-            if (target!=null&&!handled) target.handleIOEvent(event);
-            
-            default: break;
-        }
+    public void addAnimation(Animation a) {
+        animations.add(a);
+    }
+    
+    public void removeAnimation(Animation a) {
+        animations.remove(a);
     }
     
     @Override
     public void handleWindowResize() {
         buildProjectionMatrix();
-        root.markLayoutDirty();
+        rootElement.markLayoutDirty();
     }
     
     public void rebuildVisibleElementList() {
-        visibleUIElements = root.getVisibleChildren();
-        root.clearSubtreeDirtyMark();
+        visibleUIElements = rootElement.getVisibleChildren();
+        rootElement.clearSubtreeDirtyMark();
     }
     
     public void initialise() {
-        root = new UIRectangle(sw(1f), sh(1f));
-        ((UIRectangle) root).color(col(UIColors.BLACK))
+        rootElement = new UIRectangle(sw(1f), sh(1f));
+        ((UIRectangle) rootElement).color(col(UIColors.BLACK))
         .position(UIPositionMode.SCREEN)
         .box(UIBoxMode.FIXED)
         .flowDirection(UIFlowDirection.COLUMN);
         
-        root.markLayoutDirty();
-        root.markSubtreeDirty();
+        rootElement.markLayoutDirty();
+        rootElement.markSubtreeDirty();
         
         ShaderManager sM = SWMain.getShaderManager();
         
@@ -303,32 +252,103 @@ public class UIRenderer extends Renderer {
         buildTest();
     }
     
-    public void addAnimation(Animation a) {
-        animations.add(a);
-    }
-    
-    public void removeAnimation(Animation a) {
-        animations.remove(a);
+    public void receiveIOEvent(IOEvent event) {
+        if (rootElement==null) return;
+        
+        switch (event.getEventType()) {
+            case KEY_DOWN:
+            case KEY_UP:
+            case CHAR_TYPED:
+            if (focussedElement!=null) focussedElement.handleIOEvent(event);
+            return;
+            
+            case DRAG:
+            if (pointerElement!=null) pointerElement.handleIOEvent(event);
+            return;
+            
+            case LEFT_RELEASE:
+            if (pointerElement!=null) {
+                pointerElement.lostPointer(event);
+                pointerElement = null;
+            }
+            return;
+            
+            case MOUSE_MOVE:
+            if (pointerElement!=null) return; // Suppress drag while element holds pointer
+            
+            UIElement hit = rootElement.getDeepestElementAt(event.getMouseX(), event.getMouseY());
+            if (hit==null) return;
+            
+            UIElement target = hit.findAncestorMatching(UIElement::isHoverable);
+            
+            if (hoveredElement!=null&&hoveredElement!=target) {
+                hoveredElement.lostHover(event);
+                hoveredElement = null;
+            }
+            
+            if (target!=null&&target.isHoverable()&&target!=hoveredElement) {
+                hoveredElement = target;
+                hoveredElement.gotHover(event);
+            }
+            return;
+            
+            case LEFT_PRESS:
+            hit = rootElement.getDeepestElementAt(event.getMouseX(), event.getMouseY());
+            if (hit==null) return;
+            
+            target = hit.findAncestorMatching(e -> e.isClickable() || e.isFocussable() || e.wantsPointer());
+            
+            boolean handled = false;
+            
+            if (focussedElement!=null&&focussedElement!=target) {
+                focussedElement.lostFocus(event);
+                focussedElement = null;
+            }
+            
+            if (target!=null) {
+                if (target.isClickable()) {
+                    target.clicked(event);
+                    handled = true;
+                }
+                
+                if (target.isFocussable()) {
+                    focussedElement = target;
+                    focussedElement.gotFocus(event);
+                    handled = true;
+                }
+                
+                if (target.wantsPointer()) {
+                    pointerElement = target;
+                    pointerElement.gotPointer(event);
+                    handled = true;
+                }
+                
+                if (!handled) target.handleIOEvent(event);
+            }
+            return;
+            
+            default: break;
+        }
     }
     
     public void render() {
         // Updates
         for (Animation a : animations) a.trigger();
         
-        if (root.isLayoutDirty()) {
-            root.layoutMeasure();
-            root.layoutAdvance(root.getMeasuredX(), root.getMeasuredY());
+        if (rootElement.isLayoutDirty()) {
+            rootElement.layoutMeasure();
+            rootElement.layoutAdvance(rootElement.getMeasuredX(), rootElement.getMeasuredY());
         }
         
-        if (root.isSubtreeDirty()) {
-            root.initialiseSubtree();
-            if (root.isLayoutDirty()) { // If initalising caused a layout change
-                root.layoutMeasure();
-                root.layoutAdvance(root.getMeasuredX(), root.getMeasuredY());
+        if (rootElement.isSubtreeDirty()) {
+            rootElement.initialiseSubtree();
+            if (rootElement.isLayoutDirty()) { // If initalising caused a layout change
+                rootElement.layoutMeasure();
+                rootElement.layoutAdvance(rootElement.getMeasuredX(), rootElement.getMeasuredY());
             }
-
+            
             rebuildVisibleElementList();
-            root.clearSubtreeDirtyMark();
+            rootElement.clearSubtreeDirtyMark();
         }
         
         glEnable(GL_BLEND);

@@ -2,7 +2,7 @@ package strobeyworks.ui.core;
 
 import strobeyworks.utils.Vec4;
 
-public class UIColors {
+public final class UIColors {
     
     public static final Vec4 TRANSPARENT = new Vec4(0f, 0f, 0f, 0f);
     public static final Vec4 BLACK = new Vec4(0f, 0f, 0f, 1f);
@@ -24,9 +24,6 @@ public class UIColors {
     public static final Vec4 PURPLE = new Vec4(0.5f, 0, 1f, 1f);
 
     public static final Vec4 BG_GREEN = new Vec4(0f, 0.2f, 0.08f, 1f);
-    
-    
-    private UIColors() {}
     
     public static Vec4 col(Vec4 color) {
         return color.clone();

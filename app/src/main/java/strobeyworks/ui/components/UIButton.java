@@ -12,6 +12,7 @@ import static strobeyworks.ui.core.UIPair.pch;
 import static strobeyworks.ui.core.UIPair.pcw;
 import static strobeyworks.ui.core.UIPair.px;
 
+import strobeyworks.logger.Logger;
 import strobeyworks.platform.IOEvent;
 
 public class UIButton extends UIRectangle {
@@ -28,7 +29,8 @@ public class UIButton extends UIRectangle {
     public UIButton(UIPair width, UIPair height) {
         super(width, height);
 
-        setInteractable(true);
+        clickable(true);
+        hoverable(true);
         
         box(UIBoxMode.FIXED);
         color(col(UIColors.TRANSPARENT));
@@ -51,19 +53,22 @@ public class UIButton extends UIRectangle {
         this.callback = callback;
         return this;
     }
-    
-    public void clicked() {
-        if (callback!=null) callback.implement();
+
+    @Override
+    public void gotHover(IOEvent event) {
+        Logger.debug("AAAAA");
+        color(col(UIColors.GRAY_05));
     }
     
     @Override
-    public void handleIOEvent(IOEvent event) {
-        switch (event.getEventType()) {
-            case LEFT_PRESS :
-            clicked();
-            break;
-            
-            default: return;
-        }
+    public void lostHover(IOEvent event) {
+        
+        Logger.debug("OOOOO");
+        color(col(UIColors.TRANSPARENT));
+    }
+
+    @Override
+    public void clicked(IOEvent event) {
+        if (callback!=null) callback.implement();
     }
 }

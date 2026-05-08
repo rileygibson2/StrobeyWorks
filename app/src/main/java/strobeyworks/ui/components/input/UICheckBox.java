@@ -14,15 +14,15 @@ import strobeyworks.ui.primitives.UICircle;
 import strobeyworks.ui.primitives.UIElement;
 import strobeyworks.ui.primitives.UIRectangle;
 
-public class UICheckBox extends UIValueControl<Boolean, Boolean> implements IOSubscriber {
+public class UICheckBox extends UIValueControl<Boolean, Boolean> {
     
     private UIElement inner;
     
     public UICheckBox(UIPair width, UIPair height, boolean circular) {
         super(width, height, UIValueAdaptor.BOOLEAN_IDENTITY);
         
-        setInteractable(true);
-
+        clickable(true);
+        
         box(UIBoxMode.FIXED);
         flowDirection(UIFlowDirection.ROW);
         alignItems(UIAlignItems.CENTER);
@@ -33,18 +33,18 @@ public class UICheckBox extends UIValueControl<Boolean, Boolean> implements IOSu
         // Inner
         if (circular) {
             borderColor(col(UIColors.TRANSPARENT));
-
+            
             UICircle c = new UICircle(pbw(1f), pbh(1f));
             c.position(UIPositionMode.ABSOLUTE);
             c.borderColor(col(UIColors.GREEN))
             .color(col(UIColors.TRANSPARENT));
-
+            
             inner = new UICircle(pcw(0.8f), pch(0.8f));
             inner.position(UIPositionMode.ABSOLUTE)
             .offsetLeft(pcw(0.1f))
             .offsetTop(pch(0.1f));
             ((UICircle) inner).color(col(UIColors.GREEN));
-
+            
             addChild(c);
             addChild(inner);
         }
@@ -55,35 +55,24 @@ public class UICheckBox extends UIValueControl<Boolean, Boolean> implements IOSu
             .offsetTop(pch(0.1f));
             ((UIRectangle) inner).color(col(UIColors.GREEN))
             .cornerRadius(10f);
-
+            
             addChild(inner);
         }
     }
-
+    
     @Override
     protected Boolean getDefaultLocalValue() {
         return false;
     }
-
+    
     @Override
     protected void implementLocalValueOnUI() {
         inner.visible(getLocalValue());
     }
     
     @Override
-    public void receiveIOEvent(IOEvent event) {
-        handleIOEvent(event);
-    }
-    
-    @Override
-    public void handleIOEvent(IOEvent event) {
-        switch (event.getEventType()) {
-            case LEFT_PRESS :
-            setLocalValue(!getLocalValue());
-            commitLocalValue();
-            break;
-            
-            default: return;
-        }
+    public void clicked(IOEvent event) {
+        setLocalValue(!getLocalValue());
+        commitLocalValue();
     }
 }

@@ -13,11 +13,11 @@ import strobeyworks.logger.Logger;
 import strobeyworks.platform.Animation;
 import strobeyworks.platform.Animation.AnimationForm;
 import strobeyworks.platform.IOEvent;
-import strobeyworks.ui.UIRenderer;
 import strobeyworks.ui.components.input.UIValueControl;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.core.UIPair;
+import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
 import strobeyworks.utils.Vec4;
@@ -39,7 +39,7 @@ public class UIField<T> extends UIValueControl<T, String> {
         super(width, height, inputRule);
         this.inputRule = inputRule;
         
-        setFocussable(true);
+        focussable(true);
         
         alignItems(UIAlignItems.CENTER);
         borderColor(col(UIColors.GREEN));

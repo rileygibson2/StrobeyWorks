@@ -8,6 +8,7 @@ public class IOEvent {
         RIGHT_PRESS,
         RIGHT_RELEASE,
         DRAG,
+        MOUSE_MOVE,
         KEY_DOWN,
         KEY_UP,
         CHAR_TYPED
@@ -56,6 +57,10 @@ public class IOEvent {
 
     public static IOEvent drag(IO io, float mouseX, float mouseY) {
         return new IOEvent(io, IOEventType.DRAG, mouseX, mouseY, -1);
+    }
+
+    public static IOEvent mouseMove(IO io, float mouseX, float mouseY) {
+        return new IOEvent(io, IOEventType.MOUSE_MOVE, mouseX, mouseY, -1);
     }
 
     public static IOEvent keyDown(IO io, int keyCode) {
