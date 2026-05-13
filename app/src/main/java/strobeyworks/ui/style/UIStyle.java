@@ -1,7 +1,9 @@
 package strobeyworks.ui.style;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class UIStyle {
@@ -13,6 +15,14 @@ public class UIStyle {
     }
     
     public <T> UIStyle set(UIStyleProperty<T> property, T value) {
+        if (!property.type().isInstance(value)) {
+            throw new IllegalArgumentException("Invalid type for "+property.name());
+        }
+        properties.put(property, value);
+        return this;
+    }
+
+    public UIStyle setRaw(UIStyleProperty<?> property, Object value) {
         if (!property.type().isInstance(value)) {
             throw new IllegalArgumentException("Invalid type for "+property.name());
         }
@@ -41,5 +51,11 @@ public class UIStyle {
             if (entry.getKey().name().equals(property)) return true;
         }
         return false;
+    }
+
+    public Set<UIStyleProperty<?>> properties() {
+        Set<UIStyleProperty<?>> p = new HashSet<>();
+        for (Map.Entry<UIStyleProperty<?>, Object> entry : properties.entrySet()) p.add(entry.getKey());
+        return p;
     }
 }

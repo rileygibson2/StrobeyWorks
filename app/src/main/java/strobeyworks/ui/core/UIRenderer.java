@@ -31,27 +31,26 @@ import static strobeyworks.ui.core.UILength.sh;
 import static strobeyworks.ui.core.UILength.sw;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.joml.Matrix4f;
 
 import strobeyworks.SWMain;
-import strobeyworks.logger.Logger;
 import strobeyworks.platform.Animation;
 import strobeyworks.platform.IOEvent;
-import strobeyworks.platform.IOEvent.IOEventType;
 import strobeyworks.platform.Renderer;
 import strobeyworks.platform.ShaderManager;
+import strobeyworks.platform.Transition;
 import strobeyworks.render.SceneRenderer;
 import strobeyworks.render.lightsources.LightSource;
 import strobeyworks.render.scenes.Scene;
-import strobeyworks.ui.components.UIButton;
 import strobeyworks.ui.components.UITab;
 import strobeyworks.ui.components.input.UICheckBox;
 import strobeyworks.ui.components.input.UISlider;
-import strobeyworks.ui.components.input.field.UIField;
 import strobeyworks.ui.components.input.field.UIFieldRule;
 import strobeyworks.ui.components.input.field.UIFloatField;
 import strobeyworks.ui.components.input.field.UIFloatFieldRule;
@@ -96,6 +95,7 @@ public class UIRenderer extends Renderer {
     private UIElement hoveredElement;
     
     protected Set<Animation> animations;
+    protected Map<UIElement, Transition> transitions;
     
     public static UIRenderer getInstance() {
         if (instance==null) instance = new UIRenderer();
@@ -104,7 +104,8 @@ public class UIRenderer extends Renderer {
     
     private UIRenderer() {
         visibleUIElements = new ArrayList<>();
-        animations = new HashSet<Animation>();
+        animations = new HashSet<>();
+        transitions = new HashMap<>();
     }
     
     private void buildTest() {
@@ -183,12 +184,18 @@ public class UIRenderer extends Renderer {
         rootElement.addChild(e);
     }
     
+    @Override
     public void addAnimation(Animation a) {
         animations.add(a);
     }
     
+    @Override
     public void removeAnimation(Animation a) {
         animations.remove(a);
+    }
+
+    public void addTransition(UIElement e, Transition t) {
+        transitions.put(e, t);
     }
     
     @Override
@@ -202,6 +209,7 @@ public class UIRenderer extends Renderer {
         rootElement.clearSubtreeDirtyMark();
     }
     
+    @Override
     public void initialise() {
         rootElement = new UIRectangle(sw(1f), sh(1f));
         ((UIRectangle) rootElement).color(col(UIColors.BLACK))
@@ -252,6 +260,7 @@ public class UIRenderer extends Renderer {
         buildTest();
     }
     
+    @Override
     public void receiveIOEvent(IOEvent event) {
         if (rootElement==null) return;
         
@@ -330,10 +339,13 @@ public class UIRenderer extends Renderer {
             default: break;
         }
     }
-    
-    public void render() {
-        // Updates
+
+    @Override
+    public void update() {
         for (Animation a : animations) a.trigger();
+
+        for (Map.Entry<UIElement, Transition> entry : transitions.entrySet()) entry.getValue().update();
+        transitions.entrySet().removeIf(entry -> entry.getValue().complete());
         
         if (rootElement.isLayoutDirty()) {
             rootElement.layoutMeasure();
@@ -350,7 +362,10 @@ public class UIRenderer extends Renderer {
             rebuildVisibleElementList();
             rootElement.clearSubtreeDirtyMark();
         }
-        
+    }
+    
+    @Override
+    public void render() {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         

@@ -10,6 +10,8 @@ import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.primitives.UICircle;
 import strobeyworks.ui.primitives.UIRectangle;
+import strobeyworks.ui.style.PrimitiveStyles;
+import strobeyworks.ui.style.UIStyle;
 import strobeyworks.utils.Utils;
 
 public class UISlider extends UIValueControl<Float, Float> {    
@@ -34,7 +36,10 @@ public class UISlider extends UIValueControl<Float, Float> {
         color(col(UIColors.GRAY_008));
         cornerRadius(20f);
         
-        // Following circle
+        UIStyle style = new UIStyle();
+        style.set(PrimitiveStyles.TRANSFORM_SCALEX, 1.2f)
+        .set(PrimitiveStyles.TRANSFORM_SCALEY, 1.2f);
+
         circle = new UICircle(pch(0.9f), pch(0.9f));
         circle.position(UIPositionMode.ABSOLUTE)
         .margin(px(0))
@@ -44,7 +49,10 @@ public class UISlider extends UIValueControl<Float, Float> {
         circle.borderEnabled(true)
         .borderColor(col(UIColors.GREEN))
         .color(col(UIColors.GRAY_008))
-        .oval(false);
+        .oval(false)
+        .hoverStyle(style)
+        .transitionDuration(0.2f)
+        .hoverable(true);
         
         UICircle c2 = new UICircle(pcw(0.8f), pch(0.8f));
         c2.position(UIPositionMode.ABSOLUTE)

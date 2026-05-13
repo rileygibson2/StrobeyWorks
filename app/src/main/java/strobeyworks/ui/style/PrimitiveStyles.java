@@ -16,9 +16,15 @@ public final class PrimitiveStyles extends UIStyle {
         public static final UIStyleProperty<Boolean> BORDER_BOTTOM = new UIStyleProperty<>("border-bottom", Boolean.class);
 
         public static final UIStyleProperty<Vec4> TINT = new UIStyleProperty<>("tint", Vec4.class);
-        public static final UIStyleProperty<UIFont> FONT = new UIStyleProperty<>("tint", UIFont.class);
+        public static final UIStyleProperty<UIFont> FONT = new UIStyleProperty<>("font", UIFont.class);
 
-        public static final UIStyleProperty<Vec4> ICON_TINT = new UIStyleProperty<>("icon_tint", Vec4.class);
+        public static final UIStyleProperty<Vec4> ICON_TINT = new UIStyleProperty<>("icon-tint", Vec4.class);
 
+        //Transform
+        public static final UIStyleProperty<Float> TRANSFORM_SCALEX = new UIStyleProperty<>("transform-scale-x", Float.class);
+        public static final UIStyleProperty<Float> TRANSFORM_SCALEY = new UIStyleProperty<>("transform-scale-y", Float.class);
+
+        // Transition
+        public static final UIStyleProperty<Float> TRANSITION_DURATION = new UIStyleProperty<>("transition-duration", Float.class);
 
 }

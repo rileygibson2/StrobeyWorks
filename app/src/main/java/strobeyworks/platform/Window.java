@@ -203,6 +203,7 @@ public class Window {
         
         if (io!=null) io.update();
         
+        renderer.update();
         renderer.render();
         
         if (io!=null) io.endFrame();

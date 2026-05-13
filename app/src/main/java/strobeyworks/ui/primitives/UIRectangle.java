@@ -2,11 +2,15 @@ package strobeyworks.ui.primitives;
 
 import static strobeyworks.ui.core.UIColors.col;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.style.PrimitiveStyles;
 import strobeyworks.ui.style.UIStyle;
+import strobeyworks.ui.style.UIStyleProperty;
 import strobeyworks.utils.Vec4;
 
 public class UIRectangle extends UIElement {
@@ -95,6 +99,23 @@ public class UIRectangle extends UIElement {
         style.set(PrimitiveStyles.BORDER_TOP, borderTop);
         style.set(PrimitiveStyles.BORDER_BOTTOM, borderBottom);
         return style;
+    }
+
+    @Override
+    public Set<UIStyleProperty<?>> getValidStyleProperties() {
+        Set<UIStyleProperty<?>> s = new HashSet<>(super.getValidStyleProperties());
+        s.addAll(Set.of(
+            PrimitiveStyles.COLOR,
+            PrimitiveStyles.CORNER_RADIUS,
+            PrimitiveStyles.BORDER_ENABLED,
+            PrimitiveStyles.BORDER_COLOR,
+            PrimitiveStyles.BORDER_THICKNESS,
+            PrimitiveStyles.BORDER_LEFT,
+            PrimitiveStyles.BORDER_RIGHT,
+            PrimitiveStyles.BORDER_TOP,
+            PrimitiveStyles.BORDER_BOTTOM
+        ));
+        return s;
     }
     
     public UIRectangle color(Vec4 color) {

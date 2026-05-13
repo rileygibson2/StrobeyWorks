@@ -7,6 +7,8 @@ public abstract class Renderer implements IOSubscriber {
     protected Renderer() {}
 
     public abstract void initialise();
+    
+    public abstract void update();
     public abstract void render();
 
     public abstract void handleWindowResize();

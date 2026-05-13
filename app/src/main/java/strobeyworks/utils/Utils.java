@@ -95,4 +95,8 @@ public final class Utils {
             return buffer;
         }
     }
+
+    public static float lerpFloat(float a, float b, float i) {
+        return a+((b-a)*i);
+    }
 }

@@ -25,9 +25,10 @@ public class UIButton extends UIRectangle {
     
     public UIButton(UILength width, UILength height) {
         super(width, height);
-
+        
         clickable(true);
         hoverable(true);
+        transitionDuration(0.3f);
         
         box(UIBoxMode.FIXED);
         color(col(UIColors.TRANSPARENT));
@@ -40,18 +41,20 @@ public class UIButton extends UIRectangle {
         icon.visible(false);
         addChild(icon);
     }
-
+    
     @Override
     public void applyStyle(UIStyle style) {
         super.applyStyle(style);
-
+        
         style.ifPresent(PrimitiveStyles.ICON_TINT, v -> icon.tint(v));
+        style.ifPresent(PrimitiveStyles.TRANSFORM_SCALEX, v -> icon.transformScale(v));
+        style.ifPresent(PrimitiveStyles.TRANSFORM_SCALEY, v -> icon.transformScale(v));
     }
-
+    
     @Override
     public UIStyle captureStyle() {
         UIStyle style = super.captureStyle();
-
+        
         style.set(PrimitiveStyles.ICON_TINT, icon.getTint());
         return style;
     }
@@ -66,18 +69,7 @@ public class UIButton extends UIRectangle {
         this.callback = callback;
         return this;
     }
-
-    @Override
-    public void gotHover(IOEvent event) {
-        cacheStyle();
-        applyHoverStyle();
-    }
     
-    @Override
-    public void lostHover(IOEvent event) {
-        applyCachedStyle();
-    }
-
     @Override
     public void clicked(IOEvent event) {
         if (callback!=null) callback.implement();

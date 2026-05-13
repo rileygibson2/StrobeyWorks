@@ -4,7 +4,9 @@ import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UILength.px;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import org.joml.Matrix4f;
@@ -13,9 +15,14 @@ import strobeyworks.SWMain;
 import strobeyworks.logger.Logger;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.ShaderManager;
+import strobeyworks.platform.Transition;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UILength;
+import strobeyworks.ui.core.UIRenderer;
+import strobeyworks.ui.style.PrimitiveStyles;
 import strobeyworks.ui.style.UIStyle;
+import strobeyworks.ui.style.UIStyleProperty;
+import strobeyworks.utils.Utils;
 import strobeyworks.utils.Vec4;
 
 public abstract class UIElement {
@@ -170,6 +177,9 @@ public abstract class UIElement {
     private UILength maxWidth;
     private UILength maxHeight;
     
+    private float transformScaleX;
+    private float transformScaleY;
+    
     private boolean visible;
     
     // Computed values
@@ -188,8 +198,10 @@ public abstract class UIElement {
     private boolean wantsPointer;
     private boolean hoverable;
     private boolean clickable;
-
-    // Additional styles
+    
+    // Styles
+    private float transitionDuration;
+    
     private UIStyle cachedStyle;
     private UIStyle hoverStyle;
     
@@ -225,6 +237,9 @@ public abstract class UIElement {
         this.offsetRight = px(0);
         this.offsetTop = px(0);
         this.offsetBottom = px(0);
+
+        this.transformScaleX = 1f;
+        this.transformScaleY = 1f;
         
         this.visible = true;
         
@@ -265,6 +280,9 @@ public abstract class UIElement {
         this.offsetRight = px(0);
         this.offsetTop = px(0);
         this.offsetBottom = px(0);
+
+        this.transformScaleX = 1f;
+        this.transformScaleY = 1f;
         
         this.visible = true;
         
@@ -291,27 +309,76 @@ public abstract class UIElement {
     // Styling
     // -----------------------------------------------------------------------------
     
-    public void applyStyle(UIStyle style) {}
-
-    public UIStyle captureStyle() {
-        return new UIStyle();
+    public void applyStyle(UIStyle style) {
+        style.ifPresent(PrimitiveStyles.TRANSITION_DURATION, this::transitionDuration);
+        style.ifPresent(PrimitiveStyles.TRANSFORM_SCALEX, this::transformScaleX);
+        style.ifPresent(PrimitiveStyles.TRANSFORM_SCALEY, this::transformScaleY);
     }
+    
+    public UIStyle captureStyle() {
+        UIStyle style = new UIStyle();
 
+        style.set(PrimitiveStyles.TRANSITION_DURATION, transitionDuration);
+        style.set(PrimitiveStyles.TRANSFORM_SCALEX, transformScaleX);
+        style.set(PrimitiveStyles.TRANSFORM_SCALEY, transformScaleY);
+        return style;
+    }
+    
     public void cacheStyle() {
         cachedStyle = captureStyle();
     }
-
+    
+    public Set<UIStyleProperty<?>> getValidStyleProperties() {
+        return Set.of(
+            PrimitiveStyles.TRANSITION_DURATION,
+            PrimitiveStyles.TRANSFORM_SCALEX,
+            PrimitiveStyles.TRANSFORM_SCALEY
+        );
+    }
+    
     public UIElement hoverStyle(UIStyle hoverStyle) {
         this.hoverStyle = hoverStyle;
         return this;
     }
-
-    public void applyHoverStyle() {
-        if (hoverStyle!=null) applyStyle(hoverStyle);
-    }
-
-    public void applyCachedStyle() {
-        if (cachedStyle!=null) applyStyle(cachedStyle);
+    
+    public void transitionToStyle(UIStyle target) {
+        UIStyle current = captureStyle();
+        Set<UIStyleProperty<?>> transitionable = new HashSet<>();
+        Set<UIStyleProperty<?>> notTransitionable = new HashSet<>();
+        
+        // Find all valid properties
+        for (UIStyleProperty<?> property : current.properties()) {
+            if (target.has(property)) {
+                if (property.isTransitionable()) transitionable.add(property);
+                else notTransitionable.add(property);
+            }
+        }
+        
+        // Apply non transitionable properties
+        UIStyle immediate = new UIStyle();
+        for (UIStyleProperty<?> property : notTransitionable) {
+            immediate.setRaw(property, target.get(property));
+        }
+        applyStyle(immediate);
+        
+        // Transition all others
+        Transition t = new Transition(transitionDuration, progress -> {
+            UIStyle frame = new UIStyle();
+            
+            for (UIStyleProperty<?> property : transitionable) {
+                Object from = current.get(property);
+                Object to = target.get(property);
+                
+                if (from instanceof Float) {
+                    frame.setRaw(property, Utils.lerpFloat((float) from, (float) to, progress));
+                }
+                else if (from instanceof Vec4) {
+                    frame.setRaw(property, ((Vec4) from).lerp((Vec4) to, progress));
+                }
+            }
+            applyStyle(frame);
+        });
+        UIRenderer.getInstance().addTransition(this, t);
     }
     
     // -----------------------------------------------------------------------------
@@ -363,9 +430,20 @@ public abstract class UIElement {
     
     public void lostPointer(IOEvent event) {}
     
-    public void gotHover(IOEvent event) {}
+    public void gotHover(IOEvent event) {
+        if (hoverStyle==null) return;
+        cacheStyle();
+        
+        if (transitionDuration==0f) applyStyle(hoverStyle);
+        else transitionToStyle(hoverStyle);
+    }
     
-    public void lostHover(IOEvent event) {}
+    public void lostHover(IOEvent event) {
+        if (cachedStyle==null) return;
+        
+        if (transitionDuration==0f) applyStyle(cachedStyle);
+        else transitionToStyle(cachedStyle);
+    }
     
     public void clicked(IOEvent event) {}
     
@@ -875,10 +953,16 @@ public abstract class UIElement {
     }
     
     public boolean containsResolved(float x, float y) {
-        return x>=resolvedX &&
-        x<=resolvedX+resolvedWidth &&
-        y>=resolvedY &&
-        y<=resolvedY+resolvedHeight;
+        float cx = resolvedX + resolvedWidth * 0.5f;
+        float cy = resolvedY + resolvedHeight * 0.5f;
+        
+        float w = resolvedWidth * transformScaleX;
+        float h = resolvedHeight * transformScaleY;
+        
+        return x >= cx - w * 0.5f &&
+        x <= cx + w * 0.5f &&
+        y >= cy - h * 0.5f &&
+        y <= cy + h * 0.5f;
     }
     
     private float getMeasuredContentWidth() {
@@ -895,274 +979,306 @@ public abstract class UIElement {
     
     private void updateModelMatrix() {
         modelMatrix = new Matrix4f()
-        .translate(resolvedX + resolvedWidth * 0.5f, resolvedY + resolvedHeight * 0.5f, 0.0f)
-        .scale(resolvedWidth, resolvedHeight, 1.0f);
-    }
-    
-    // -----------------------------------------------------------------------------
-    // Setters
-    // -----------------------------------------------------------------------------
-    
-    
-    public UIElement box(UIBoxMode boxMode) {
-        this.boxMode = boxMode;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement flowDirection(UIFlowDirection flowDirection) {
-        this.flowDirection = flowDirection;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement flowWrap(boolean flowWrap) {
-        this.flowWrap = flowWrap;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement position(UIPositionMode positionMode) {
-        this.positionMode = positionMode;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement justifyContent(UIJustifyContent justifyContent) {
-        this.justifyContent = justifyContent;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement alignItems(UIAlignItems alignItems) {
-        this.alignItems = alignItems;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement alignContent(UIAlignContent alignContent) {
-        this.alignContent = alignContent;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement minWidth(UILength minWidth) {
-        this.minWidth = minWidth;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement minHeight(UILength minHeight) {
-        this.minHeight = minHeight;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement maxWidth(UILength maxWidth) {
-        this.maxWidth = maxWidth;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement maxHeight(UILength maxHeight) {
-        this.maxHeight = maxHeight;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement padding(UILength padding) {
-        this.paddingLeft = padding.clone();
-        this.paddingRight = padding.clone();
-        this.paddingTop = padding.clone();
-        this.paddingBottom = padding.clone();
+        .translate(
+            resolvedX + resolvedWidth * 0.5f,
+            resolvedY + resolvedHeight * 0.5f,
+            0.0f
+        )
+        .scale(
+            resolvedWidth*transformScaleX,
+            resolvedHeight*transformScaleY,
+            1.0f);
+        }
         
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement paddingLeft(UILength left) {
-        this.paddingLeft = left;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement paddingRight(UILength right) {
-        this.paddingRight = right;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement paddingTop(UILength top) {
-        this.paddingTop = top;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement paddingBottom(UILength bottom) {
-        this.paddingBottom = bottom;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement margin(UILength margin) {
-        this.marginLeft = margin.clone();
-        this.marginRight = margin.clone();
-        this.marginTop = margin.clone();
-        this.marginBottom = margin.clone();
+        // -----------------------------------------------------------------------------
+        // Setters
+        // -----------------------------------------------------------------------------
         
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement marginLeft(UILength left) {
-        this.marginLeft = left;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement marginRight(UILength right) {
-        this.marginRight = right;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement marginTop(UILength top) {
-        this.marginTop = top;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement marginBottom(UILength bottom) {
-        this.marginBottom = bottom;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement offset(UILength offset) {
-        this.offsetLeft = offset.clone();
-        this.offsetRight = offset.clone();
-        this.offsetTop = offset.clone();
-        this.offsetBottom = offset.clone();
         
-        markLayoutDirty();
-        return this;
+        public UIElement box(UIBoxMode boxMode) {
+            this.boxMode = boxMode;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement flowDirection(UIFlowDirection flowDirection) {
+            this.flowDirection = flowDirection;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement flowWrap(boolean flowWrap) {
+            this.flowWrap = flowWrap;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement position(UIPositionMode positionMode) {
+            this.positionMode = positionMode;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement justifyContent(UIJustifyContent justifyContent) {
+            this.justifyContent = justifyContent;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement alignItems(UIAlignItems alignItems) {
+            this.alignItems = alignItems;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement alignContent(UIAlignContent alignContent) {
+            this.alignContent = alignContent;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement minWidth(UILength minWidth) {
+            this.minWidth = minWidth;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement minHeight(UILength minHeight) {
+            this.minHeight = minHeight;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement maxWidth(UILength maxWidth) {
+            this.maxWidth = maxWidth;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement maxHeight(UILength maxHeight) {
+            this.maxHeight = maxHeight;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement padding(UILength padding) {
+            this.paddingLeft = padding.clone();
+            this.paddingRight = padding.clone();
+            this.paddingTop = padding.clone();
+            this.paddingBottom = padding.clone();
+            
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement paddingLeft(UILength left) {
+            this.paddingLeft = left;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement paddingRight(UILength right) {
+            this.paddingRight = right;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement paddingTop(UILength top) {
+            this.paddingTop = top;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement paddingBottom(UILength bottom) {
+            this.paddingBottom = bottom;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement margin(UILength margin) {
+            this.marginLeft = margin.clone();
+            this.marginRight = margin.clone();
+            this.marginTop = margin.clone();
+            this.marginBottom = margin.clone();
+            
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement marginLeft(UILength left) {
+            this.marginLeft = left;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement marginRight(UILength right) {
+            this.marginRight = right;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement marginTop(UILength top) {
+            this.marginTop = top;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement marginBottom(UILength bottom) {
+            this.marginBottom = bottom;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement offset(UILength offset) {
+            this.offsetLeft = offset.clone();
+            this.offsetRight = offset.clone();
+            this.offsetTop = offset.clone();
+            this.offsetBottom = offset.clone();
+            
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement offsetLeft(UILength left) {
+            this.offsetLeft = left;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement offsetRight(UILength right) {
+            this.offsetRight = right;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement offsetTop(UILength top) {
+            this.offsetTop = top;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement offsetBottom(UILength bottom) {
+            this.offsetBottom = bottom;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement width(UILength width) {
+            if (boxMode==UIBoxMode.FLEX) Logger.throwRuntimeException("Cannot set width of box in UIBoxMode Flex");
+            this.width = width;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement height(UILength height) {
+            if (boxMode==UIBoxMode.FLEX) Logger.throwRuntimeException("Cannot set height of box in UIBoxMode Flex");
+            this.height = height;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement visible(boolean visible) {
+            this.visible = visible;
+            markSubtreeDirty();
+            return this;
+        }
+        
+        public UIElement enableDebugColor(boolean debugEnabled) {
+            this.debugEnabled = debugEnabled;
+            return this;
+        }
+        
+        public UIElement transitionDuration(float transitionDuration) {
+            this.transitionDuration = transitionDuration;
+            return this;
+        }
+        
+        public UIElement transformScaleX(float transformScaleX) {
+            this.transformScaleX = transformScaleX;
+            updateModelMatrix();
+            return this;
+        }
+        
+        public UIElement transformScaleY(float transformScaleY) {
+            this.transformScaleY = transformScaleY;
+            updateModelMatrix();
+            return this;
+        }
+        
+        public UIElement transformScale(float transformScale) {
+            this.transformScaleX = transformScale;
+            this.transformScaleY = transformScale;
+            updateModelMatrix();
+            return this;
+        }
+        
+        // -----------------------------------------------------------------------------
+        // Getters
+        // -----------------------------------------------------------------------------
+        
+        
+        public UIBoxMode getBoxMode() {return this.boxMode;}
+        
+        public UIFlowDirection getFlowDirection() {return this.flowDirection;}
+        
+        public boolean flowWrapEnabled() {return this.flowWrap;}
+        
+        public UIPositionMode getPositionMode() {return this.positionMode;}
+        
+        public UIJustifyContent getJustifyContent() {return this.justifyContent;}
+        
+        public UIAlignItems getAlignItems() {return this.alignItems;}
+        
+        public UIAlignContent getAlignContent() {return this.alignContent;}
+        
+        public UIElement getParent() {return this.parent;}
+        
+        public UILength getWidth() {return this.width;}
+        
+        public UILength getHeight() {return this.height;}
+        
+        public float getMeasuredX() {return this.measuredX;}
+        
+        public float getMeasuredY() {return this.measuredY;}
+        
+        public float getMeasuredWidth() {return this.measuredWidth;}
+        
+        public float getMeasuredHeight() {return this.measuredHeight;}
+        
+        public float getResolvedX() {return this.resolvedX;}
+        
+        public float getResolvedY() {return this.resolvedY;}
+        
+        public float getResolvedWidth() {return this.resolvedWidth;}
+        
+        public float getResolvedHeight() {return this.resolvedHeight;}
+        
+        public UILength getPaddingLeft() {return this.paddingLeft;}
+        
+        public UILength getPaddingRight() {return this.paddingRight;}
+        
+        public UILength getPaddingTop() {return this.paddingTop;}
+        
+        public UILength getPaddingBottom() {return this.paddingBottom;}
+        
+        public UILength getMarginLeft() {return this.marginLeft;}
+        
+        public UILength getMarginRight() {return this.marginRight;}
+        
+        public UILength getMarginTop() {return this.marginTop;}
+        
+        public UILength getMarginBottom() {return this.marginBottom;}
+        
+        public UILength getOffsetLeft() {return this.offsetLeft;}
+        
+        public UILength getOffsetRight() {return this.offsetRight;}
+        
+        public UILength getOffsetTop() {return this.offsetTop;}
+        
+        public UILength getOffsetBottom() {return this.offsetBottom;}
+        
+        public boolean isVisible() {return this.visible;}
+        
+        public Matrix4f getModelMatrix() {return this.modelMatrix;}
     }
     
-    public UIElement offsetLeft(UILength left) {
-        this.offsetLeft = left;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement offsetRight(UILength right) {
-        this.offsetRight = right;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement offsetTop(UILength top) {
-        this.offsetTop = top;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement offsetBottom(UILength bottom) {
-        this.offsetBottom = bottom;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement width(UILength width) {
-        if (boxMode==UIBoxMode.FLEX) Logger.throwRuntimeException("Cannot set width of box in UIBoxMode Flex");
-        this.width = width;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement height(UILength height) {
-        if (boxMode==UIBoxMode.FLEX) Logger.throwRuntimeException("Cannot set height of box in UIBoxMode Flex");
-        this.height = height;
-        markLayoutDirty();
-        return this;
-    }
-    
-    public UIElement visible(boolean visible) {
-        this.visible = visible;
-        markSubtreeDirty();
-        return this;
-    }
-    
-    public UIElement enableDebugColor(boolean debugEnabled) {
-        this.debugEnabled = debugEnabled;
-        return this;
-    }
-    
-    // -----------------------------------------------------------------------------
-    // Getters
-    // -----------------------------------------------------------------------------
-    
-    
-    public UIBoxMode getBoxMode() {return this.boxMode;}
-    
-    public UIFlowDirection getFlowDirection() {return this.flowDirection;}
-    
-    public boolean flowWrapEnabled() {return this.flowWrap;}
-    
-    public UIPositionMode getPositionMode() {return this.positionMode;}
-    
-    public UIJustifyContent getJustifyContent() {return this.justifyContent;}
-    
-    public UIAlignItems getAlignItems() {return this.alignItems;}
-    
-    public UIAlignContent getAlignContent() {return this.alignContent;}
-    
-    public UIElement getParent() {return this.parent;}
-    
-    public UILength getWidth() {return this.width;}
-    
-    public UILength getHeight() {return this.height;}
-    
-    public float getMeasuredX() {return this.measuredX;}
-    
-    public float getMeasuredY() {return this.measuredY;}
-    
-    public float getMeasuredWidth() {return this.measuredWidth;}
-    
-    public float getMeasuredHeight() {return this.measuredHeight;}
-    
-    public float getResolvedX() {return this.resolvedX;}
-    
-    public float getResolvedY() {return this.resolvedY;}
-    
-    public float getResolvedWidth() {return this.resolvedWidth;}
-    
-    public float getResolvedHeight() {return this.resolvedHeight;}
-    
-    public UILength getPaddingLeft() {return this.paddingLeft;}
-    
-    public UILength getPaddingRight() {return this.paddingRight;}
-    
-    public UILength getPaddingTop() {return this.paddingTop;}
-    
-    public UILength getPaddingBottom() {return this.paddingBottom;}
-    
-    public UILength getMarginLeft() {return this.marginLeft;}
-    
-    public UILength getMarginRight() {return this.marginRight;}
-    
-    public UILength getMarginTop() {return this.marginTop;}
-    
-    public UILength getMarginBottom() {return this.marginBottom;}
-    
-    public UILength getOffsetLeft() {return this.offsetLeft;}
-    
-    public UILength getOffsetRight() {return this.offsetRight;}
-    
-    public UILength getOffsetTop() {return this.offsetTop;}
-    
-    public UILength getOffsetBottom() {return this.offsetBottom;}
-    
-    public boolean isVisible() {return this.visible;}
-    
-    public Matrix4f getModelMatrix() {return this.modelMatrix;}
-}

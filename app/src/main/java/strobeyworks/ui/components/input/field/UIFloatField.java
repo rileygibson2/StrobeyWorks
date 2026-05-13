@@ -32,7 +32,9 @@ public class UIFloatField extends UIField<Float> {
         //controlWrapper.color(col(UIColors.WHITE));
 
         UIStyle style = new UIStyle();
-        style.set(PrimitiveStyles.ICON_TINT, col(UIColors.WHITE));
+        style.set(PrimitiveStyles.ICON_TINT, col(UIColors.WHITE))
+        .set(PrimitiveStyles.TRANSFORM_SCALEX, 1.2f)
+        .set(PrimitiveStyles.TRANSFORM_SCALEY, 1.2f);
 
         up = new UIButton(pbw(1f), pbh(0.5f));
         up.icon("up_arrow")

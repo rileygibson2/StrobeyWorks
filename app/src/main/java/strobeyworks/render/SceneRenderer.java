@@ -86,6 +86,7 @@ public class SceneRenderer extends Renderer {
     @Override
     public void removeAnimation(Animation a) {}
     
+    @Override
     public void initialise() {
         camera.initialise();
         scene.initialise();
@@ -120,8 +121,9 @@ public class SceneRenderer extends Renderer {
         
         sM.useProgram(0);
     }
-    
-    public void render() {
+
+    @Override
+    public void update() {
         String s = String.format("(%.1f, %.1f, %.1f) | Yaw %.1f | Pitch %.1f | FOV %.1f",
         camera.getPosition().x,
         camera.getPosition().y,
@@ -133,7 +135,10 @@ public class SceneRenderer extends Renderer {
 
         camera.update(SWMain.getDeltaTime());
         scene.update();
-
+    }
+    
+    @Override
+    public void render() {
         glClearColor(0f, 0f, 0f, 1f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
