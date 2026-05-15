@@ -1,5 +1,6 @@
 #version 330 core
 
+in vec2 vScreenPos;
 in vec2 vLocalPos;
 flat in vec2 vSize;
 
@@ -15,6 +16,9 @@ uniform vec4 uBorderSides; // top, right, bottom, left
 
 uniform int uDebugEnabled;
 uniform vec4 uDebugColor;
+
+uniform int uClipEnabled;
+uniform vec4 uClipBounds; // minX, minY, maxX, maxY in UI coordinates
 
 out vec4 FragColor;
 
@@ -129,7 +133,22 @@ void outputShape(float outerD, float innerD, float sideMask) {
     FragColor = shapeColor;
 }
 
+void applyClip() {
+    if (uClipEnabled == 0) return;
+
+    if (
+        vScreenPos.x < uClipBounds.x ||
+        vScreenPos.x > uClipBounds.z ||
+        vScreenPos.y < uClipBounds.y ||
+        vScreenPos.y > uClipBounds.w
+    ) {
+        discard;
+    }
+}
+
 void main() {
+    applyClip();
+
     vec2 p = (vLocalPos + 0.5) * vSize;
 
     float thickness = clamp(

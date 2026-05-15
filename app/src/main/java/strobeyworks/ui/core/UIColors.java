@@ -20,8 +20,10 @@ public final class UIColors {
     public static final Vec4 RED = new Vec4(1f, 0f, 0f, 1f);
     public static final Vec4 GREEN = new Vec4(0f, 1f, 0f, 1f);
     public static final Vec4 LIGHT_GREEN = new Vec4(0f, 1f, 0.2f, 1f);
-    public static final Vec4 BLUE = new Vec4(0f, 0, 1f, 1f);
-    public static final Vec4 PURPLE = new Vec4(0.5f, 0, 1f, 1f);
+    public static final Vec4 CYAN = new Vec4(0f, 1f, 1f, 1f);
+    public static final Vec4 LAV = new Vec4(0f, 0.5f, 1f, 1f);
+    public static final Vec4 BLUE = new Vec4(0f, 0f, 1f, 1f);
+    public static final Vec4 PURPLE = new Vec4(0.5f, 0f, 1f, 1f);
 
     public static final Vec4 BG_GREEN = new Vec4(0f, 0.2f, 0.08f, 1f);
     

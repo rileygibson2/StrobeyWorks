@@ -1,5 +1,6 @@
 #version 330 core
 
+in vec2 vScreenPos;
 in vec2 vUV;
 
 uniform sampler2D uFontAtlas;
@@ -7,6 +8,9 @@ uniform vec4 uColor;
 
 uniform int uDebugEnabled;
 uniform vec4 uDebugColor;
+
+uniform int uClipEnabled;
+uniform vec4 uClipBounds; // minX, minY, maxX, maxY in UI coordinates
 
 out vec4 fragColor;
 
@@ -25,7 +29,22 @@ vec4 alphaOver(vec4 top, vec4 bottom) {
     return vec4(outRGB, outA);
 }
 
+void applyClip() {
+    if (uClipEnabled == 0) return;
+
+    if (
+        vScreenPos.x < uClipBounds.x ||
+        vScreenPos.x > uClipBounds.z ||
+        vScreenPos.y < uClipBounds.y ||
+        vScreenPos.y > uClipBounds.w
+    ) {
+        discard;
+    }
+}
+
 void main() {
+    applyClip();
+    
     float glyphAlpha = texture(uFontAtlas, vUV).r;
     vec4 textColor = vec4(uColor.rgb, uColor.a * glyphAlpha);
 

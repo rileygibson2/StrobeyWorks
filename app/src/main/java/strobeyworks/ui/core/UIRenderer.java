@@ -26,6 +26,7 @@ import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UILength.pcw;
+import static strobeyworks.ui.core.UILength.pch;
 import static strobeyworks.ui.core.UILength.px;
 import static strobeyworks.ui.core.UILength.sh;
 import static strobeyworks.ui.core.UILength.sw;
@@ -59,6 +60,7 @@ import strobeyworks.ui.primitives.UIElement.UIAlignContent;
 import strobeyworks.ui.primitives.UIElement.UIAlignItems;
 import strobeyworks.ui.primitives.UIElement.UIBoxMode;
 import strobeyworks.ui.primitives.UIElement.UIFlowDirection;
+import strobeyworks.ui.primitives.UIElement.UIOverflowMode;
 import strobeyworks.ui.primitives.UIElement.UIPositionMode;
 import strobeyworks.ui.primitives.UIIcon;
 import strobeyworks.ui.primitives.UIRectangle;
@@ -108,10 +110,8 @@ public class UIRenderer extends Renderer {
         transitions = new HashMap<>();
     }
     
-    private void buildTest() {
-        UIFont font = new UIFont();
-        font.loadFromTTF("RobotoMono-Medium.ttf", 30f);
-        
+    private UIRectangle buildTestBase() {
+        UIFontManager.loadFont("RobotoMono-Medium.ttf", 30f);
         UITextureManager.loadTexture("up_arrow.png");
         UITextureManager.loadTexture("down_arrow.png");
         
@@ -125,14 +125,19 @@ public class UIRenderer extends Renderer {
         .borderColor(col(UIColors.GREEN))
         .borderThickness(1.5f)
         .borderTop(false)
+        .borderEnabled(true)
         .padding(px(5))
         //.justifyContent(UIJustifyContent.CENTER)
         .alignItems(UIAlignItems.CENTER)
         .alignContent(UIAlignContent.CENTER)
-        .flowDirection(UIFlowDirection.COLUMN)
-        .flowWrap(false);
+        .flowDirection(UIFlowDirection.COLUMN);
         
         addToRoot(pane2);
+        return pane2;
+    }
+    
+    public void buildTest1(UIRectangle pane) {
+        UIFont font = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 30f);
         
         UIFloatFieldRule inputRule = UIFieldRule.defaultFloat();
         inputRule.maxCharacters(3)
@@ -144,20 +149,20 @@ public class UIRenderer extends Renderer {
         field.useButtons(0.1f);
         field.marginTop(px(20));
         
-        pane2.addChild(field);
+        pane.addChild(field);
         
         List<UISlider> sliders = new ArrayList<>();
         int num = 4;
         for (int i=0; i<num; i++) {
             UISlider slider = new UISlider(sw(0.9f), sh(0.08f));
             slider.marginTop(px(10));
-            pane2.addChild(slider);
+            pane.addChild(slider);
             sliders.add(slider);
         }
         
         UICheckBox checkBox = new UICheckBox(sw(0.1f), sw(0.1f), true);
         checkBox.marginTop(px(10));
-        pane2.addChild(checkBox);
+        pane.addChild(checkBox);
         
         Scene scene = SceneRenderer.getInstance().getScene();
         LightSource spot = scene.getSpotLights().get(0);
@@ -180,6 +185,23 @@ public class UIRenderer extends Renderer {
         
     }
     
+    public void buildTest2(UIRectangle pane) {
+        UIRectangle bounds = new UIRectangle(pcw(0.5f), pch(0.5f));
+        bounds.borderEnabled(true)
+        .borderColor(col(UIColors.LAV))
+        .marginTop(px(20))
+        .overflow(UIOverflowMode.HIDDEN);
+        pane.addChild(bounds);
+        
+        for (int i=0; i<10; i++) {
+            UIRectangle bC = new UIRectangle(px(40), px(50));
+            bC.color(col(UIColors.GREEN))
+            .marginLeft(px(10))
+            .marginTop(px(10));
+            bounds.addChild(bC);
+        }
+    }
+    
     public void addToRoot(UIElement e) {
         rootElement.addChild(e);
     }
@@ -193,8 +215,9 @@ public class UIRenderer extends Renderer {
     public void removeAnimation(Animation a) {
         animations.remove(a);
     }
-
+    
     public void addTransition(UIElement e, Transition t) {
+        if (transitions.containsKey(e)) transitions.get(e).interrupt();
         transitions.put(e, t);
     }
     
@@ -202,11 +225,6 @@ public class UIRenderer extends Renderer {
     public void handleWindowResize() {
         buildProjectionMatrix();
         rootElement.markLayoutDirty();
-    }
-    
-    public void rebuildVisibleElementList() {
-        visibleUIElements = rootElement.getVisibleChildren();
-        rootElement.clearSubtreeDirtyMark();
     }
     
     @Override
@@ -257,7 +275,9 @@ public class UIRenderer extends Renderer {
         sM.useProgram(0);
         
         buildProjectionMatrix();
-        buildTest();
+        
+        UIRectangle pane = buildTestBase();
+        buildTest1(pane);
     }
     
     @Override
@@ -339,27 +359,41 @@ public class UIRenderer extends Renderer {
             default: break;
         }
     }
-
+    
+    public void buildVisibleElementList() {
+        visibleUIElements = rootElement.getVisibleChildren();
+        rootElement.clearSubtreeDirtyMark();
+    }
+    
+    private void layout() {
+        rootElement.layoutMeasure();
+        
+        UIBounds rootBounds = new UIBounds(
+            0f,
+            0f,
+            getParentWindow().getWidth(),
+            getParentWindow().getHeight()
+        );
+        
+        rootElement.layoutAdvance(rootElement.getLayoutX(), rootElement.getLayoutY(), rootBounds);
+    }
+    
     @Override
     public void update() {
         for (Animation a : animations) a.trigger();
-
-        for (Map.Entry<UIElement, Transition> entry : transitions.entrySet()) entry.getValue().update();
-        transitions.entrySet().removeIf(entry -> entry.getValue().complete());
         
-        if (rootElement.isLayoutDirty()) {
-            rootElement.layoutMeasure();
-            rootElement.layoutAdvance(rootElement.getMeasuredX(), rootElement.getMeasuredY());
-        }
+        for (Map.Entry<UIElement, Transition> entry : transitions.entrySet()) entry.getValue().update();
+        transitions.entrySet().removeIf(entry -> entry.getValue().isComplete());
+        
+        if (rootElement.isLayoutDirty()) layout();
         
         if (rootElement.isSubtreeDirty()) {
             rootElement.initialiseSubtree();
-            if (rootElement.isLayoutDirty()) { // If initalising caused a layout change
-                rootElement.layoutMeasure();
-                rootElement.layoutAdvance(rootElement.getMeasuredX(), rootElement.getMeasuredY());
-            }
             
-            rebuildVisibleElementList();
+            // Re-layout incase initalising caused a layout change
+            if (rootElement.isLayoutDirty()) layout();
+            
+            buildVisibleElementList();
             rootElement.clearSubtreeDirtyMark();
         }
     }
@@ -390,12 +424,11 @@ public class UIRenderer extends Renderer {
     
     private void renderText(ShaderManager sM, UIText tE) {
         UIFont font = tE.getFont();
-        float baselineY = tE.getResolvedY() + font.getAscent();
-        
+        float baselineY = tE.getScreenY() + font.getAscent();
         
         float[] vertices = font.buildTextVertices(
             tE.getText(),
-            tE.getResolvedX(),
+            tE.getScreenX(),
             baselineY
         );
         
@@ -438,6 +471,8 @@ public class UIRenderer extends Renderer {
         sM.setUniformMat4("uModel", icon.getModelMatrix());
         sM.setUniformVec4("uTint", icon.getTint());
         sM.setUniformVec4("uUVRect", icon.getUVRect());
+        
+        icon.setRenderUniforms(sM);
         
         glActiveTexture(GL_TEXTURE0);
         sM.bindTexture(icon.getTextureId());

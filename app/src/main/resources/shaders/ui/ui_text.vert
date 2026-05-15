@@ -5,9 +5,12 @@ layout (location = 1) in vec2 aUV;
 
 uniform mat4 uProjection;
 
+out vec2 vScreenPos;
 out vec2 vUV;
 
 void main() {
+    vScreenPos = aPos.xy;
+    
     vUV = aUV;
     gl_Position = uProjection * vec4(aPos.xy, 0.0, 1.0);
 }

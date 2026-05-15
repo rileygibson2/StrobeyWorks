@@ -5,26 +5,37 @@ import strobeyworks.SWMain;
 public class Transition {
     
     @FunctionalInterface
-    public interface TransitionCallback {
+    public interface TransitionUpdateCallback {
         public abstract void implement(float progress);
     }
+
+    @FunctionalInterface
+    public interface TransitionEventCallback {
+        public abstract void implement();
+    }
     
-    private TransitionCallback transitionCallback;
+    private TransitionUpdateCallback updateAction;
+    private TransitionEventCallback interrruptedAction;
+    private TransitionEventCallback completedAction;
+    private boolean interrupted;
+    private boolean completed;
     private float duration;
     
     private float startTime;
     private float progress;
     
-    public Transition(float duration, TransitionCallback callback) {
+    public Transition(float duration, TransitionUpdateCallback updateCallback) {
         this.duration = duration;
-        this.transitionCallback = callback;
+        this.updateAction = updateCallback;
+        this.interrupted = false;
+        this.completed = false;
         
         this.startTime = SWMain.getTotalTime();
         this.progress = 0f;
     }
     
     public void update() {
-        if (complete()) return;
+        if (isInterrupted()||isComplete()) return;
         
         if (duration<=0f) progress = 1f;
         else {
@@ -32,10 +43,33 @@ public class Transition {
             progress = Math.max(0f, Math.min(1f, elapsed/duration));
         }
         
-        if (transitionCallback!=null) transitionCallback.implement(progress);
+        if (updateAction!=null) updateAction.implement(progress);
+
+        if (progress>=1f) {
+            completed = true;
+            if (completedAction!=null) completedAction.implement();
+        }
+    }
+
+    public void setInterrupt(TransitionEventCallback interrruptedCallback) {
+        this.interrruptedAction = interrruptedCallback;
+    }
+
+    public void setCompletedAction(TransitionEventCallback completedAction) {
+        this.completedAction = completedAction;
+    }
+
+    public void interrupt() {
+        if (isComplete()) return;
+        interrupted = true;
+        if (interrruptedAction!=null) interrruptedAction.implement();
+    }
+
+    public boolean isInterrupted() {
+        return interrupted;
     }
     
-    public boolean complete() {
-        return progress>=1f;
+    public boolean isComplete() {
+        return completed;
     }
 }

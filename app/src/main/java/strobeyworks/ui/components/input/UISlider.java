@@ -99,8 +99,8 @@ public class UISlider extends UIValueControl<Float, Float> {
     }
     
     private void setValueFromMouse(float mouseX) {
-        float localX = mouseX - getResolvedX();
-        float value = localX / getResolvedWidth();
+        float localX = mouseX - getLayoutX();
+        float value = localX / getLayoutWidth();
         
         setLocalValue(Math.max(Math.min(value, 1f), 0f));
         commitLocalValue();

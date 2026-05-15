@@ -82,7 +82,7 @@ public class UIField<T> extends UIValueControl<T, String> {
     public void initialise() {
         // Set cursor height
         float tH = textElem.getResolvedTextHeight();
-        float r = wrapper.getMeasuredHeight();
+        float r = wrapper.getScreenHeight();
         cursor.height(px(tH));
         cursor.offsetTop(px((int) ((r-tH)*0.5)));
 
@@ -104,7 +104,7 @@ public class UIField<T> extends UIValueControl<T, String> {
     
     @Override
     public void gotFocus(IOEvent event) {
-        float internalX = event.getMouseX()-textElem.getResolvedX();
+        float internalX = event.getMouseX()-textElem.getLayoutX();
         Logger.debug(getLocalValue());
         cursorPos = textElem.getFont().getCursorIndexAt(getLocalValue(), internalX);
         

@@ -86,9 +86,9 @@ public class UITab extends UIRectangle {
         Logger.debug("TAB "+tab);
         
         UIElement tabElem = getChildAtIndex(tab-1);
-        elemLeft.width(px(tabElem.getMeasuredX()+2));
-        elemRight.offsetLeft(px(tabElem.getMeasuredX()+tabElem.getMeasuredWidth()-1));
-        elemRight.width(px(getMeasuredWidth()-tabElem.getMeasuredX()-tabElem.getMeasuredWidth()+1));
+        elemLeft.width(px(tabElem.getLayoutX()+2));
+        elemRight.offsetLeft(px(tabElem.getLayoutX()+tabElem.getLayoutWidth()-1));
+        elemRight.width(px(getLayoutWidth()-tabElem.getLayoutX()-tabElem.getLayoutWidth()+1));
         
         for (int i=0; i<numTabs; i++) {
             getChildAtIndex(i).height(pbh(0.9f));

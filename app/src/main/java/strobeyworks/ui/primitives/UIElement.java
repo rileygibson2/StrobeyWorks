@@ -16,6 +16,7 @@ import strobeyworks.logger.Logger;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.platform.Transition;
+import strobeyworks.ui.core.UIBounds;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.core.UIRenderer;
@@ -132,6 +133,24 @@ public abstract class UIElement {
         CENTER
     }
     
+    /**
+    * 
+    */
+    public enum UIOverflowMode {
+        /**
+        * 
+        */
+        VISIBLE,
+        /**
+        * 
+        */
+        HIDDEN,
+        /**
+        * 
+        */
+        SCROLL
+    }
+    
     @FunctionalInterface
     public interface UIClickCallback {
         void implement(float x, float y, boolean leftButton, boolean rightButton);
@@ -152,6 +171,7 @@ public abstract class UIElement {
     private UIJustifyContent justifyContent;
     private UIAlignItems alignItems;
     private UIAlignContent alignContent;
+    private UIOverflowMode overflowMode;
     
     private UILength width;
     private UILength height;
@@ -183,15 +203,17 @@ public abstract class UIElement {
     private boolean visible;
     
     // Computed values
-    private float resolvedX;
-    private float resolvedY;
-    private float resolvedWidth;
-    private float resolvedHeight;
+    private float layoutX;
+    private float layoutY;
+    private float layoutWidth;
+    private float layoutHeight;
     
-    private float measuredX;
-    private float measuredY;
-    private float measuredWidth;
-    private float measuredHeight;
+    private float screenX;
+    private float screenY;
+    private float screenWidth;
+    private float screenHeight;
+    
+    private UIBounds effectiveClip;
     
     // IO
     private boolean focussable;
@@ -222,6 +244,7 @@ public abstract class UIElement {
         this.justifyContent = UIJustifyContent.START;
         this.alignItems = UIAlignItems.START;
         this.alignContent = UIAlignContent.START;
+        this.overflowMode = UIOverflowMode.VISIBLE;
         
         this.paddingLeft = px(0);
         this.paddingRight = px(0);
@@ -237,7 +260,7 @@ public abstract class UIElement {
         this.offsetRight = px(0);
         this.offsetTop = px(0);
         this.offsetBottom = px(0);
-
+        
         this.transformScaleX = 1f;
         this.transformScaleY = 1f;
         
@@ -265,6 +288,7 @@ public abstract class UIElement {
         this.justifyContent = UIJustifyContent.START;
         this.alignItems = UIAlignItems.START;
         this.alignContent = UIAlignContent.START;
+        this.overflowMode = UIOverflowMode.VISIBLE;
         
         this.paddingLeft = px(0);
         this.paddingRight = px(0);
@@ -280,7 +304,7 @@ public abstract class UIElement {
         this.offsetRight = px(0);
         this.offsetTop = px(0);
         this.offsetBottom = px(0);
-
+        
         this.transformScaleX = 1f;
         this.transformScaleY = 1f;
         
@@ -303,6 +327,12 @@ public abstract class UIElement {
     public void setRenderUniforms(ShaderManager sM) {
         sM.setUniformVec4("uDebugColor", debugColor);
         sM.setUniformInt("uDebugEnabled", debugEnabled ? 1 : 0);
+        
+        if (effectiveClip!=null) {
+            sM.setUniformInt("uClipEnabled", 1);
+            sM.setUniformVec4("uClipBounds", effectiveClip.toVec4());
+        }
+        else sM.setUniformInt("uClipEnabled", 0);
     }
     
     // -----------------------------------------------------------------------------
@@ -317,7 +347,7 @@ public abstract class UIElement {
     
     public UIStyle captureStyle() {
         UIStyle style = new UIStyle();
-
+        
         style.set(PrimitiveStyles.TRANSITION_DURATION, transitionDuration);
         style.set(PrimitiveStyles.TRANSFORM_SCALEX, transformScaleX);
         style.set(PrimitiveStyles.TRANSFORM_SCALEY, transformScaleY);
@@ -326,6 +356,11 @@ public abstract class UIElement {
     
     public void cacheStyle() {
         cachedStyle = captureStyle();
+    }
+    
+    public void clearCachedStyle() {
+        cachedStyle = null;
+        Logger.debug("clearing cache");
     }
     
     public Set<UIStyleProperty<?>> getValidStyleProperties() {
@@ -341,7 +376,7 @@ public abstract class UIElement {
         return this;
     }
     
-    public void transitionToStyle(UIStyle target) {
+    public Transition transitionToStyle(UIStyle target) {
         UIStyle current = captureStyle();
         Set<UIStyleProperty<?>> transitionable = new HashSet<>();
         Set<UIStyleProperty<?>> notTransitionable = new HashSet<>();
@@ -378,7 +413,9 @@ public abstract class UIElement {
             }
             applyStyle(frame);
         });
+        
         UIRenderer.getInstance().addTransition(this, t);
+        return t;
     }
     
     // -----------------------------------------------------------------------------
@@ -432,7 +469,10 @@ public abstract class UIElement {
     
     public void gotHover(IOEvent event) {
         if (hoverStyle==null) return;
-        cacheStyle();
+        if (cachedStyle==null) {
+            cacheStyle();
+            Logger.debug("caching");
+        }
         
         if (transitionDuration==0f) applyStyle(hoverStyle);
         else transitionToStyle(hoverStyle);
@@ -441,8 +481,14 @@ public abstract class UIElement {
     public void lostHover(IOEvent event) {
         if (cachedStyle==null) return;
         
-        if (transitionDuration==0f) applyStyle(cachedStyle);
-        else transitionToStyle(cachedStyle);
+        if (transitionDuration==0f) {
+            applyStyle(cachedStyle);
+            clearCachedStyle();
+        }
+        else {
+            Transition t = transitionToStyle(cachedStyle);
+            t.setCompletedAction(() -> {clearCachedStyle();});
+        }
     }
     
     public void clicked(IOEvent event) {}
@@ -597,7 +643,7 @@ public abstract class UIElement {
     * otherwise it will advance to that child with the current x and y + the child's x and ys
     */
     
-    private static class UILine {
+    private static class FlowLine {
         List<UIElement> elements = new ArrayList<>();
         
         float left = Float.POSITIVE_INFINITY;
@@ -608,10 +654,10 @@ public abstract class UIElement {
         void add(UIElement e, float mL, float mR, float mT, float mB) {
             elements.add(e);
             
-            left = Math.min(left, e.measuredX - mL);
-            right = Math.max(right, e.measuredX + e.measuredWidth + mR);
-            top = Math.min(top, e.measuredY - mT);
-            bottom = Math.max(bottom, e.measuredY + e.measuredHeight + mB);
+            left = Math.min(left, e.layoutX - mL);
+            right = Math.max(right, e.layoutX + e.layoutWidth + mR);
+            top = Math.min(top, e.layoutY - mT);
+            bottom = Math.max(bottom, e.layoutY + e.layoutHeight + mB);
         }
         
         boolean isEmpty() {
@@ -627,7 +673,6 @@ public abstract class UIElement {
         }
     }
     
-    
     public void layoutMeasure() {
         float pL = resolveLocal(paddingLeft);
         float pR = resolveLocal(paddingRight);
@@ -639,16 +684,16 @@ public abstract class UIElement {
         float maxX = 0f;
         float maxY = 0f;
         
-        List<UILine> flowLines = new ArrayList<>();
-        UILine flowLine = new UILine();
+        List<FlowLine> flowLines = new ArrayList<>();
+        FlowLine flowLine = new FlowLine();
         float lineSize = 0f;
         float availableWidth = -1f;
         float availableHeight = -1f;
         
         // Root case - set own x and y
         if (parent==null) {
-            measuredX = resolveLocal(marginLeft);
-            measuredY = resolveLocal(marginTop);
+            layoutX = resolveLocal(marginLeft);
+            layoutY = resolveLocal(marginTop);
         }
         
         //Set fixed box w and h and wrap limits
@@ -663,12 +708,12 @@ public abstract class UIElement {
             }
             
             if (minWidth!=null) w = Math.max(w, resolveLocal(minWidth));
-            measuredWidth = w;
+            layoutWidth = w;
             if (minHeight!=null) h = Math.max(h, resolveLocal(minHeight));
-            measuredHeight = h;
+            layoutHeight = h;
             
-            availableWidth = measuredWidth-pL-pR;
-            availableHeight = measuredHeight-pT-pB;
+            availableWidth = layoutWidth-pL-pR;
+            availableHeight = layoutHeight-pT-pB;
         }
         
         // Attempt to set wrap limits for flex box
@@ -699,22 +744,22 @@ public abstract class UIElement {
                     if (flowWrap &&
                         availableWidth!=-1 &&
                         cursorX>pL &&
-                        cursorX-pL+mL+c.measuredWidth>availableWidth
+                        cursorX-pL+mL+c.layoutWidth>availableWidth
                     ) {
                         cursorX = pL;
                         cursorY += lineSize;
                         lineSize = 0f;
                         flowLines.add(flowLine);
-                        flowLine = new UILine();
+                        flowLine = new FlowLine();
                     }
                     
-                    c.measuredX = cursorX+mL;
-                    c.measuredY = cursorY+mT;
-                    cursorX = c.measuredX+c.measuredWidth+mR;
+                    c.layoutX = cursorX+mL;
+                    c.layoutY = cursorY+mT;
+                    cursorX = c.layoutX+c.layoutWidth+mR;
                     
                     lineSize = Math.max(
                         lineSize,
-                        mT+c.measuredHeight+mB
+                        mT+c.layoutHeight+mB
                     );
                 }
                 
@@ -722,22 +767,22 @@ public abstract class UIElement {
                     if (flowWrap &&
                         availableHeight!=-1 &&
                         cursorY>pT &&
-                        cursorY-pT+mT+c.measuredHeight>availableHeight
+                        cursorY-pT+mT+c.layoutHeight>availableHeight
                     ) {
                         cursorX += lineSize;
                         cursorY = pT;
                         lineSize = 0f;
                         flowLines.add(flowLine);
-                        flowLine = new UILine();
+                        flowLine = new FlowLine();
                     }
                     
-                    c.measuredX = cursorX+mL;
-                    c.measuredY = cursorY+mT;
-                    cursorY = c.measuredY+c.measuredHeight+mB;
+                    c.layoutX = cursorX+mL;
+                    c.layoutY = cursorY+mT;
+                    cursorY = c.layoutY+c.layoutHeight+mB;
                     
                     lineSize = Math.max(
                         lineSize,
-                        mL+c.measuredWidth+mR
+                        mL+c.layoutWidth+mR
                     );
                 }
                 flowLine.add(c, mL, mR, mT, mB);
@@ -745,34 +790,34 @@ public abstract class UIElement {
             
             // Other positioning
             if (cPosition==UIPositionMode.ABSOLUTE || cPosition==UIPositionMode.SCREEN) {
-                c.measuredX = oL;
-                c.measuredY = oT;
+                c.layoutX = oL;
+                c.layoutY = oT;
             }
             
             if (cPosition==UIPositionMode.FLOW || cPosition==UIPositionMode.FLOW_RELATIVE) {
-                maxX = Math.max(maxX, c.measuredX+c.measuredWidth);
-                maxY = Math.max(maxY, c.measuredY+c.measuredHeight);
+                maxX = Math.max(maxX, c.layoutX+c.layoutWidth);
+                maxY = Math.max(maxY, c.layoutY+c.layoutHeight);
             }
         }
         if (!flowLine.isEmpty()) flowLines.add(flowLine);
         
         // Resize flex boxes
         if (boxMode == UIBoxMode.FLEX) {
-            measuredWidth = maxX+pR;
-            measuredHeight = maxY+pB;
+            layoutWidth = maxX+pR;
+            layoutHeight = maxY+pB;
             
-            if (minWidth!=null) measuredWidth = Math.max(measuredWidth, resolveLocal(minWidth));
-            if (maxWidth!=null) measuredWidth = Math.min(measuredWidth, resolveLocal(maxWidth));
+            if (minWidth!=null) layoutWidth = Math.max(layoutWidth, resolveLocal(minWidth));
+            if (maxWidth!=null) layoutWidth = Math.min(layoutWidth, resolveLocal(maxWidth));
             
-            if (minHeight!=null) measuredHeight = Math.max(measuredHeight, resolveLocal(minHeight));
-            if (maxHeight!=null) measuredHeight = Math.min(measuredHeight, resolveLocal(maxHeight));
+            if (minHeight!=null) layoutHeight = Math.max(layoutHeight, resolveLocal(minHeight));
+            if (maxHeight!=null) layoutHeight = Math.min(layoutHeight, resolveLocal(maxHeight));
         }
         
         // Justify and align
-        float contentWidth = Math.max(0f, measuredWidth - pL - pR);
-        float contentHeight = Math.max(0f, measuredHeight - pT - pB);
+        float contentWidth = Math.max(0f, layoutWidth - pL - pR);
+        float contentHeight = Math.max(0f, layoutHeight - pT - pB);
         
-        for (UILine line : flowLines) {
+        for (FlowLine line : flowLines) {
             float usedWidth = line.usedWidth();
             float usedHeight = line.usedHeight();
             
@@ -780,14 +825,14 @@ public abstract class UIElement {
                 switch (flowDirection) {
                     case ROW:
                     float offset = (contentWidth - usedWidth) * 0.5f - (line.left - pL);
-                    for (UIElement c : line.elements) c.measuredX += offset;
+                    for (UIElement c : line.elements) c.layoutX += offset;
                     line.left += offset;
                     line.right += offset;
                     break;
                     
                     case COLUMN:
                     offset = (contentHeight - usedHeight) * 0.5f - (line.top - pT);
-                    for (UIElement c : line.elements) c.measuredY += offset;
+                    for (UIElement c : line.elements) c.layoutY += offset;
                     line.top += offset;
                     line.bottom += offset;
                     break;
@@ -804,10 +849,10 @@ public abstract class UIElement {
                         float mT = c.resolveLocal(c.getMarginTop());
                         float mB = c.resolveLocal(c.getMarginBottom());
                         
-                        float childMarginBoxHeight = mT + c.measuredHeight + mB;
+                        float childMarginBoxHeight = mT + c.layoutHeight + mB;
                         float childCrossOffset = (lineCrossSize - childMarginBoxHeight) * 0.5f;
                         
-                        c.measuredY = lineCrossStart + childCrossOffset + mT;
+                        c.layoutY = lineCrossStart + childCrossOffset + mT;
                     }
                     break;
                     
@@ -819,10 +864,10 @@ public abstract class UIElement {
                         float mL = c.resolveLocal(c.getMarginLeft());
                         float mR = c.resolveLocal(c.getMarginRight());
                         
-                        float childMarginBoxWidth = mL + c.measuredWidth + mR;
+                        float childMarginBoxWidth = mL + c.layoutWidth + mR;
                         float childCrossOffset = (lineCrossSize - childMarginBoxWidth) * 0.5f;
                         
-                        c.measuredX = lineCrossStart + childCrossOffset + mL;
+                        c.layoutX = lineCrossStart + childCrossOffset + mL;
                     }
                     break;
                 }
@@ -838,10 +883,10 @@ public abstract class UIElement {
                     float mT = c.resolveLocal(c.getMarginTop());
                     float mB = c.resolveLocal(c.getMarginBottom());
                     
-                    line.left = Math.min(line.left, c.measuredX - mL);
-                    line.right = Math.max(line.right, c.measuredX + c.measuredWidth + mR);
-                    line.top = Math.min(line.top, c.measuredY - mT);
-                    line.bottom = Math.max(line.bottom, c.measuredY + c.measuredHeight + mB);
+                    line.left = Math.min(line.left, c.layoutX - mL);
+                    line.right = Math.max(line.right, c.layoutX + c.layoutWidth + mR);
+                    line.top = Math.min(line.top, c.layoutY - mT);
+                    line.bottom = Math.max(line.bottom, c.layoutY + c.layoutHeight + mB);
                 }
             }
         }
@@ -852,7 +897,7 @@ public abstract class UIElement {
             float blockTop = Float.POSITIVE_INFINITY;
             float blockBottom = Float.NEGATIVE_INFINITY;
             
-            for (UILine line : flowLines) {
+            for (FlowLine line : flowLines) {
                 blockLeft = Math.min(blockLeft, line.left);
                 blockRight = Math.max(blockRight, line.right);
                 blockTop = Math.min(blockTop, line.top);
@@ -865,43 +910,50 @@ public abstract class UIElement {
             switch (flowDirection) {
                 case ROW:
                 float offset = (contentHeight - usedHeight) * 0.5f - (blockTop - pT);
-                for (UILine line : flowLines) {
-                    for (UIElement c : line.elements) c.measuredY += offset;
+                for (FlowLine line : flowLines) {
+                    for (UIElement c : line.elements) c.layoutY += offset;
                 }
                 break;
                 
                 case COLUMN:
                 offset = (contentWidth - usedWidth) * 0.5f - (blockLeft - pL);
-                for (UILine line : flowLines) {
-                    for (UIElement c : line.elements) c.measuredX += offset;
+                for (FlowLine  line : flowLines) {
+                    for (UIElement c : line.elements) c.layoutX += offset;
                 }
                 break;
             }
         }
     }
     
-    
-    public void layoutAdvance(float resolvedX, float resolvedY) {
-        this.resolvedX = resolvedX;
-        this.resolvedY = resolvedY;
-        this.resolvedWidth = measuredWidth;
-        this.resolvedHeight = measuredHeight;
+    public void layoutAdvance(float screenX, float screenY, UIBounds inheritedClip) {
+        this.screenX = screenX;
+        this.screenY = screenY;
+        this.screenWidth = layoutWidth;
+        this.screenHeight = layoutHeight;
+        this.effectiveClip = inheritedClip;
         
         updateModelMatrix();
         
+        UIBounds childClip = inheritedClip;
+        if (overflowMode==UIOverflowMode.HIDDEN) {
+            childClip = inheritedClip.intersect(getBounds());
+        }
+        
         for (UIElement c : children) {
             if (c.getPositionMode()==UIPositionMode.SCREEN) {
-                c.layoutAdvance(c.measuredX, c.measuredY);
+                c.layoutAdvance(c.layoutX, c.layoutY, childClip);
             }
             else if (c.getPositionMode()==UIPositionMode.FLOW_RELATIVE) {
                 c.layoutAdvance(
-                    resolvedX+c.measuredX+c.resolveLocal(c.getOffsetLeft()),
-                    resolvedY+c.measuredY+c.resolveLocal(c.getOffsetTop())
+                    screenX+c.layoutX+c.resolveLocal(c.getOffsetLeft()),
+                    screenY+c.layoutY+c.resolveLocal(c.getOffsetTop()),
+                    childClip
                 );
             }
             else c.layoutAdvance(
-                resolvedX+c.measuredX,
-                resolvedY+c.measuredY
+                screenX+c.layoutX,
+                screenY+c.layoutY,
+                childClip
             );
         }
         
@@ -920,32 +972,32 @@ public abstract class UIElement {
             return pair.value * SWMain.getUIWindow().getHeight();
             
             case PARENT_CONTENT_WIDTH:
-            if (parent == null)
-                return pair.value * SWMain.getUIWindow().getWidth();
+            if (parent == null) return pair.value * SWMain.getUIWindow().getWidth();
+
             if (parent.getBoxMode() == UIBoxMode.FLEX)
                 Logger.throwRuntimeException("Cannot use parental units on parent with box mode flex");
-            return pair.value * parent.getMeasuredContentWidth();
+            return pair.value * parent.getLayoutContentWidth();
             
             case PARENT_CONTENT_HEIGHT:
-            if (parent == null)
-                return pair.value * SWMain.getUIWindow().getHeight();
+            if (parent == null) return pair.value * SWMain.getUIWindow().getHeight();
+
             if (parent.getBoxMode() == UIBoxMode.FLEX)
                 Logger.throwRuntimeException("Cannot use parental units on parent with box mode flex");
-            return pair.value * parent.getMeasuredContentHeight();
+            return pair.value * parent.getLayoutContentHeight();
             
             case PARENT_BOX_WIDTH:
-            if (parent == null)
-                return pair.value * SWMain.getUIWindow().getWidth();
+            if (parent == null) return pair.value * SWMain.getUIWindow().getWidth();
+
             if (parent.getBoxMode() == UIBoxMode.FLEX)
                 Logger.throwRuntimeException("Cannot use parental units on parent with box mode flex");
-            return pair.value * parent.getMeasuredWidth();
+            return pair.value * parent.getLayoutWidth();
             
             case PARENT_BOX_HEIGHT:
-            if (parent == null)
-                return pair.value * SWMain.getUIWindow().getHeight();
+            if (parent == null) return pair.value * SWMain.getUIWindow().getHeight();
+            
             if (parent.getBoxMode() == UIBoxMode.FLEX)
                 Logger.throwRuntimeException("Cannot use parental units on parent with box mode flex");
-            return pair.value * parent.getMeasuredHeight();
+            return pair.value * parent.getLayoutHeight();
             
             default:
             return 0f;
@@ -953,11 +1005,13 @@ public abstract class UIElement {
     }
     
     public boolean containsResolved(float x, float y) {
-        float cx = resolvedX + resolvedWidth * 0.5f;
-        float cy = resolvedY + resolvedHeight * 0.5f;
+        if (effectiveClip!=null && !effectiveClip.contains(x, y)) return false;
+
+        float cx = screenX + screenWidth * 0.5f;
+        float cy = screenY + screenHeight * 0.5f;
         
-        float w = resolvedWidth * transformScaleX;
-        float h = resolvedHeight * transformScaleY;
+        float w = screenWidth * transformScaleX;
+        float h = screenHeight * transformScaleY;
         
         return x >= cx - w * 0.5f &&
         x <= cx + w * 0.5f &&
@@ -965,35 +1019,39 @@ public abstract class UIElement {
         y <= cy + h * 0.5f;
     }
     
-    private float getMeasuredContentWidth() {
+    private float getLayoutContentWidth() {
         return Math.max(0f,
-            measuredWidth - resolveLocal(paddingLeft) - resolveLocal(paddingRight)
+            layoutWidth - resolveLocal(paddingLeft) - resolveLocal(paddingRight)
         );
     }
     
-    private float getMeasuredContentHeight() {
+    private float getLayoutContentHeight() {
         return Math.max(0f,
-            measuredHeight - resolveLocal(paddingTop) - resolveLocal(paddingBottom)
+            layoutHeight - resolveLocal(paddingTop) - resolveLocal(paddingBottom)
         );
+    }
+    
+    private UIBounds getBounds() {
+        UIBounds clip = new UIBounds(screenX, screenY, screenX+screenWidth, screenY+screenHeight);
+        return clip;
     }
     
     private void updateModelMatrix() {
         modelMatrix = new Matrix4f()
         .translate(
-            resolvedX + resolvedWidth * 0.5f,
-            resolvedY + resolvedHeight * 0.5f,
+            screenX + screenWidth * 0.5f,
+            screenY + screenHeight * 0.5f,
             0.0f
         )
         .scale(
-            resolvedWidth*transformScaleX,
-            resolvedHeight*transformScaleY,
+            screenWidth*transformScaleX,
+            screenHeight*transformScaleY,
             1.0f);
         }
         
         // -----------------------------------------------------------------------------
         // Setters
         // -----------------------------------------------------------------------------
-        
         
         public UIElement box(UIBoxMode boxMode) {
             this.boxMode = boxMode;
@@ -1033,6 +1091,12 @@ public abstract class UIElement {
         
         public UIElement alignContent(UIAlignContent alignContent) {
             this.alignContent = alignContent;
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement overflow(UIOverflowMode overflowMode) {
+            this.overflowMode = overflowMode;
             markLayoutDirty();
             return this;
         }
@@ -1231,27 +1295,29 @@ public abstract class UIElement {
         
         public UIAlignContent getAlignContent() {return this.alignContent;}
         
+        public UIOverflowMode getOverflowMode() {return this.overflowMode;}
+        
         public UIElement getParent() {return this.parent;}
         
         public UILength getWidth() {return this.width;}
         
         public UILength getHeight() {return this.height;}
         
-        public float getMeasuredX() {return this.measuredX;}
+        public float getLayoutX() {return this.layoutX;}
         
-        public float getMeasuredY() {return this.measuredY;}
+        public float getLayoutY() {return this.layoutY;}
         
-        public float getMeasuredWidth() {return this.measuredWidth;}
+        public float getLayoutWidth() {return this.layoutWidth;}
         
-        public float getMeasuredHeight() {return this.measuredHeight;}
+        public float getLayoutHeight() {return this.layoutHeight;}
         
-        public float getResolvedX() {return this.resolvedX;}
+        public float getScreenX() {return this.screenX;}
         
-        public float getResolvedY() {return this.resolvedY;}
+        public float getScreenY() {return this.screenY;}
         
-        public float getResolvedWidth() {return this.resolvedWidth;}
+        public float getScreenWidth() {return this.screenWidth;}
         
-        public float getResolvedHeight() {return this.resolvedHeight;}
+        public float getScreenHeight() {return this.screenHeight;}
         
         public UILength getPaddingLeft() {return this.paddingLeft;}
         

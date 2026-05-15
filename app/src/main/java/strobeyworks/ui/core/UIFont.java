@@ -45,6 +45,8 @@ public class UIFont {
     private int atlasHeight;
     private int firstChar;
     private int charCount;
+    
+    private String ttfName;
     private float fontSize;
     
     private STBTTFontinfo fontInfo;
@@ -54,22 +56,26 @@ public class UIFont {
     private float descent;
     private float lineGap;
     private float lineHeight;
+
+    private UIFont() {}
     
-    public void loadFromTTF(String fontName, float fontSize) {
-        this.fontSize = fontSize;
+    public static UIFont loadFromTTF(String ttfName, float fontSize) {
+        UIFont font = new UIFont();
+        font.ttfName = ttfName;
+        font.fontSize = fontSize;
         
-        this.atlasWidth = 512;
-        this.atlasHeight = 512;
-        this.firstChar = 32;
-        this.charCount = 96;
+        font.atlasWidth = 512;
+        font.atlasHeight = 512;
+        font.firstChar = 32;
+        font.charCount = 96;
         
         try {
-            fontBuffer = Utils.loadResourceToByteBuffer("/fonts/"+fontName);
+            font.fontBuffer = Utils.loadResourceToByteBuffer("/fonts/"+ttfName);
             
-            fontInfo = STBTTFontinfo.create();
+            font.fontInfo = STBTTFontinfo.create();
             
-            if (!stbtt_InitFont(fontInfo, fontBuffer)) {
-                throw new RuntimeException("Failed to init font: " + fontName);
+            if (!stbtt_InitFont(font.fontInfo, font.fontBuffer)) {
+                throw new RuntimeException("Failed to init font: " + ttfName);
             }
             
             try (MemoryStack stack = MemoryStack.stackPush()) {
@@ -77,37 +83,37 @@ public class UIFont {
                 IntBuffer descentBuf = stack.mallocInt(1);
                 IntBuffer lineGapBuf = stack.mallocInt(1);
                 
-                stbtt_GetFontVMetrics(fontInfo, ascentBuf, descentBuf, lineGapBuf);
+                stbtt_GetFontVMetrics(font.fontInfo, ascentBuf, descentBuf, lineGapBuf);
                 
-                float scale = stbtt_ScaleForPixelHeight(fontInfo, fontSize);
+                float scale = stbtt_ScaleForPixelHeight(font.fontInfo, fontSize);
                 
-                ascent = ascentBuf.get(0) * scale;
-                descent = descentBuf.get(0) * scale;
-                lineGap = lineGapBuf.get(0) * scale;
+                font.ascent = ascentBuf.get(0) * scale;
+                font.descent = descentBuf.get(0) * scale;
+                font.lineGap = lineGapBuf.get(0) * scale;
                 
-                lineHeight = ascent - descent + lineGap;
+                font.lineHeight = font.ascent - font.descent + font.lineGap;
             }
             
-            ByteBuffer atlasBitmap = BufferUtils.createByteBuffer(atlasWidth * atlasHeight);
+            ByteBuffer atlasBitmap = BufferUtils.createByteBuffer(font.atlasWidth * font.atlasHeight);
             
-            glyphData = STBTTBakedChar.malloc(charCount);
+            font.glyphData = STBTTBakedChar.malloc(font.charCount);
             
             int result = stbtt_BakeFontBitmap(
-                fontBuffer,
+                font.fontBuffer,
                 fontSize,
                 atlasBitmap,
-                atlasWidth,
-                atlasHeight,
-                firstChar,
-                glyphData
+                font.atlasWidth,
+                font.atlasHeight,
+                font.firstChar,
+                font.glyphData
             );
             
             if (result <= 0) {
                 throw new RuntimeException("Failed to bake font atlas. Try a larger atlas.");
             }
             
-            textureId = glGenTextures();
-            glBindTexture(GL_TEXTURE_2D, textureId);
+            font.textureId = glGenTextures();
+            glBindTexture(GL_TEXTURE_2D, font.textureId);
             
             glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
             
@@ -115,8 +121,8 @@ public class UIFont {
                 GL_TEXTURE_2D,
                 0,
                 GL_RED,
-                atlasWidth,
-                atlasHeight,
+                font.atlasWidth,
+                font.atlasHeight,
                 0,
                 GL_RED,
                 GL_UNSIGNED_BYTE,
@@ -131,10 +137,12 @@ public class UIFont {
             glBindTexture(GL_TEXTURE_2D, 0);
             
         } catch (IOException e) {
-            Logger.throwRuntimeException("Could not load font: " + fontName, e);
+            Logger.throwRuntimeException("Could not load ttf: " + ttfName, e);
+            return null;
         }
+
+        return font;
     }
-    
     
     public float[] buildTextVertices(String text, float x, float y) {
         ArrayList<Float> vertices = new ArrayList<>();
@@ -268,7 +276,11 @@ public class UIFont {
     }
     
     public float getFontSize() {
-        return this.fontSize;
+        return fontSize;
+    }
+
+    public String getTTFName() {
+        return ttfName;
     }
     
     public float getAscent() {
