@@ -51,8 +51,8 @@ public class Animation {
         setPhase(0f, 1f);
     }
 
-    public Animation(int numElems, AnimationCallback callback) {
-        this.numElems = numElems;
+    public Animation(AnimationCallback callback) {
+        this.numElems = 1;
         this.form = AnimationForm.SINE;
         this.callback = callback;
         this.width = 1f;
@@ -62,9 +62,9 @@ public class Animation {
         setPhase(0f, 1f);
     }
 
-    public Animation(int numElems, AnimationForm form, AnimationCallback callback) {
+    public Animation(int numElems, AnimationCallback callback) {
         this.numElems = numElems;
-        this.form = form;
+        this.form = AnimationForm.SINE;
         this.callback = callback;
         this.width = 1f;
         this.minVal = 0f;

@@ -69,19 +69,19 @@ public class UIBounds {
         this.maxY = maxY;
     }
     
-    public float minX() {
+    public float getMinX() {
         return this.minX;
     }
     
-    public float minY() {
+    public float getMinY() {
         return this.minY;
     }
     
-    public float maxX() {
+    public float getMaxX() {
         return this.maxX;
     }
     
-    public float maxY() {
+    public float getMaxY() {
         return this.maxY;
     }
 }

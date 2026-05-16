@@ -24,8 +24,8 @@ public class UIFloatField extends UIField<Float> {
     private float externalSpaceIncrement
     ;
 
-    public UIFloatField(UILength width, UILength height, UIFont font, UIFloatFieldRule inputRule) {
-        super(width, height, font, inputRule);
+    public UIFloatField(UIFont font, UIFloatFieldRule inputRule) {
+        super(font, inputRule);
 
         wrapper.style("width", pcw(0.7f));
         
@@ -41,27 +41,27 @@ public class UIFloatField extends UIField<Float> {
 
         up = new UIButton();
         up.style("width", pbw(1f))
-        .style("height", pbh(0.5f));
-        up.icon("up_arrow")
-        .clickedAction(() -> {increment(1);});
-        up.style("corner-radius", new Vec4(0f))
-        //.color(col(UIColors.WHITE))
+        .style("height", pbh(0.5f))
+        .style("corner-radius", new Vec4(0f))
         .style("border-enabled", false)
         .style("position", UIPositionMode.ABSOLUTE)
-        .style("visible", false)
+        .style("visible", false);
+
+        up.icon("up_arrow")
+        .clickedAction(() -> {increment(1);})
         .hoverStyle(style);
 
         down = new UIButton();
         down.style("width", pbw(1f))
-        .style("height", pbh(0.5f));
-        down.icon("down_arrow")
-        .clickedAction(() -> {increment(-1);});
-        down.style("corner-radius", new Vec4(0f))
+        .style("height", pbh(0.5f))
+        .style("corner-radius", new Vec4(0f))
         .style("border-enabled", false)
-        //.color(col(UIColors.RED))
         .style("position", UIPositionMode.ABSOLUTE)
         .style("offset-top", pbh(0.5f))
-        .style("visible", false)
+        .style("visible", false);
+
+        down.icon("down_arrow")
+        .clickedAction(() -> {increment(-1);})
         .hoverStyle(style);
 
         addChild(controlWrapper);

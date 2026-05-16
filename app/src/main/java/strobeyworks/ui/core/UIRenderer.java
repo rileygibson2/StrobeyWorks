@@ -151,9 +151,11 @@ public class UIRenderer extends Renderer {
         .inputMinMax(0f, 100f)
         .mappedMinMax(0f, 1f);
         
-        UIFloatField field = new UIFloatField(sw(0.2f), sh(0.08f), font, inputRule);
+        UIFloatField field = new UIFloatField(font, inputRule);
         field.useButtons(0.1f);
-        field.style("margin-top", px(20));
+        field.style("width", sw(0.2f))
+        .style("height", sh(0.08f))
+        .style("margin-top", px(20));
         
         pane.addChild(field);
         
@@ -192,27 +194,28 @@ public class UIRenderer extends Renderer {
     }
     
     public void buildTest2(UIRectangle pane) {
-        UIRectangle bounds = new UIRectangle();
-        bounds.style("width", pcw(0.5f))
-        .style("height", pch(0.5f))
+        UIRectangle box = new UIRectangle();
+        box.style("width", pcw(0.5f))
+        .style("height", pch(0.3f))
         .style("border-color", col(UIColors.LAV))
         .style("border-enabled", true)
         .style("border-thickness", px(10f))
         .style("margin-top", px(20))
-        .style("overflow", UIOverflowMode.HIDDEN);
-        pane.addChild(bounds);
+        .style("overflow-x", UIOverflowMode.SCROLL);
+        pane.addChild(box);
         
-        for (int i=0; i<10; i++) {
+        for (int i=0; i<6; i++) {
             UIRectangle bC = new UIRectangle();
             bC.style("width", px(40))
             .style("height", px(50))
             .style("color", col(UIColors.TRANSPARENT))
             .style("margin-left", px(10))
             .style("margin-top", px(10))
+            .style("margin-right", px(10))
             .style("justify-content", UIJustifyContent.CENTER)
             .style("align-items", UIAlignItems.CENTER)
             .style("border-enabled", true);
-            bounds.addChild(bC);
+            box.addChild(bC);
 
             UIRectangle bC1 = new UIRectangle();
             bC1.style("width", pcw(0.5f))
@@ -221,6 +224,45 @@ public class UIRenderer extends Renderer {
             .style("border-enabled", true);
             bC.addChild(bC1);
         }
+
+        // Vertical
+        UIRectangle boxV = new UIRectangle();
+        boxV.style("width", pcw(0.5f))
+        .style("height", pch(0.5f))
+        .style("border-color", col(UIColors.LAV))
+        .style("border-enabled", true)
+        .style("border-thickness", px(10f))
+        .style("margin-top", px(20))
+        .style("flow-direction", UIFlowDirection.COLUMN)
+        .style("overflow-y", UIOverflowMode.SCROLL);
+        pane.addChild(boxV);
+        
+        for (int i=0; i<6; i++) {
+            UIRectangle bC = new UIRectangle();
+            bC.style("width", px(40))
+            .style("height", px(50))
+            .style("color", col(UIColors.TRANSPARENT))
+            .style("margin-left", px(10))
+            .style("margin-top", px(10))
+            .style("margin-bottom", px(10))
+            .style("justify-content", UIJustifyContent.CENTER)
+            .style("align-items", UIAlignItems.CENTER)
+            .style("border-enabled", true);
+            boxV.addChild(bC);
+
+            UIRectangle bC1 = new UIRectangle();
+            bC1.style("width", pcw(0.5f))
+            .style("height", pch(0.5f))
+            .style("color", col(UIColors.RED))
+            .style("border-enabled", true);
+            bC.addChild(bC1);
+        }
+
+        Animation a = new Animation((i, value) -> {
+            box.scrollX(value);
+        });
+        a.setSpeed(0.2f);
+        //addAnimation(a);
     }
     
     public void addToRoot(UIElement e) {
@@ -300,7 +342,7 @@ public class UIRenderer extends Renderer {
         buildProjectionMatrix();
         
         UIRectangle pane = buildTestBase();
-        buildTest1(pane);
+        buildTest2(pane);
     }
     
     @Override

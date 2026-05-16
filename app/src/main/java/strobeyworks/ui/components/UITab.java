@@ -91,7 +91,6 @@ public class UITab extends UIRectangle {
     
     public void setTab(int tab) {
         if (tab<=0||tab>numTabs) return;
-        Logger.debug("TAB "+tab);
         
         UIElement tabElem = getChildAtIndex(tab-1);
         elemLeft.style("width", px(tabElem.getLocalX()+2));

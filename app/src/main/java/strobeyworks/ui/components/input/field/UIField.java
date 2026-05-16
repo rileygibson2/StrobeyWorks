@@ -35,12 +35,10 @@ public class UIField<T> extends UIValueControl<T, String> {
     private Vec4 cachedColor;
     private boolean invalidInput;
     
-    public UIField(UILength width, UILength height, UIFont font, UIFieldRule<T> inputRule) {
+    public UIField(UIFont font, UIFieldRule<T> inputRule) {
         super(inputRule);
         this.inputRule = inputRule;
         
-        style("width", width);
-        style("height", height);
         focussable(true);
         
         style("align-items", UIAlignItems.CENTER);

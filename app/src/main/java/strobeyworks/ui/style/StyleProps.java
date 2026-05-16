@@ -41,9 +41,11 @@ public final class StyleProps {
         public static final UIStyleProperty<UIAlignContent> ALIGN_CONTENT = 
         register(new UIStyleProperty<>("align-content", UIAlignContent.class));
 
-        public static final UIStyleProperty<UIOverflowMode> OVERFLOW = 
-        register(new UIStyleProperty<>("overflow", UIOverflowMode.class));
+        public static final UIStyleProperty<UIOverflowMode> OVERFLOW_X = 
+        register(new UIStyleProperty<>("overflow-x", UIOverflowMode.class));
 
+        public static final UIStyleProperty<UIOverflowMode> OVERFLOW_Y = 
+        register(new UIStyleProperty<>("overflow-y", UIOverflowMode.class));
 
 
         public static final UIStyleProperty<UILength> WIDTH = 
@@ -103,7 +105,6 @@ public final class StyleProps {
         public static final UIStyleProperty<Boolean> VISIBLE = 
         register(new UIStyleProperty<>("visible", Boolean.class));
 
-
         
         public static final UIStyleProperty<Boolean> BORDER_ENABLED = 
         register(new UIStyleProperty<>("border-enabled", Boolean.class));
@@ -125,7 +126,6 @@ public final class StyleProps {
         
         public static final UIStyleProperty<Boolean> BORDER_BOTTOM = 
         register(new UIStyleProperty<>("border-bottom", Boolean.class));
-
 
 
         public static final UIStyleProperty<Vec4> COLOR = 

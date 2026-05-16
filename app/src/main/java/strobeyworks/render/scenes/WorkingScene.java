@@ -61,7 +61,7 @@ public class WorkingScene extends Scene {
         //spotLight.pointAt(new Vec3(0f, 1f, 0f));
         //addLight(spot2);
         
-        Animation beamPulse = new Animation(1, Animation.AnimationForm.SINE, (i, value) -> {
+        Animation beamPulse = new Animation((i, value) -> {
             getSpotLights().get(i).setWidth(value);
         });
         beamPulse.setMinMax(20f, 30f);
@@ -69,7 +69,7 @@ public class WorkingScene extends Scene {
         //animations.add(beamPulse);
         
         
-        Animation a = new Animation(getSpotLights().size(), Animation.AnimationForm.SINE, (i, value) -> {
+        Animation a = new Animation(getSpotLights().size(), (i, value) -> {
             getSpotLights().get(i).setIntensity(value);
         });
         a.setWidth(1f);
@@ -79,7 +79,7 @@ public class WorkingScene extends Scene {
         //a.setPhase(0f, 0.8f);
         //animations.add(a);
 
-        a = new Animation(getSpotLights().size(), Animation.AnimationForm.SINE, (i, value) -> {
+        a = new Animation(getSpotLights().size(), (i, value) -> {
             getSpotLights().get(i).setRed(value);
             getSpotLights().get(i).setGreen(0f);
         });

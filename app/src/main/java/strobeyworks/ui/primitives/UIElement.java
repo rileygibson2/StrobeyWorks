@@ -19,6 +19,8 @@ import strobeyworks.logger.Logger;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.platform.Transition;
+import strobeyworks.ui.components.UIScrollBar;
+import strobeyworks.ui.components.UIScrollBar.ScrollAxis;
 import strobeyworks.ui.core.UIBounds;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UILength;
@@ -116,27 +118,38 @@ public abstract class UIElement {
     */
     public enum UIPositionMode {
         /**
-        * Element participates in it's parents flow within parent's content box.
-        * Element margin and parent padding affects layout.
-        * Element offset ignored.
+        * Participates in flow within parent's content box.
+        * Margin affects flow layout.
+        * Offset is ignored.
+        * Can be clipped by parent and offset by scroll.
         */
         FLOW,
         /**
-        * Element participates in normal parent flow but can be additionally positioned with an offset.
-        * Element margin and parent padding affects layout.
-        * Element offset affects element final position but does not affect sibling layout.
+        * Participates in flow within parent's content box.
+        * Margin affects flow layout.
+        * Offset affects final position but does not affect sibling flow layout.
+        * Can be clipped by parent and can be offset by scroll.
         */
         FLOW_RELATIVE,
         /**
-        * Element removed from parent flow and positioned relative to parent content box.
-        * Element margin ignored.
-        * Element offset affects final position.
+        * Removed from parent flow and positioned relative to parent content box.
+        * Margin is ignored.
+        * Offset is respected.
+        * Can be clipped by parent and can be offset by scroll.
         */
         ABSOLUTE,
         /**
-        * Element removed from parent flow and positioned relative to screen bounds.
-        * Element margin ignored.
-        * Element offset affects final position.
+        * Removed from parent flow and positioned relative to parent content box.
+        * Margin is ignored.
+        * Offset is respected.
+        * Can be clipped by parent but cannot be offset by scroll.
+        */
+        ABSOLUTE_FIXED,
+        /**
+        * Removed from parent flow and positioned relative to screen bounds.
+        * Margin is ignored.
+        * Offset is respected.
+        * Cannot be clipped by parent or offset by scroll.
         */
         SCREEN
     }
@@ -218,7 +231,7 @@ public abstract class UIElement {
     private boolean subtreeDirty; // Composition of subtree has changed
     private boolean initialised; // Element has been initialised (also indicator of computed layout values existing)
     
-    // Authored values
+    // Authored style properties
     private UIBoxMode boxMode;
     private UIFlowDirection flowDirection;
     private boolean flowWrap;
@@ -226,7 +239,8 @@ public abstract class UIElement {
     private UIJustifyContent justifyContent;
     private UIAlignItems alignItems;
     private UIAlignContent alignContent;
-    private UIOverflowMode overflowMode;
+    private UIOverflowMode overflowX;
+    private UIOverflowMode overflowY;
     
     private UILength width;
     private UILength height;
@@ -266,7 +280,10 @@ public abstract class UIElement {
     
     private boolean visible;
     
-    // Style Properties
+    private float scrollX;
+    private float scrollY;
+    
+    // Style appliers
     private static final Map<UIStyleProperty<?>, BiConsumer<UIElement, Object>> APPLIERS = new HashMap<>();
     
     static {
@@ -277,7 +294,8 @@ public abstract class UIElement {
         register(APPLIERS, StyleProps.JUSTIFY_CONTENT, UIElement::justifyContent);
         register(APPLIERS, StyleProps.ALIGN_ITEMS, UIElement::alignItems);
         register(APPLIERS, StyleProps.ALIGN_CONTENT, UIElement::alignContent);
-        register(APPLIERS, StyleProps.OVERFLOW, UIElement::overflow);
+        register(APPLIERS, StyleProps.OVERFLOW_X, UIElement::overflowX);
+        register(APPLIERS, StyleProps.OVERFLOW_Y, UIElement::overflowY);
         
         register(APPLIERS, StyleProps.WIDTH, UIElement::width);
         register(APPLIERS, StyleProps.HEIGHT, UIElement::height);
@@ -323,7 +341,6 @@ public abstract class UIElement {
         appliers.put(property, (e, v) -> applier.accept(e, property.getValueType().cast(v)));
     }
     
-    
     // Computed values
     private float localX;
     private float localY;
@@ -335,6 +352,7 @@ public abstract class UIElement {
     private float screenWidth;
     private float screenHeight;
     
+    private UIBounds childContentBounds;
     private UIBounds effectiveClip;
     
     // IO
@@ -345,6 +363,9 @@ public abstract class UIElement {
     
     // Functional
     private Matrix4f modelMatrix;
+    
+    private UIScrollBar horizontalBar;
+    private UIScrollBar verticalBar;
     
     private Vec4 debugColor = col(UIColors.RED);
     private boolean debugEnabled;
@@ -364,7 +385,8 @@ public abstract class UIElement {
         this.justifyContent = UIJustifyContent.START;
         this.alignItems = UIAlignItems.START;
         this.alignContent = UIAlignContent.START;
-        this.overflowMode = UIOverflowMode.VISIBLE;
+        this.overflowX = UIOverflowMode.VISIBLE;
+        this.overflowY = UIOverflowMode.VISIBLE;
         
         this.paddingLeft = px(0);
         this.paddingRight = px(0);
@@ -438,7 +460,7 @@ public abstract class UIElement {
         applyStyleProperty(property, v);
         return this;
     }
-
+    
     public UIElement style(UIStyleProperty<?> p, Object v) {
         applyStyleProperty(p, v);
         return this;
@@ -625,7 +647,9 @@ public abstract class UIElement {
     
     public void setParent(UIElement parent) {
         this.parent = parent;
+        
         markLayoutDirty();
+        markSubtreeDirty();
     }
     
     public void addChild(UIElement e) {
@@ -912,7 +936,7 @@ public abstract class UIElement {
             }
             
             // Absolute positioning
-            if (cPosition==UIPositionMode.ABSOLUTE) {
+            if (cPosition==UIPositionMode.ABSOLUTE||cPosition==UIPositionMode.ABSOLUTE_FIXED) {
                 c.localX = bL+oL;
                 c.localY = bT+oT;
             }
@@ -1053,38 +1077,90 @@ public abstract class UIElement {
                 break;
             }
         }
+        
+        // Calculate final child bounds
+        UIBounds b = new UIBounds(contentLeft, contentTop, contentLeft, contentTop);
+        
+        for (UIElement c : children) {
+            if (c.positionMode==UIPositionMode.SCREEN||c.positionMode==UIPositionMode.ABSOLUTE_FIXED) continue;
+            
+            // Add margins because local values refer to child border box only
+            float mL = c.resolve(c.getMarginLeft());
+            float mR = c.resolve(c.getMarginRight());
+            float mT = c.resolve(c.getMarginTop());
+            float mB = c.resolve(c.getMarginBottom());
+            
+            b.setMinX(Math.min(b.getMinX(), c.localX-mL));
+            b.setMinY(Math.min(b.getMinY(), c.localY-mT));
+            b.setMaxX(Math.max(b.getMaxX(), c.localX+c.localWidth+mR));
+            b.setMaxY(Math.max(b.getMaxY(), c.localY+c.localHeight+mB));
+        }
+
+        childContentBounds = b;
+        updateScrollBars();
     }
     
     public void layoutPlace(float screenX, float screenY, UIBounds inheritedClip) {
+        // Place this element with provided values
         this.screenX = screenX;
         this.screenY = screenY;
         this.screenWidth = localWidth;
         this.screenHeight = localHeight;
         this.effectiveClip = inheritedClip;
-        
         updateModelMatrix();
         
-        UIBounds childClip = inheritedClip;
-        if (overflowMode==UIOverflowMode.HIDDEN) {
-            childClip = inheritedClip.intersect(getScreenContentBoxBounds());
-        }
+        // Determine children clipping bounds
+        UIBounds contentBounds = getScreenContentBoxBounds();
+        float minX = inheritedClip.getMinX();
+        float minY = inheritedClip.getMinY();
+        float maxX = inheritedClip.getMaxX();
+        float maxY = inheritedClip.getMaxY();
         
+        if (overflowX==UIOverflowMode.HIDDEN||overflowX==UIOverflowMode.SCROLL) {
+            minX = contentBounds.getMinX();
+            maxX = contentBounds.getMaxX();
+        }
+        if (overflowY==UIOverflowMode.HIDDEN||overflowY==UIOverflowMode.SCROLL) {
+            minY = contentBounds.getMinY();
+            maxY = contentBounds.getMaxY();
+        }
+        UIBounds childClip = inheritedClip.intersect(new UIBounds(minX, minY, maxX, maxY));
+        
+        // Place children
         for (UIElement c : children) {
-            if (c.getPositionMode()==UIPositionMode.SCREEN) {
+            if (c.positionMode==UIPositionMode.SCREEN) {
                 c.layoutPlace(c.localX, c.localY, childClip);
+                continue;
             }
-            else if (c.getPositionMode()==UIPositionMode.FLOW_RELATIVE) {
-                c.layoutPlace(
-                    screenX+c.localX+c.resolve(c.getOffsetLeft()),
-                    screenY+c.localY+c.resolve(c.getOffsetTop()),
-                    childClip
-                );
+            
+            // Figure out scroll offsets
+            float scrollOffsetX = 0f;
+            float scrollOffsetY = 0f;
+            
+            if (overflowX==UIOverflowMode.SCROLL) {
+                float travel = Math.max(0f, childContentBounds.getWidth()-getLocalContentBoxWidth());
+                scrollOffsetX = -(travel*scrollX);
             }
-            else c.layoutPlace(
-                screenX+c.localX,
-                screenY+c.localY,
-                childClip
-            );
+            if (overflowY==UIOverflowMode.SCROLL) {
+                float travel = Math.max(0f, childContentBounds.getHeight()-getLocalContentBoxHeight());
+                scrollOffsetY = -(travel*scrollY);
+            }
+            
+            // Place children
+            float childX = screenX+c.localX;
+            float childY = screenY+c.localY;
+            
+            if (c.positionMode!=UIPositionMode.ABSOLUTE_FIXED) {
+                childX += scrollOffsetX;
+                childY += scrollOffsetY;
+            }
+            
+            if (c.positionMode==UIPositionMode.FLOW_RELATIVE) {
+                childX += c.resolve(c.getOffsetLeft());
+                childY += c.resolve(c.getOffsetTop());
+            }
+            
+            c.layoutPlace(childX, childY, childClip);
         }
         
         layoutDirty = false;
@@ -1164,6 +1240,24 @@ public abstract class UIElement {
         x <= cx + w * 0.5f &&
         y >= cy - h * 0.5f &&
         y <= cy + h * 0.5f;
+    }
+    
+    private void updateScrollBars() {
+        if (overflowX==UIOverflowMode.SCROLL&&horizontalBar!=null&&childContentBounds!=null) {
+            horizontalBar.setThumb(
+                childContentBounds.getWidth(),
+                getLocalContentBoxWidth(),
+                scrollX
+            );
+        }
+
+        if (overflowY==UIOverflowMode.SCROLL&&verticalBar!=null&&childContentBounds!=null) {
+            verticalBar.setThumb(
+                childContentBounds.getHeight(),
+                getLocalContentBoxHeight(),
+                scrollY
+            );
+        }
     }
     
     // Local sizes
@@ -1286,8 +1380,31 @@ public abstract class UIElement {
             return this;
         }
         
-        private UIElement overflow(UIOverflowMode overflowMode) {
-            this.overflowMode = overflowMode;
+        private UIElement overflowX(UIOverflowMode overflowX) {
+            this.overflowX = overflowX;
+            
+            if (overflowX==UIOverflowMode.SCROLL) {
+                if (horizontalBar==null) {
+                    Logger.debug("adding");
+                    horizontalBar = new UIScrollBar(ScrollAxis.HORIZONTAL);
+                    addChild(horizontalBar);
+                }
+            }
+            
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement overflowY(UIOverflowMode overflowY) {
+            this.overflowY = overflowY;
+            
+            if (overflowY==UIOverflowMode.SCROLL) {
+                if (verticalBar==null) {
+                    verticalBar = new UIScrollBar(ScrollAxis.VERTICAL);
+                    addChild(verticalBar);
+                }
+            }
+            
             markLayoutDirty();
             return this;
         }
@@ -1295,6 +1412,7 @@ public abstract class UIElement {
         private UIElement width(UILength width) {
             if (boxMode==UIBoxMode.FLEX) Logger.throwRuntimeException("Cannot set width of box in UIBoxMode Flex");
             this.width = width;
+
             markLayoutDirty();
             return this;
         }
@@ -1302,6 +1420,7 @@ public abstract class UIElement {
         private UIElement height(UILength height) {
             if (boxMode==UIBoxMode.FLEX) Logger.throwRuntimeException("Cannot set height of box in UIBoxMode Flex");
             this.height = height;
+
             markLayoutDirty();
             return this;
         }
@@ -1457,6 +1576,20 @@ public abstract class UIElement {
             return this;
         }
         
+        public UIElement scrollX(float scrollX) {
+            this.scrollX = Math.max(0f, Math.min(scrollX, 1f));
+            
+            markLayoutDirty();
+            return this;
+        }
+        
+        public UIElement scrollY(float scrollY) {
+            this.scrollY = Math.max(0f, Math.min(scrollY, 1f));
+            
+            markLayoutDirty();
+            return this;
+        }
+        
         public UIElement enableDebugColor(boolean debugEnabled) {
             this.debugEnabled = debugEnabled;
             return this;
@@ -1481,7 +1614,10 @@ public abstract class UIElement {
         
         public UIAlignContent getAlignContent() {return this.alignContent;}
         
-        public UIOverflowMode getOverflowMode() {return this.overflowMode;}
+        public UIOverflowMode getOverflowX() {return this.overflowX;}
+        
+        public UIOverflowMode getOverflowY() {return this.overflowY;}
+        
         
         public UIElement getParent() {return this.parent;}
         
@@ -1545,4 +1681,5 @@ public abstract class UIElement {
         
         public Matrix4f getModelMatrix() {return this.modelMatrix;}
     }
+    
     

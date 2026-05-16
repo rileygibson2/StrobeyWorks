@@ -80,4 +80,8 @@ public class UIRectangle extends UIElement {
         this.borderColor = borderColor;
         return this;
     }
+
+    public Vec4 getColor() {
+        return this.color;
+    }
 }

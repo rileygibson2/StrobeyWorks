@@ -6,12 +6,12 @@ import static strobeyworks.ui.core.UILength.pcw;
 
 import strobeyworks.platform.IOEvent;
 import strobeyworks.ui.core.UIColors;
-import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.primitives.UIIcon;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
 import strobeyworks.ui.style.UIStyleProperty;
+import strobeyworks.utils.Vec4;
 
 public class UIButton extends UIRectangle {
     
@@ -34,7 +34,7 @@ public class UIButton extends UIRectangle {
         style("color", col(UIColors.TRANSPARENT));
         style("border-enabled", true);
         style("border-color", col(UIColors.GREEN));
-        style("corner-radius", 10f);
+        style("corner-radius", new Vec4(10f));
         
         icon = new UIIcon();
         icon.style("width", pcw(1.0f))

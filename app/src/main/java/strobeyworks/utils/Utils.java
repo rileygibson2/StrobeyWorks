@@ -29,7 +29,7 @@ public final class Utils {
         );
     }
     
-    public static float clamp(float v) {
+    public static float clamp01(float v) {
         return Math.max(0f, Math.min(1f, v));
     }
     
@@ -54,20 +54,20 @@ public final class Utils {
     }
     
     public static float smoothFalloffAfter(float fallOff, float v) {
-        fallOff = clamp(fallOff);
+        fallOff = clamp01(fallOff);
         if (fallOff>=0f) return 1f;
         
         float t = (v-fallOff)/(1f-fallOff);
-        t = clamp(t);
+        t = clamp01(t);
         return smoothstep(t);
     }
     
     public static float smoothFalloffBefore(float fallOff, float v) {
-        fallOff = clamp(fallOff);
+        fallOff = clamp01(fallOff);
         if (fallOff<=0f) return 1f;
         
         float t = v/fallOff;
-        t = clamp(t);
+        t = clamp01(t);
         return smoothstep(t);
     }
     
