@@ -9,8 +9,9 @@ import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.primitives.UIIcon;
 import strobeyworks.ui.primitives.UIRectangle;
-import strobeyworks.ui.style.PrimitiveStyles;
+import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
+import strobeyworks.ui.style.UIStyleProperty;
 
 public class UIButton extends UIRectangle {
     
@@ -23,45 +24,45 @@ public class UIButton extends UIRectangle {
     
     private UIButtonCallback callback;
     
-    public UIButton(UILength width, UILength height) {
-        super(width, height);
+    public UIButton() {
         
         clickable(true);
         hoverable(true);
-        transitionDuration(0.3f);
+
+        style("transition-duration", 0.3f);
+        style("box", UIBoxMode.FIXED);
+        style("color", col(UIColors.TRANSPARENT));
+        style("border-enabled", true);
+        style("border-color", col(UIColors.GREEN));
+        style("corner-radius", 10f);
         
-        box(UIBoxMode.FIXED);
-        color(col(UIColors.TRANSPARENT));
-        borderEnabled(true);
-        borderColor(col(UIColors.GREEN));
-        cornerRadius(10f);
-        
-        icon = new UIIcon(pcw(1.0f), pch(1.0f));
-        icon.tint(col(UIColors.GREEN));
-        icon.visible(false);
+        icon = new UIIcon();
+        icon.style("width", pcw(1.0f))
+        .style("height", pch(1.0f))
+        .style("tint", col(UIColors.GREEN))
+        .style("visible", false);
         addChild(icon);
     }
     
     @Override
-    public void applyStyle(UIStyle style) {
-        super.applyStyle(style);
-        
-        style.ifPresent(PrimitiveStyles.ICON_TINT, v -> icon.tint(v));
-        style.ifPresent(PrimitiveStyles.TRANSFORM_SCALEX, v -> icon.transformScale(v));
-        style.ifPresent(PrimitiveStyles.TRANSFORM_SCALEY, v -> icon.transformScale(v));
+    protected void applyStyleProperty(UIStyleProperty<?> property, Object value) {
+        if (property==StyleProps.ICON_TINT) icon.style(property, value);
+        if (property==StyleProps.TRANSFORM_SCALEX) icon.style(property, value);
+        if (property==StyleProps.TRANSFORM_SCALEY) icon.style(property, value);
+        super.applyStyleProperty(property, value);
     }
     
     @Override
     public UIStyle captureStyle() {
         UIStyle style = super.captureStyle();
         
-        style.set(PrimitiveStyles.ICON_TINT, icon.getTint());
+        style.set(StyleProps.ICON_TINT, icon.getTint());
         return style;
     }
     
     public UIButton icon(String iconName) {
-        icon.texture(iconName)
-        .visible(true);
+        icon.texture(iconName);
+        icon.style("visible", true);
         return this;
     }
     

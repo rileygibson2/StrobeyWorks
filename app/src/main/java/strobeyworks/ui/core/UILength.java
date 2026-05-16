@@ -3,10 +3,12 @@ package strobeyworks.ui.core;
 public class UILength {
     public enum UIUnit {
         PIXELS,
-        PARENT_CONTENT_WIDTH,
-        PARENT_CONTENT_HEIGHT,
-        PARENT_BOX_WIDTH,
-        PARENT_BOX_HEIGHT,
+        PARENT_BORDER_BOX_WIDTH,
+        PARENT_BORDER_BOX_HEIGHT,
+        PARENT_PADDING_BOX_WIDTH,
+        PARENT_PADDING_BOX_HEIGHT,
+        PARENT_CONTENT_BOX_WIDTH,
+        PARENT_CONTENT_BOX_HEIGHT,
         SCREEN_WIDTH,
         SCREEN_HEIGHT
     }
@@ -27,20 +29,28 @@ public class UILength {
         return new UILength(v, UIUnit.PIXELS);
     }
 
-    public static UILength pcw(float v) {
-        return new UILength(v, UIUnit.PARENT_CONTENT_WIDTH);
-    }
-
-    public static UILength pch(float v) {
-        return new UILength(v, UIUnit.PARENT_CONTENT_HEIGHT);
-    }
-
     public static UILength pbw(float v) {
-        return new UILength(v, UIUnit.PARENT_BOX_WIDTH);
+        return new UILength(v, UIUnit.PARENT_BORDER_BOX_WIDTH);
     }
 
     public static UILength pbh(float v) {
-        return new UILength(v, UIUnit.PARENT_BOX_HEIGHT);
+        return new UILength(v, UIUnit.PARENT_BORDER_BOX_HEIGHT);
+    }
+
+    public static UILength ppw(float v) {
+        return new UILength(v, UIUnit.PARENT_PADDING_BOX_WIDTH);
+    }
+
+    public static UILength pph(float v) {
+        return new UILength(v, UIUnit.PARENT_PADDING_BOX_HEIGHT);
+    }
+
+    public static UILength pcw(float v) {
+        return new UILength(v, UIUnit.PARENT_CONTENT_BOX_WIDTH);
+    }
+
+    public static UILength pch(float v) {
+        return new UILength(v, UIUnit.PARENT_CONTENT_BOX_HEIGHT);
     }
 
     public static UILength sw(float v) {

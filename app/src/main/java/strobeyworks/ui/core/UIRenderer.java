@@ -60,6 +60,7 @@ import strobeyworks.ui.primitives.UIElement.UIAlignContent;
 import strobeyworks.ui.primitives.UIElement.UIAlignItems;
 import strobeyworks.ui.primitives.UIElement.UIBoxMode;
 import strobeyworks.ui.primitives.UIElement.UIFlowDirection;
+import strobeyworks.ui.primitives.UIElement.UIJustifyContent;
 import strobeyworks.ui.primitives.UIElement.UIOverflowMode;
 import strobeyworks.ui.primitives.UIElement.UIPositionMode;
 import strobeyworks.ui.primitives.UIIcon;
@@ -116,21 +117,26 @@ public class UIRenderer extends Renderer {
         UITextureManager.loadTexture("down_arrow.png");
         
         UITab tab = new UITab(pcw(1f), sh(0.1f), 5);
-        tab.marginTop(px(2));
+        tab.style("margin-top", px(2));
         addToRoot(tab);
         
-        UIRectangle pane2 = new UIRectangle(sw(1f), sh(0.89f));
-        pane2.color(col(UIColors.GRAY_008))
-        .cornerRadius(new Vec4(0f, 0f, 20f, 20f))
-        .borderColor(col(UIColors.GREEN))
-        .borderThickness(1.5f)
-        .borderTop(false)
-        .borderEnabled(true)
-        .padding(px(5))
+        UIRectangle pane2 = new UIRectangle();
+        pane2.style("width", sw(1f))
+        .style("height", sh(0.89f))
+        .style("color", col(UIColors.GRAY_008))
+        .style("corner-radius", new Vec4(0f, 0f, 20f, 20f))
+        .style("border-color", col(UIColors.GREEN))
+        .style("border-thickness", px(2))
+        .style("border-top", false)
+        .style("border-enabled", true)
+        .style("padding-left", px(5))
+        .style("padding-right", px(5))
+        .style("padding-top", px(5))
+        .style("padding-bottom", px(5))
         //.justifyContent(UIJustifyContent.CENTER)
-        .alignItems(UIAlignItems.CENTER)
-        .alignContent(UIAlignContent.CENTER)
-        .flowDirection(UIFlowDirection.COLUMN);
+        .style("align-items", UIAlignItems.CENTER)
+        .style("align-content", UIAlignContent.CENTER)
+        .style("flow-direction", UIFlowDirection.COLUMN);
         
         addToRoot(pane2);
         return pane2;
@@ -147,7 +153,7 @@ public class UIRenderer extends Renderer {
         
         UIFloatField field = new UIFloatField(sw(0.2f), sh(0.08f), font, inputRule);
         field.useButtons(0.1f);
-        field.marginTop(px(20));
+        field.style("margin-top", px(20));
         
         pane.addChild(field);
         
@@ -155,13 +161,13 @@ public class UIRenderer extends Renderer {
         int num = 4;
         for (int i=0; i<num; i++) {
             UISlider slider = new UISlider(sw(0.9f), sh(0.08f));
-            slider.marginTop(px(10));
+            slider.style("margin-top", px(10));
             pane.addChild(slider);
             sliders.add(slider);
         }
         
         UICheckBox checkBox = new UICheckBox(sw(0.1f), sw(0.1f), true);
-        checkBox.marginTop(px(10));
+        checkBox.style("margin-top", px(10));
         pane.addChild(checkBox);
         
         Scene scene = SceneRenderer.getInstance().getScene();
@@ -186,19 +192,34 @@ public class UIRenderer extends Renderer {
     }
     
     public void buildTest2(UIRectangle pane) {
-        UIRectangle bounds = new UIRectangle(pcw(0.5f), pch(0.5f));
-        bounds.borderEnabled(true)
-        .borderColor(col(UIColors.LAV))
-        .marginTop(px(20))
-        .overflow(UIOverflowMode.HIDDEN);
+        UIRectangle bounds = new UIRectangle();
+        bounds.style("width", pcw(0.5f))
+        .style("height", pch(0.5f))
+        .style("border-color", col(UIColors.LAV))
+        .style("border-enabled", true)
+        .style("border-thickness", px(10f))
+        .style("margin-top", px(20))
+        .style("overflow", UIOverflowMode.HIDDEN);
         pane.addChild(bounds);
         
         for (int i=0; i<10; i++) {
-            UIRectangle bC = new UIRectangle(px(40), px(50));
-            bC.color(col(UIColors.GREEN))
-            .marginLeft(px(10))
-            .marginTop(px(10));
+            UIRectangle bC = new UIRectangle();
+            bC.style("width", px(40))
+            .style("height", px(50))
+            .style("color", col(UIColors.TRANSPARENT))
+            .style("margin-left", px(10))
+            .style("margin-top", px(10))
+            .style("justify-content", UIJustifyContent.CENTER)
+            .style("align-items", UIAlignItems.CENTER)
+            .style("border-enabled", true);
             bounds.addChild(bC);
+
+            UIRectangle bC1 = new UIRectangle();
+            bC1.style("width", pcw(0.5f))
+            .style("height", pch(0.5f))
+            .style("color", col(UIColors.RED))
+            .style("border-enabled", true);
+            bC.addChild(bC1);
         }
     }
     
@@ -229,11 +250,13 @@ public class UIRenderer extends Renderer {
     
     @Override
     public void initialise() {
-        rootElement = new UIRectangle(sw(1f), sh(1f));
-        ((UIRectangle) rootElement).color(col(UIColors.BLACK))
-        .position(UIPositionMode.SCREEN)
-        .box(UIBoxMode.FIXED)
-        .flowDirection(UIFlowDirection.COLUMN);
+        rootElement = new UIRectangle();
+        rootElement.style("width", sw(1f))
+        .style("height", sh(1f))
+        .style("color", col(UIColors.BLACK))
+        .style("position", UIPositionMode.SCREEN)
+        .style("box", UIBoxMode.FIXED)
+        .style("flow-direction", UIFlowDirection.COLUMN);
         
         rootElement.markLayoutDirty();
         rootElement.markSubtreeDirty();
@@ -366,7 +389,7 @@ public class UIRenderer extends Renderer {
     }
     
     private void layout() {
-        rootElement.layoutMeasure();
+        rootElement.layoutCalculate();
         
         UIBounds rootBounds = new UIBounds(
             0f,
@@ -375,7 +398,7 @@ public class UIRenderer extends Renderer {
             getParentWindow().getHeight()
         );
         
-        rootElement.layoutAdvance(rootElement.getLayoutX(), rootElement.getLayoutY(), rootBounds);
+        rootElement.layoutPlace(0f, 0f, rootBounds);
     }
     
     @Override

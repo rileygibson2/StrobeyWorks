@@ -25,11 +25,28 @@ public class UIBounds {
         );
     }
 
+    public UIBounds inset(float left, float top, float right, float bottom) {
+        return new UIBounds(
+            this.minX+left,
+            this.minY+top,
+            this.maxX-right,
+            this.maxY-bottom
+        );
+    }
+
     public boolean contains(float x, float y) {
         return x>=minX &&
         x<=maxX &&
         y>=minY &&
         y<=maxY;
+    }
+
+    public float getWidth() {
+        return this.maxX-this.minX;
+    }
+
+    public float getHeight() {
+        return this.maxY-this.minY;
     }
 
     public Vec4 toVec4() {

@@ -4,9 +4,12 @@ import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UILength.px;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
 import org.joml.Matrix4f;
@@ -20,12 +23,64 @@ import strobeyworks.ui.core.UIBounds;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.core.UIRenderer;
-import strobeyworks.ui.style.PrimitiveStyles;
+import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
 import strobeyworks.ui.style.UIStyleProperty;
 import strobeyworks.utils.Utils;
 import strobeyworks.utils.Vec4;
 
+/**
+* 
+* BOX MODEL:
+* 
+* An element has three nested boxes;
+* Border box is the total element width and height
+* Padding box is the border box minus border thickness (if present)
+* Content box is the padding box minus the padding on all sides (if present)
+* 
+* Authored width and height values for an element affect the size of the border box.
+* That is to say the total size of the element. If a border or padding is specified it decreases the size
+* of the content box, it will not increase the total size of the element.
+* Max and min width and height values also specify the size of the border box.
+* 
+* POSITIONING:
+* 
+* SCREEN elements will use the top left of the screen as an origin and consider authored offset values.
+* These elements will not participate in the layout flow.
+* 
+* ABSOLUTE elements will use the padding box top left as an origin and consider authored offset values.
+* These elements will not participate in the layout flow.
+* 
+* FLOW elements will use the content box top left as an origin and consider authored margin values.
+* These elements will be positioned in the normal layout flow, relative to their flow siblings.
+* 
+* FLOW_RELATIVE elements will behave the same as FLOW elements, but will also consider authored offset values.
+* These offset values will be applied from the flow layout position and will not affect the flow of their
+* siblings.
+* 
+* CENTERING:
+*
+* JUSTIFY_CONTENT CENTER centers flow children along the main axis.
+* For ROW flow, children are centered horizontally.
+* For COLUMN flow, children are centered vertically.
+*
+* ALIGN_ITEMS CENTER centers children along the cross axis within their line.
+* Child margins are included.
+*
+* ALIGN_CONTENT CENTER centers wrapped flow lines along the cross axis.
+*
+* UNITS:
+*
+* PIXELS: raw pixels.
+* SCREEN_WIDTH / SCREEN_HEIGHT: percentage of screen size.
+* PARENT_BORDER_BOX_WIDTH / HEIGHT: percentage of parent border box.
+* PARENT_PADDING_BOX_WIDTH / HEIGHT: percentage of parent padding box.
+* PARENT_CONTENT_BOX_WIDTH / HEIGHT: percentage of parent content box.
+*
+* Parent-relative units require a non-FLEX parent, because FLEX parents may not
+* know their final size when children are being measured.
+* 
+*/
 public abstract class UIElement {
     
     /**
@@ -191,6 +246,13 @@ public abstract class UIElement {
     private UILength offsetTop;
     private UILength offsetBottom;
     
+    private Boolean borderEnabled;
+    private UILength borderThickness;
+    private boolean borderLeft;
+    private boolean borderRight;
+    private boolean borderTop;
+    private boolean borderBottom;
+    
     private UILength minWidth;
     private UILength minHeight;
     
@@ -200,13 +262,73 @@ public abstract class UIElement {
     private float transformScaleX;
     private float transformScaleY;
     
+    private float transitionDuration;
+    
     private boolean visible;
     
+    // Style Properties
+    private static final Map<UIStyleProperty<?>, BiConsumer<UIElement, Object>> APPLIERS = new HashMap<>();
+    
+    static {
+        register(APPLIERS, StyleProps.BOX, UIElement::box);
+        register(APPLIERS, StyleProps.FLOW_DIRECTION, UIElement::flowDirection);
+        register(APPLIERS, StyleProps.FLOW_WRAP, UIElement::flowWrap);
+        register(APPLIERS, StyleProps.POSITION, UIElement::position);
+        register(APPLIERS, StyleProps.JUSTIFY_CONTENT, UIElement::justifyContent);
+        register(APPLIERS, StyleProps.ALIGN_ITEMS, UIElement::alignItems);
+        register(APPLIERS, StyleProps.ALIGN_CONTENT, UIElement::alignContent);
+        register(APPLIERS, StyleProps.OVERFLOW, UIElement::overflow);
+        
+        register(APPLIERS, StyleProps.WIDTH, UIElement::width);
+        register(APPLIERS, StyleProps.HEIGHT, UIElement::height);
+        register(APPLIERS, StyleProps.MIN_WIDTH, UIElement::minWidth);
+        register(APPLIERS, StyleProps.MIN_HEIGHT, UIElement::minHeight);
+        register(APPLIERS, StyleProps.MAX_WIDTH, UIElement::maxWidth);
+        register(APPLIERS, StyleProps.MAX_HEIGHT, UIElement::maxHeight);
+        
+        register(APPLIERS, StyleProps.MARGIN_LEFT, UIElement::marginLeft);
+        register(APPLIERS, StyleProps.MARGIN_RIGHT, UIElement::marginRight);
+        register(APPLIERS, StyleProps.MARGIN_TOP, UIElement::marginTop);
+        register(APPLIERS, StyleProps.MARGIN_BOTTOM, UIElement::marginBottom);
+        
+        register(APPLIERS, StyleProps.PADDING_LEFT, UIElement::paddingLeft);
+        register(APPLIERS, StyleProps.PADDING_RIGHT, UIElement::paddingRight);
+        register(APPLIERS, StyleProps.PADDING_TOP, UIElement::paddingTop);
+        register(APPLIERS, StyleProps.PADDING_BOTTOM, UIElement::paddingBottom);
+        
+        register(APPLIERS, StyleProps.OFFSET_LEFT, UIElement::offsetLeft);
+        register(APPLIERS, StyleProps.OFFSET_RIGHT, UIElement::offsetRight);
+        register(APPLIERS, StyleProps.OFFSET_TOP, UIElement::offsetTop);
+        register(APPLIERS, StyleProps.OFFSET_BOTTOM, UIElement::offsetBottom);
+        
+        register(APPLIERS, StyleProps.VISIBLE, UIElement::visible);
+        
+        register(APPLIERS, StyleProps.BORDER_ENABLED, UIElement::borderEnabled);
+        register(APPLIERS, StyleProps.BORDER_THICKNESS, UIElement::borderThickness);
+        register(APPLIERS, StyleProps.BORDER_LEFT, UIElement::borderLeft);
+        register(APPLIERS, StyleProps.BORDER_RIGHT, UIElement::borderRight);
+        register(APPLIERS, StyleProps.BORDER_TOP, UIElement::borderTop);
+        register(APPLIERS, StyleProps.BORDER_BOTTOM, UIElement::borderBottom);
+        
+        register(APPLIERS, StyleProps.TRANSITION_DURATION, UIElement::transitionDuration);
+        register(APPLIERS, StyleProps.TRANSFORM_SCALEX, UIElement::transformScaleX);
+        register(APPLIERS, StyleProps.TRANSFORM_SCALEY, UIElement::transformScaleY);
+    }
+    
+    protected static <E extends UIElement, T> void register(
+        Map<UIStyleProperty<?>, BiConsumer<E, Object>> appliers,
+        UIStyleProperty<T> property,
+        BiConsumer<E, T> applier
+    ) {
+        appliers.put(property, (e, v) -> applier.accept(e, property.getValueType().cast(v)));
+    }
+    
+    
     // Computed values
-    private float layoutX;
-    private float layoutY;
-    private float layoutWidth;
-    private float layoutHeight;
+    private float localX;
+    private float localY;
+    private float localWidth;
+    private float localHeight;
     
     private float screenX;
     private float screenY;
@@ -221,21 +343,19 @@ public abstract class UIElement {
     private boolean hoverable;
     private boolean clickable;
     
-    // Styles
-    private float transitionDuration;
-    
-    private UIStyle cachedStyle;
-    private UIStyle hoverStyle;
-    
     // Functional
     private Matrix4f modelMatrix;
     
     private Vec4 debugColor = col(UIColors.RED);
     private boolean debugEnabled;
     
-    public UIElement(UILength width, UILength height) {
-        this.width = width;
-        this.height = height;
+    // Styles
+    private UIStyle cachedStyle;
+    private UIStyle hoverStyle;
+    
+    public UIElement() {
+        this.width = px(0);
+        this.height = px(0);
         
         this.boxMode = UIBoxMode.FIXED;
         this.flowDirection = UIFlowDirection.ROW;
@@ -261,49 +381,12 @@ public abstract class UIElement {
         this.offsetTop = px(0);
         this.offsetBottom = px(0);
         
-        this.transformScaleX = 1f;
-        this.transformScaleY = 1f;
-        
-        this.visible = true;
-        
-        this.layoutDirty = true;
-        this.subtreeDirty = false;
-        
-        this.focussable = false;
-        this.wantsPointer = false;
-        this.hoverable = false;
-        this.clickable = false;
-        
-        this.debugEnabled = false;
-        
-        children = new ArrayList<>();
-        updateModelMatrix();
-    }
-    
-    public UIElement() {
-        this.boxMode = UIBoxMode.FLEX;
-        this.flowDirection = UIFlowDirection.ROW;
-        this.flowWrap = false;
-        this.positionMode = UIPositionMode.FLOW;
-        this.justifyContent = UIJustifyContent.START;
-        this.alignItems = UIAlignItems.START;
-        this.alignContent = UIAlignContent.START;
-        this.overflowMode = UIOverflowMode.VISIBLE;
-        
-        this.paddingLeft = px(0);
-        this.paddingRight = px(0);
-        this.paddingTop = px(0);
-        this.paddingBottom = px(0);
-        
-        this.marginLeft = px(0);
-        this.marginRight = px(0);
-        this.marginTop = px(0);
-        this.marginBottom = px(0);
-        
-        this.offsetLeft = px(0);
-        this.offsetRight = px(0);
-        this.offsetTop = px(0);
-        this.offsetBottom = px(0);
+        this.borderEnabled = false;
+        this.borderThickness = px(0);
+        this.borderLeft = true;
+        this.borderRight = true;
+        this.borderTop = true;
+        this.borderBottom = true;
         
         this.transformScaleX = 1f;
         this.transformScaleY = 1f;
@@ -325,6 +408,15 @@ public abstract class UIElement {
     }
     
     public void setRenderUniforms(ShaderManager sM) {
+        sM.setUniformInt("uHasBorder", borderEnabled ? 1 : 0);
+        sM.setUniformFloat("uBorderThickness", resolve(borderThickness));
+        sM.setUniformVec4("uBorderSides", new Vec4(
+            borderTop ? 1f : 0f,
+            borderRight ? 1f : 0f,
+            borderBottom ? 1f : 0f,
+            borderLeft ? 1f : 0f
+        ));
+        
         sM.setUniformVec4("uDebugColor", debugColor);
         sM.setUniformInt("uDebugEnabled", debugEnabled ? 1 : 0);
         
@@ -339,36 +431,52 @@ public abstract class UIElement {
     // Styling
     // -----------------------------------------------------------------------------
     
-    public void applyStyle(UIStyle style) {
-        style.ifPresent(PrimitiveStyles.TRANSITION_DURATION, this::transitionDuration);
-        style.ifPresent(PrimitiveStyles.TRANSFORM_SCALEX, this::transformScaleX);
-        style.ifPresent(PrimitiveStyles.TRANSFORM_SCALEY, this::transformScaleY);
+    public UIElement style(String n, Object v) {
+        UIStyleProperty<?> property = StyleProps.getProperty(n);
+        if (property==null) Logger.throwRuntimeException("Unknown style property: '"+n+"'");
+        
+        applyStyleProperty(property, v);
+        return this;
+    }
+
+    public UIElement style(UIStyleProperty<?> p, Object v) {
+        applyStyleProperty(p, v);
+        return this;
     }
     
-    public UIStyle captureStyle() {
+    protected void applyStyleProperty(UIStyleProperty<?> property, Object value) {
+        BiConsumer<UIElement, Object> applier = APPLIERS.get(property);
+        if (applier!=null) applier.accept(this, value);
+    }
+    
+    private void applyStyle(UIStyle style) {
+        for (UIStyleProperty<?> property : style.properties()) {
+            applyStyleProperty(property, style.getRaw(property));
+        }
+    }
+    
+    protected UIStyle captureStyle() {
         UIStyle style = new UIStyle();
         
-        style.set(PrimitiveStyles.TRANSITION_DURATION, transitionDuration);
-        style.set(PrimitiveStyles.TRANSFORM_SCALEX, transformScaleX);
-        style.set(PrimitiveStyles.TRANSFORM_SCALEY, transformScaleY);
+        style.set(StyleProps.BORDER_ENABLED, borderEnabled);
+        style.set(StyleProps.BORDER_THICKNESS, borderThickness);
+        style.set(StyleProps.BORDER_LEFT, borderLeft);
+        style.set(StyleProps.BORDER_RIGHT, borderRight);
+        style.set(StyleProps.BORDER_TOP, borderTop);
+        style.set(StyleProps.BORDER_BOTTOM, borderBottom);
+        
+        style.set(StyleProps.TRANSITION_DURATION, transitionDuration);
+        style.set(StyleProps.TRANSFORM_SCALEX, transformScaleX);
+        style.set(StyleProps.TRANSFORM_SCALEY, transformScaleY);
         return style;
     }
     
-    public void cacheStyle() {
+    private void cacheStyle() {
         cachedStyle = captureStyle();
     }
     
-    public void clearCachedStyle() {
+    private void clearCachedStyle() {
         cachedStyle = null;
-        Logger.debug("clearing cache");
-    }
-    
-    public Set<UIStyleProperty<?>> getValidStyleProperties() {
-        return Set.of(
-            PrimitiveStyles.TRANSITION_DURATION,
-            PrimitiveStyles.TRANSFORM_SCALEX,
-            PrimitiveStyles.TRANSFORM_SCALEY
-        );
     }
     
     public UIElement hoverStyle(UIStyle hoverStyle) {
@@ -376,7 +484,7 @@ public abstract class UIElement {
         return this;
     }
     
-    public Transition transitionToStyle(UIStyle target) {
+    private Transition transitionToStyle(UIStyle target) {
         UIStyle current = captureStyle();
         Set<UIStyleProperty<?>> transitionable = new HashSet<>();
         Set<UIStyleProperty<?>> notTransitionable = new HashSet<>();
@@ -469,10 +577,7 @@ public abstract class UIElement {
     
     public void gotHover(IOEvent event) {
         if (hoverStyle==null) return;
-        if (cachedStyle==null) {
-            cacheStyle();
-            Logger.debug("caching");
-        }
+        if (cachedStyle==null) cacheStyle();
         
         if (transitionDuration==0f) applyStyle(hoverStyle);
         else transitionToStyle(hoverStyle);
@@ -496,7 +601,7 @@ public abstract class UIElement {
     public void handleIOEvent(IOEvent event) {}
     
     public UIElement getDeepestElementAt(float x, float y) {
-        if (!containsResolved(x, y)) return null;
+        if (!contains(x, y)) return null;
         UIElement hit = null;
         
         for (UIElement c : children) {
@@ -613,13 +718,13 @@ public abstract class UIElement {
     * Structure:
     * Elements owns authored x y width and height all in a unit as well as position
     * mode and box mode
-    * Element also has cached resolved x y w h (in pixels) which it uses to build model matrix
-    * Element also has measured x y w h (in pixels) in local space, so relative to the parent.
+    * Element also has cached screen x y w h (in pixels) which it uses to build model matrix
+    * Element also has local x y w h (in pixels) - so relative to the parent.
     * 
-    * MEASURE PASS
-    * measure called from root first
+    * Calculate PASS
+    * calculate called from root first
     * 
-    * each element measures it's own size if it's a fixed box
+    * each element calculates it's own size if it's a fixed box
     * then asks each child to measure
     * therefore every element past the start of the child loop has a measured width and height
     * 
@@ -654,10 +759,10 @@ public abstract class UIElement {
         void add(UIElement e, float mL, float mR, float mT, float mB) {
             elements.add(e);
             
-            left = Math.min(left, e.layoutX - mL);
-            right = Math.max(right, e.layoutX + e.layoutWidth + mR);
-            top = Math.min(top, e.layoutY - mT);
-            bottom = Math.max(bottom, e.layoutY + e.layoutHeight + mB);
+            left = Math.min(left, e.localX - mL);
+            right = Math.max(right, e.localX + e.localWidth + mR);
+            top = Math.min(top, e.localY - mT);
+            bottom = Math.max(bottom, e.localY + e.localHeight + mB);
         }
         
         boolean isEmpty() {
@@ -665,22 +770,39 @@ public abstract class UIElement {
         }
         
         float usedWidth() {
-            return right - left;
+            return right-left;
         }
         
         float usedHeight() {
-            return bottom - top;
+            return bottom-top;
         }
     }
     
-    public void layoutMeasure() {
-        float pL = resolveLocal(paddingLeft);
-        float pR = resolveLocal(paddingRight);
-        float pT = resolveLocal(paddingTop);
-        float pB = resolveLocal(paddingBottom);
+    public void layoutCalculate() {
+        float bL = resolve(borderThickness);
+        float bR = resolve(borderThickness);
+        float bT = resolve(borderThickness);
+        float bB = resolve(borderThickness);
         
-        float cursorX = pL;
-        float cursorY = pT;
+        if (!borderEnabled) {
+            bL = 0f;
+            bR = 0f;
+            bT = 0f;
+            bB = 0f;
+        }
+        
+        float pL = resolve(paddingLeft);
+        float pR = resolve(paddingRight);
+        float pT = resolve(paddingTop);
+        float pB = resolve(paddingBottom);
+        
+        float contentLeft = bL+pL;
+        float contentTop = bT+pT;
+        float contenttRight = pR+bR;
+        float contentBottom = pB+bB;
+        
+        float cursorX = contentLeft;
+        float cursorY = contentTop;
         float maxX = 0f;
         float maxY = 0f;
         
@@ -692,14 +814,14 @@ public abstract class UIElement {
         
         // Root case - set own x and y
         if (parent==null) {
-            layoutX = resolveLocal(marginLeft);
-            layoutY = resolveLocal(marginTop);
+            localX = resolve(marginLeft);
+            localY = resolve(marginTop);
         }
         
-        //Set fixed box w and h and wrap limits
+        // Fixed box - set width, height and wrap limits
         if (boxMode==UIBoxMode.FIXED) {
-            float w = resolveLocal(width);
-            float h = resolveLocal(height);
+            float w = resolve(width);
+            float h = resolve(height);
             
             // Text special case
             if (this instanceof UIText) {
@@ -707,34 +829,35 @@ public abstract class UIElement {
                 h = ((UIText) this).getResolvedTextHeight();
             }
             
-            if (minWidth!=null) w = Math.max(w, resolveLocal(minWidth));
-            layoutWidth = w;
-            if (minHeight!=null) h = Math.max(h, resolveLocal(minHeight));
-            layoutHeight = h;
+            if (minWidth!=null) w = Math.max(w, resolve(minWidth));
+            if (minHeight!=null) h = Math.max(h, resolve(minHeight));
             
-            availableWidth = layoutWidth-pL-pR;
-            availableHeight = layoutHeight-pT-pB;
+            localWidth = w;
+            localHeight = h;
+            
+            availableWidth = Math.max(0f, localWidth-contentLeft-contenttRight);
+            availableHeight = Math.max(0f, localHeight-contentTop-contentBottom);
         }
         
-        // Attempt to set wrap limits for flex box
+        // Flex box - attempt to set wrap limits
         if (boxMode==UIBoxMode.FLEX) {
-            if (maxWidth!=null) availableWidth = resolveLocal(maxWidth)-pL-pR;
-            if (maxHeight!=null) availableHeight = resolveLocal(maxHeight)-pT-pB;
+            if (maxWidth!=null) availableWidth = Math.max(0f, resolve(maxWidth)-contentLeft-contenttRight);
+            if (maxHeight!=null) availableHeight = Math.max(0f, resolve(maxHeight)-contentTop-contentBottom);
         }
         
         for (UIElement c : children) {
-            c.layoutMeasure();
+            c.layoutCalculate();
             
             // Resolve local coords
-            float mL = c.resolveLocal(c.getMarginLeft());
-            float mR = c.resolveLocal(c.getMarginRight());
-            float mT = c.resolveLocal(c.getMarginTop());
-            float mB = c.resolveLocal(c.getMarginBottom());
+            float mL = c.resolve(c.getMarginLeft());
+            float mR = c.resolve(c.getMarginRight());
+            float mT = c.resolve(c.getMarginTop());
+            float mB = c.resolve(c.getMarginBottom());
             
-            float oL = c.resolveLocal(c.getOffsetLeft());
-            float oR = c.resolveLocal(c.getOffsetRight());
-            float oT = c.resolveLocal(c.getOffsetTop());
-            float oB = c.resolveLocal(c.getOffsetBottom());
+            float oL = c.resolve(c.getOffsetLeft());
+            float oR = c.resolve(c.getOffsetRight());
+            float oT = c.resolve(c.getOffsetTop());
+            float oB = c.resolve(c.getOffsetBottom());
             
             UIPositionMode cPosition = c.getPositionMode();
             
@@ -743,79 +866,86 @@ public abstract class UIElement {
                 if (flowDirection==UIFlowDirection.ROW) {
                     if (flowWrap &&
                         availableWidth!=-1 &&
-                        cursorX>pL &&
-                        cursorX-pL+mL+c.layoutWidth>availableWidth
+                        !flowLine.isEmpty() && // Prevent wrapping of 1st element
+                        cursorX-contentLeft+mL+c.localWidth+mR>availableWidth
                     ) {
-                        cursorX = pL;
+                        cursorX = contentLeft;
                         cursorY += lineSize;
                         lineSize = 0f;
                         flowLines.add(flowLine);
                         flowLine = new FlowLine();
                     }
                     
-                    c.layoutX = cursorX+mL;
-                    c.layoutY = cursorY+mT;
-                    cursorX = c.layoutX+c.layoutWidth+mR;
+                    c.localX = cursorX+mL;
+                    c.localY = cursorY+mT;
+                    cursorX = c.localX+c.localWidth+mR;
                     
                     lineSize = Math.max(
                         lineSize,
-                        mT+c.layoutHeight+mB
+                        mT+c.localHeight+mB
                     );
                 }
                 
                 if (flowDirection==UIFlowDirection.COLUMN) {
                     if (flowWrap &&
                         availableHeight!=-1 &&
-                        cursorY>pT &&
-                        cursorY-pT+mT+c.layoutHeight>availableHeight
+                        !flowLine.isEmpty() &&
+                        cursorY-contentTop+mT+c.localHeight+mB>availableHeight
                     ) {
                         cursorX += lineSize;
-                        cursorY = pT;
+                        cursorY = contentTop;
                         lineSize = 0f;
                         flowLines.add(flowLine);
                         flowLine = new FlowLine();
                     }
                     
-                    c.layoutX = cursorX+mL;
-                    c.layoutY = cursorY+mT;
-                    cursorY = c.layoutY+c.layoutHeight+mB;
+                    c.localX = cursorX+mL;
+                    c.localY = cursorY+mT;
+                    cursorY = c.localY+c.localHeight+mB;
                     
                     lineSize = Math.max(
                         lineSize,
-                        mL+c.layoutWidth+mR
+                        mL+c.localWidth+mR
                     );
                 }
                 flowLine.add(c, mL, mR, mT, mB);
             }
             
-            // Other positioning
-            if (cPosition==UIPositionMode.ABSOLUTE || cPosition==UIPositionMode.SCREEN) {
-                c.layoutX = oL;
-                c.layoutY = oT;
+            // Absolute positioning
+            if (cPosition==UIPositionMode.ABSOLUTE) {
+                c.localX = bL+oL;
+                c.localY = bT+oT;
             }
             
+            // Screen positioning
+            if (cPosition==UIPositionMode.SCREEN) {
+                c.localX = oL;
+                c.localY = oT;
+            }
+            
+            // Re-calculate max values
             if (cPosition==UIPositionMode.FLOW || cPosition==UIPositionMode.FLOW_RELATIVE) {
-                maxX = Math.max(maxX, c.layoutX+c.layoutWidth);
-                maxY = Math.max(maxY, c.layoutY+c.layoutHeight);
+                maxX = Math.max(maxX, c.localX+c.localWidth);
+                maxY = Math.max(maxY, c.localY+c.localHeight);
             }
         }
-        if (!flowLine.isEmpty()) flowLines.add(flowLine);
+        if (!flowLine.isEmpty()) flowLines.add(flowLine); // Add last line if nessacary
         
-        // Resize flex boxes
+        // Resize flex boxes now that child sizing is known
         if (boxMode == UIBoxMode.FLEX) {
-            layoutWidth = maxX+pR;
-            layoutHeight = maxY+pB;
+            localWidth = maxX+pR+bR;
+            localHeight = maxY+pB+bB;
             
-            if (minWidth!=null) layoutWidth = Math.max(layoutWidth, resolveLocal(minWidth));
-            if (maxWidth!=null) layoutWidth = Math.min(layoutWidth, resolveLocal(maxWidth));
+            if (minWidth!=null) localWidth = Math.max(localWidth, resolve(minWidth));
+            if (maxWidth!=null) localWidth = Math.min(localWidth, resolve(maxWidth));
             
-            if (minHeight!=null) layoutHeight = Math.max(layoutHeight, resolveLocal(minHeight));
-            if (maxHeight!=null) layoutHeight = Math.min(layoutHeight, resolveLocal(maxHeight));
+            if (minHeight!=null) localHeight = Math.max(localHeight, resolve(minHeight));
+            if (maxHeight!=null) localHeight = Math.min(localHeight, resolve(maxHeight));
         }
         
         // Justify and align
-        float contentWidth = Math.max(0f, layoutWidth - pL - pR);
-        float contentHeight = Math.max(0f, layoutHeight - pT - pB);
+        float contentWidth = Math.max(0f, localWidth-contentLeft-contenttRight);
+        float contentHeight = Math.max(0f, localHeight-contentTop-contentBottom);
         
         for (FlowLine line : flowLines) {
             float usedWidth = line.usedWidth();
@@ -824,15 +954,15 @@ public abstract class UIElement {
             if (justifyContent == UIJustifyContent.CENTER) {
                 switch (flowDirection) {
                     case ROW:
-                    float offset = (contentWidth - usedWidth) * 0.5f - (line.left - pL);
-                    for (UIElement c : line.elements) c.layoutX += offset;
+                    float offset = (contentWidth - usedWidth) * 0.5f - (line.left - contentLeft);
+                    for (UIElement c : line.elements) c.localX += offset;
                     line.left += offset;
                     line.right += offset;
                     break;
                     
                     case COLUMN:
-                    offset = (contentHeight - usedHeight) * 0.5f - (line.top - pT);
-                    for (UIElement c : line.elements) c.layoutY += offset;
+                    offset = (contentHeight - usedHeight) * 0.5f - (line.top - contentTop);
+                    for (UIElement c : line.elements) c.localY += offset;
                     line.top += offset;
                     line.bottom += offset;
                     break;
@@ -842,32 +972,32 @@ public abstract class UIElement {
             if (alignItems == UIAlignItems.CENTER) {
                 switch (flowDirection) {
                     case ROW:
-                    float lineCrossStart = flowWrap ? line.top : pT;
+                    float lineCrossStart = flowWrap ? line.top : contentTop;
                     float lineCrossSize = flowWrap ? line.usedHeight() : contentHeight;
                     
                     for (UIElement c : line.elements) {
-                        float mT = c.resolveLocal(c.getMarginTop());
-                        float mB = c.resolveLocal(c.getMarginBottom());
+                        float mT = c.resolve(c.getMarginTop());
+                        float mB = c.resolve(c.getMarginBottom());
                         
-                        float childMarginBoxHeight = mT + c.layoutHeight + mB;
+                        float childMarginBoxHeight = mT + c.localHeight + mB;
                         float childCrossOffset = (lineCrossSize - childMarginBoxHeight) * 0.5f;
                         
-                        c.layoutY = lineCrossStart + childCrossOffset + mT;
+                        c.localY = lineCrossStart + childCrossOffset + mT;
                     }
                     break;
                     
                     case COLUMN:
-                    lineCrossStart = flowWrap ? line.left : pL;
+                    lineCrossStart = flowWrap ? line.left : contentLeft;
                     lineCrossSize = flowWrap ? line.usedWidth() : contentWidth;
                     
                     for (UIElement c : line.elements) {
-                        float mL = c.resolveLocal(c.getMarginLeft());
-                        float mR = c.resolveLocal(c.getMarginRight());
+                        float mL = c.resolve(c.getMarginLeft());
+                        float mR = c.resolve(c.getMarginRight());
                         
-                        float childMarginBoxWidth = mL + c.layoutWidth + mR;
+                        float childMarginBoxWidth = mL + c.localWidth + mR;
                         float childCrossOffset = (lineCrossSize - childMarginBoxWidth) * 0.5f;
                         
-                        c.layoutX = lineCrossStart + childCrossOffset + mL;
+                        c.localX = lineCrossStart + childCrossOffset + mL;
                     }
                     break;
                 }
@@ -878,15 +1008,15 @@ public abstract class UIElement {
                 line.bottom = Float.NEGATIVE_INFINITY;
                 
                 for (UIElement c : line.elements) {
-                    float mL = c.resolveLocal(c.getMarginLeft());
-                    float mR = c.resolveLocal(c.getMarginRight());
-                    float mT = c.resolveLocal(c.getMarginTop());
-                    float mB = c.resolveLocal(c.getMarginBottom());
+                    float mL = c.resolve(c.getMarginLeft());
+                    float mR = c.resolve(c.getMarginRight());
+                    float mT = c.resolve(c.getMarginTop());
+                    float mB = c.resolve(c.getMarginBottom());
                     
-                    line.left = Math.min(line.left, c.layoutX - mL);
-                    line.right = Math.max(line.right, c.layoutX + c.layoutWidth + mR);
-                    line.top = Math.min(line.top, c.layoutY - mT);
-                    line.bottom = Math.max(line.bottom, c.layoutY + c.layoutHeight + mB);
+                    line.left = Math.min(line.left, c.localX - mL);
+                    line.right = Math.max(line.right, c.localX + c.localWidth + mR);
+                    line.top = Math.min(line.top, c.localY - mT);
+                    line.bottom = Math.max(line.bottom, c.localY + c.localHeight + mB);
                 }
             }
         }
@@ -909,50 +1039,50 @@ public abstract class UIElement {
             
             switch (flowDirection) {
                 case ROW:
-                float offset = (contentHeight - usedHeight) * 0.5f - (blockTop - pT);
+                float offset = (contentHeight - usedHeight) * 0.5f - (blockTop - contentTop);
                 for (FlowLine line : flowLines) {
-                    for (UIElement c : line.elements) c.layoutY += offset;
+                    for (UIElement c : line.elements) c.localY += offset;
                 }
                 break;
                 
                 case COLUMN:
-                offset = (contentWidth - usedWidth) * 0.5f - (blockLeft - pL);
+                offset = (contentWidth - usedWidth) * 0.5f - (blockLeft - contentLeft);
                 for (FlowLine  line : flowLines) {
-                    for (UIElement c : line.elements) c.layoutX += offset;
+                    for (UIElement c : line.elements) c.localX += offset;
                 }
                 break;
             }
         }
     }
     
-    public void layoutAdvance(float screenX, float screenY, UIBounds inheritedClip) {
+    public void layoutPlace(float screenX, float screenY, UIBounds inheritedClip) {
         this.screenX = screenX;
         this.screenY = screenY;
-        this.screenWidth = layoutWidth;
-        this.screenHeight = layoutHeight;
+        this.screenWidth = localWidth;
+        this.screenHeight = localHeight;
         this.effectiveClip = inheritedClip;
         
         updateModelMatrix();
         
         UIBounds childClip = inheritedClip;
         if (overflowMode==UIOverflowMode.HIDDEN) {
-            childClip = inheritedClip.intersect(getBounds());
+            childClip = inheritedClip.intersect(getScreenContentBoxBounds());
         }
         
         for (UIElement c : children) {
             if (c.getPositionMode()==UIPositionMode.SCREEN) {
-                c.layoutAdvance(c.layoutX, c.layoutY, childClip);
+                c.layoutPlace(c.localX, c.localY, childClip);
             }
             else if (c.getPositionMode()==UIPositionMode.FLOW_RELATIVE) {
-                c.layoutAdvance(
-                    screenX+c.layoutX+c.resolveLocal(c.getOffsetLeft()),
-                    screenY+c.layoutY+c.resolveLocal(c.getOffsetTop()),
+                c.layoutPlace(
+                    screenX+c.localX+c.resolve(c.getOffsetLeft()),
+                    screenY+c.localY+c.resolve(c.getOffsetTop()),
                     childClip
                 );
             }
-            else c.layoutAdvance(
-                screenX+c.layoutX,
-                screenY+c.layoutY,
+            else c.layoutPlace(
+                screenX+c.localX,
+                screenY+c.localY,
                 childClip
             );
         }
@@ -960,7 +1090,7 @@ public abstract class UIElement {
         layoutDirty = false;
     }
     
-    public float resolveLocal(UILength pair) {
+    public float resolve(UILength pair) {
         switch (pair.unit) {
             case PIXELS:
             return pair.value;
@@ -971,42 +1101,59 @@ public abstract class UIElement {
             case SCREEN_HEIGHT:
             return pair.value * SWMain.getUIWindow().getHeight();
             
-            case PARENT_CONTENT_WIDTH:
-            if (parent == null) return pair.value * SWMain.getUIWindow().getWidth();
-
-            if (parent.getBoxMode() == UIBoxMode.FLEX)
-                Logger.throwRuntimeException("Cannot use parental units on parent with box mode flex");
-            return pair.value * parent.getLayoutContentWidth();
+            case PARENT_BORDER_BOX_WIDTH:
+            if (parent==null) throwResolveException(1);
+            if (parent.getBoxMode()==UIBoxMode.FLEX) throwResolveException(2);
             
-            case PARENT_CONTENT_HEIGHT:
-            if (parent == null) return pair.value * SWMain.getUIWindow().getHeight();
-
-            if (parent.getBoxMode() == UIBoxMode.FLEX)
-                Logger.throwRuntimeException("Cannot use parental units on parent with box mode flex");
-            return pair.value * parent.getLayoutContentHeight();
+            return pair.value * parent.getLocalBorderBoxWidth();
             
-            case PARENT_BOX_WIDTH:
-            if (parent == null) return pair.value * SWMain.getUIWindow().getWidth();
-
-            if (parent.getBoxMode() == UIBoxMode.FLEX)
-                Logger.throwRuntimeException("Cannot use parental units on parent with box mode flex");
-            return pair.value * parent.getLayoutWidth();
+            case PARENT_BORDER_BOX_HEIGHT:
+            if (parent==null) throwResolveException(1);
+            if (parent.getBoxMode()==UIBoxMode.FLEX) throwResolveException(2);
             
-            case PARENT_BOX_HEIGHT:
-            if (parent == null) return pair.value * SWMain.getUIWindow().getHeight();
+            return pair.value * parent.getLocalBorderBoxHeight();
             
-            if (parent.getBoxMode() == UIBoxMode.FLEX)
-                Logger.throwRuntimeException("Cannot use parental units on parent with box mode flex");
-            return pair.value * parent.getLayoutHeight();
+            case PARENT_PADDING_BOX_WIDTH:
+            if (parent==null) throwResolveException(1);
+            if (parent.getBoxMode()==UIBoxMode.FLEX) throwResolveException(2);
+            
+            return pair.value * parent.getLocalPaddingBoxWidth();
+            
+            case PARENT_PADDING_BOX_HEIGHT:
+            if (parent==null) throwResolveException(1);
+            if (parent.getBoxMode()==UIBoxMode.FLEX) throwResolveException(2);
+            
+            return pair.value * parent.getLocalPaddingBoxHeight();
+            
+            case PARENT_CONTENT_BOX_WIDTH:
+            if (parent==null) throwResolveException(1);
+            if (parent.getBoxMode()==UIBoxMode.FLEX) throwResolveException(2);
+            
+            return pair.value * parent.getLocalContentBoxWidth();
+            
+            case PARENT_CONTENT_BOX_HEIGHT:
+            if (parent==null) throwResolveException(1);
+            if (parent.getBoxMode()==UIBoxMode.FLEX) throwResolveException(2);
+            
+            return pair.value * parent.getLocalContentBoxHeight();
             
             default:
             return 0f;
         }
     }
     
-    public boolean containsResolved(float x, float y) {
+    private void throwResolveException(int e) {
+        if (e==1) {
+            Logger.throwRuntimeException("Cannot use parental units on element with no parent");
+        }
+        if (e==2) {
+            Logger.throwRuntimeException("Cannot use parental units on element with parent in box mode flex");
+        }
+    }
+    
+    public boolean contains(float x, float y) {
         if (effectiveClip!=null && !effectiveClip.contains(x, y)) return false;
-
+        
         float cx = screenX + screenWidth * 0.5f;
         float cy = screenY + screenHeight * 0.5f;
         
@@ -1019,21 +1166,65 @@ public abstract class UIElement {
         y <= cy + h * 0.5f;
     }
     
-    private float getLayoutContentWidth() {
-        return Math.max(0f,
-            layoutWidth - resolveLocal(paddingLeft) - resolveLocal(paddingRight)
+    // Local sizes
+    
+    public float getLocalBorderBoxWidth() {
+        return localWidth;
+    }
+    
+    public float getLocalBorderBoxHeight() {
+        return localHeight;
+    }
+    
+    public float getLocalPaddingBoxWidth() {
+        if (!borderEnabled) return getLocalBorderBoxWidth();
+        return Math.max(0f, getLocalBorderBoxWidth()-resolve(borderThickness)*2);
+    }
+    
+    public float getLocalPaddingBoxHeight() {
+        if (!borderEnabled) return getLocalBorderBoxHeight();
+        return Math.max(0f, getLocalBorderBoxHeight()-resolve(borderThickness)*2);
+    }
+    
+    public float getLocalContentBoxWidth() {
+        return Math.max(0f, getLocalPaddingBoxWidth()-resolve(paddingLeft)-resolve(paddingRight));
+    }
+    
+    public float getLocalContentBoxHeight() {
+        return Math.max(0f, getLocalPaddingBoxHeight()-resolve(paddingTop)-resolve(paddingBottom));
+    }
+    
+    // Screen sizes
+    
+    private UIBounds getScreenBorderBoxBounds() {
+        return new UIBounds(
+            screenX,
+            screenY,
+            screenX+screenWidth,
+            screenY+screenHeight
         );
     }
     
-    private float getLayoutContentHeight() {
-        return Math.max(0f,
-            layoutHeight - resolveLocal(paddingTop) - resolveLocal(paddingBottom)
-        );
+    private UIBounds getScreenPaddingBoxBounds() {
+        UIBounds b = getScreenBorderBoxBounds();
+        if (borderEnabled) {
+            b = getScreenBorderBoxBounds().inset(
+                resolve(borderThickness),
+                resolve(borderThickness),
+                resolve(borderThickness),
+                resolve(borderThickness)
+            );
+        }
+        return b;
     }
     
-    private UIBounds getBounds() {
-        UIBounds clip = new UIBounds(screenX, screenY, screenX+screenWidth, screenY+screenHeight);
-        return clip;
+    private UIBounds getScreenContentBoxBounds() {
+        return getScreenPaddingBoxBounds().inset(
+            resolve(paddingLeft),
+            resolve(paddingTop),
+            resolve(paddingRight),
+            resolve(paddingBottom)
+        );
     }
     
     private void updateModelMatrix() {
@@ -1053,226 +1244,221 @@ public abstract class UIElement {
         // Setters
         // -----------------------------------------------------------------------------
         
-        public UIElement box(UIBoxMode boxMode) {
+        protected UIElement box(UIBoxMode boxMode) {
             this.boxMode = boxMode;
             markLayoutDirty();
             return this;
         }
         
-        public UIElement flowDirection(UIFlowDirection flowDirection) {
+        private UIElement flowDirection(UIFlowDirection flowDirection) {
             this.flowDirection = flowDirection;
             markLayoutDirty();
             return this;
         }
         
-        public UIElement flowWrap(boolean flowWrap) {
+        private UIElement flowWrap(boolean flowWrap) {
             this.flowWrap = flowWrap;
             markLayoutDirty();
             return this;
         }
         
-        public UIElement position(UIPositionMode positionMode) {
+        private UIElement position(UIPositionMode positionMode) {
             this.positionMode = positionMode;
             markLayoutDirty();
             return this;
         }
         
-        public UIElement justifyContent(UIJustifyContent justifyContent) {
+        private UIElement justifyContent(UIJustifyContent justifyContent) {
             this.justifyContent = justifyContent;
             markLayoutDirty();
             return this;
         }
         
-        public UIElement alignItems(UIAlignItems alignItems) {
+        private UIElement alignItems(UIAlignItems alignItems) {
             this.alignItems = alignItems;
             markLayoutDirty();
             return this;
         }
         
-        public UIElement alignContent(UIAlignContent alignContent) {
+        private UIElement alignContent(UIAlignContent alignContent) {
             this.alignContent = alignContent;
             markLayoutDirty();
             return this;
         }
         
-        public UIElement overflow(UIOverflowMode overflowMode) {
+        private UIElement overflow(UIOverflowMode overflowMode) {
             this.overflowMode = overflowMode;
             markLayoutDirty();
             return this;
         }
         
-        public UIElement minWidth(UILength minWidth) {
-            this.minWidth = minWidth;
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement minHeight(UILength minHeight) {
-            this.minHeight = minHeight;
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement maxWidth(UILength maxWidth) {
-            this.maxWidth = maxWidth;
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement maxHeight(UILength maxHeight) {
-            this.maxHeight = maxHeight;
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement padding(UILength padding) {
-            this.paddingLeft = padding.clone();
-            this.paddingRight = padding.clone();
-            this.paddingTop = padding.clone();
-            this.paddingBottom = padding.clone();
-            
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement paddingLeft(UILength left) {
-            this.paddingLeft = left;
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement paddingRight(UILength right) {
-            this.paddingRight = right;
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement paddingTop(UILength top) {
-            this.paddingTop = top;
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement paddingBottom(UILength bottom) {
-            this.paddingBottom = bottom;
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement margin(UILength margin) {
-            this.marginLeft = margin.clone();
-            this.marginRight = margin.clone();
-            this.marginTop = margin.clone();
-            this.marginBottom = margin.clone();
-            
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement marginLeft(UILength left) {
-            this.marginLeft = left;
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement marginRight(UILength right) {
-            this.marginRight = right;
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement marginTop(UILength top) {
-            this.marginTop = top;
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement marginBottom(UILength bottom) {
-            this.marginBottom = bottom;
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement offset(UILength offset) {
-            this.offsetLeft = offset.clone();
-            this.offsetRight = offset.clone();
-            this.offsetTop = offset.clone();
-            this.offsetBottom = offset.clone();
-            
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement offsetLeft(UILength left) {
-            this.offsetLeft = left;
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement offsetRight(UILength right) {
-            this.offsetRight = right;
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement offsetTop(UILength top) {
-            this.offsetTop = top;
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement offsetBottom(UILength bottom) {
-            this.offsetBottom = bottom;
-            markLayoutDirty();
-            return this;
-        }
-        
-        public UIElement width(UILength width) {
+        private UIElement width(UILength width) {
             if (boxMode==UIBoxMode.FLEX) Logger.throwRuntimeException("Cannot set width of box in UIBoxMode Flex");
             this.width = width;
             markLayoutDirty();
             return this;
         }
         
-        public UIElement height(UILength height) {
+        private UIElement height(UILength height) {
             if (boxMode==UIBoxMode.FLEX) Logger.throwRuntimeException("Cannot set height of box in UIBoxMode Flex");
             this.height = height;
             markLayoutDirty();
             return this;
         }
         
-        public UIElement visible(boolean visible) {
+        private UIElement maxWidth(UILength maxWidth) {
+            this.maxWidth = maxWidth;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement maxHeight(UILength maxHeight) {
+            this.maxHeight = maxHeight;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement minWidth(UILength minWidth) {
+            this.minWidth = minWidth;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement minHeight(UILength minHeight) {
+            this.minHeight = minHeight;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement paddingLeft(UILength left) {
+            this.paddingLeft = left;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement paddingRight(UILength right) {
+            this.paddingRight = right;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement paddingTop(UILength top) {
+            this.paddingTop = top;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement paddingBottom(UILength bottom) {
+            this.paddingBottom = bottom;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement marginLeft(UILength left) {
+            this.marginLeft = left;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement marginRight(UILength right) {
+            this.marginRight = right;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement marginTop(UILength top) {
+            this.marginTop = top;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement marginBottom(UILength bottom) {
+            this.marginBottom = bottom;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement offsetLeft(UILength left) {
+            this.offsetLeft = left;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement offsetRight(UILength right) {
+            this.offsetRight = right;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement offsetTop(UILength top) {
+            this.offsetTop = top;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement offsetBottom(UILength bottom) {
+            this.offsetBottom = bottom;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement visible(boolean visible) {
             this.visible = visible;
             markSubtreeDirty();
             return this;
         }
         
-        public UIElement enableDebugColor(boolean debugEnabled) {
-            this.debugEnabled = debugEnabled;
+        private UIElement borderEnabled(boolean borderEnabled) {
+            this.borderEnabled = borderEnabled;
+            markLayoutDirty();
             return this;
         }
         
-        public UIElement transitionDuration(float transitionDuration) {
+        private UIElement borderThickness(UILength borderThickness) {
+            this.borderThickness = borderThickness;
+            markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement borderLeft(boolean borderLeft) {
+            this.borderLeft = borderLeft;
+            return this;
+        }
+        
+        private UIElement borderRight(boolean borderRight) {
+            this.borderRight = borderRight;
+            return this;
+        }
+        
+        private UIElement borderTop(boolean borderTop) {
+            this.borderTop = borderTop;
+            return this;
+        }
+        
+        private UIElement borderBottom(boolean borderBottom) {
+            this.borderBottom = borderBottom;
+            return this;
+        }
+        
+        private UIElement transitionDuration(float transitionDuration) {
             this.transitionDuration = transitionDuration;
             return this;
         }
         
-        public UIElement transformScaleX(float transformScaleX) {
+        private UIElement transformScaleX(float transformScaleX) {
             this.transformScaleX = transformScaleX;
             updateModelMatrix();
             return this;
         }
         
-        public UIElement transformScaleY(float transformScaleY) {
+        private UIElement transformScaleY(float transformScaleY) {
             this.transformScaleY = transformScaleY;
             updateModelMatrix();
             return this;
         }
         
-        public UIElement transformScale(float transformScale) {
-            this.transformScaleX = transformScale;
-            this.transformScaleY = transformScale;
-            updateModelMatrix();
+        public UIElement enableDebugColor(boolean debugEnabled) {
+            this.debugEnabled = debugEnabled;
             return this;
         }
         
@@ -1303,13 +1489,13 @@ public abstract class UIElement {
         
         public UILength getHeight() {return this.height;}
         
-        public float getLayoutX() {return this.layoutX;}
+        public float getLocalX() {return this.localX;}
         
-        public float getLayoutY() {return this.layoutY;}
+        public float getLocalY() {return this.localY;}
         
-        public float getLayoutWidth() {return this.layoutWidth;}
+        public float getLocalWidth() {return this.localWidth;}
         
-        public float getLayoutHeight() {return this.layoutHeight;}
+        public float getLocalHeight() {return this.localHeight;}
         
         public float getScreenX() {return this.screenX;}
         
@@ -1342,6 +1528,18 @@ public abstract class UIElement {
         public UILength getOffsetTop() {return this.offsetTop;}
         
         public UILength getOffsetBottom() {return this.offsetBottom;}
+        
+        public boolean getBorderEnabled() {return this.borderEnabled;}
+        
+        public UILength getBorderThickness() {return this.borderThickness;}
+        
+        public boolean getBorderLeft() {return this.borderLeft;}
+        
+        public boolean getBorderRight() {return this.borderRight;}
+        
+        public boolean getBorderTop() {return this.borderTop;}
+        
+        public boolean getBorderBottom() {return this.borderBottom;}
         
         public boolean isVisible() {return this.visible;}
         

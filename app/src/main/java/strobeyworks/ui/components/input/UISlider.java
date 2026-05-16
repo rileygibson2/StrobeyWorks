@@ -1,8 +1,9 @@
 package strobeyworks.ui.components.input;
 
 import static strobeyworks.ui.core.UIColors.col;
-import static strobeyworks.ui.core.UILength.pch;
-import static strobeyworks.ui.core.UILength.pcw;
+import static strobeyworks.ui.core.UIColors.colWithAlpha;
+import static strobeyworks.ui.core.UILength.pph;
+import static strobeyworks.ui.core.UILength.ppw;
 import static strobeyworks.ui.core.UILength.px;
 
 import strobeyworks.platform.IOEvent;
@@ -10,69 +11,79 @@ import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.primitives.UICircle;
 import strobeyworks.ui.primitives.UIRectangle;
-import strobeyworks.ui.style.PrimitiveStyles;
+import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
 import strobeyworks.utils.Utils;
+import strobeyworks.utils.Vec4;
 
 public class UISlider extends UIValueControl<Float, Float> {    
     
-    private UICircle circle;
-    private UIRectangle fRect;
+    private UICircle knob;
+    private UIRectangle followingRect;
     private float bounds = 0.99f;
     
     public UISlider(UILength width, UILength height) {
-        super(width, height, UIValueAdaptor.FLOAT_IDENTITY);
+        super(UIValueAdaptor.FLOAT_IDENTITY);
         
+        style("width", width);
+        style("height", height);
         wantsPointer(true);
 
-        box(UIBoxMode.FIXED);
-        flowDirection(UIFlowDirection.ROW);
-        flowWrap(false);
-        padding(px(0));
-        alignItems(UIAlignItems.CENTER);
+        style("box", UIBoxMode.FIXED);
+        style("flow-direction", UIFlowDirection.ROW);
+        style("flow-wrap", false);
+        style("padding-left", px(0));
+        style("padding-right", px(0));
+        style("padding-top", px(0));
+        style("padding-bottom", px(0));
+        style("align-items", UIAlignItems.CENTER);
         
-        borderEnabled(true);
-        borderColor(col(UIColors.GREEN));
-        color(col(UIColors.GRAY_008));
-        cornerRadius(20f);
+        style("border-enabled", true);
+        style("border-color", col(UIColors.GREEN));
+        style("color", col(UIColors.GRAY_008));
+        style("corner-radius", new Vec4(20f));
         
         UIStyle style = new UIStyle();
-        style.set(PrimitiveStyles.TRANSFORM_SCALEX, 1.2f)
-        .set(PrimitiveStyles.TRANSFORM_SCALEY, 1.2f);
+        style.set(StyleProps.TRANSFORM_SCALEX, 1.2f)
+        .set(StyleProps.TRANSFORM_SCALEY, 1.2f);
 
-        circle = new UICircle(pch(0.9f), pch(0.9f));
-        circle.position(UIPositionMode.ABSOLUTE)
-        .margin(px(0))
-        .offsetTop(pch(0.05f))
-        .offsetLeft(pch(0.05f));
+        knob = new UICircle();
+        knob.style("width", pph(1f))
+        .style("height", pph(1f))
+        .style("position", UIPositionMode.ABSOLUTE)
+        .style("offset-left", pph(0.05f));
         
-        circle.borderEnabled(true)
-        .borderColor(col(UIColors.GREEN))
-        .color(col(UIColors.GRAY_008))
-        .oval(false)
+        knob.style("border-color", col(UIColors.GREEN))
+        .style("color", col(UIColors.GRAY_008))
+        .style("oval", false)
+        .style("border-enabled", true)
         .hoverStyle(style)
-        .transitionDuration(0.2f)
+        .style("transition-duration", 0.2f)
         .hoverable(true);
         
-        UICircle c2 = new UICircle(pcw(0.8f), pch(0.8f));
-        c2.position(UIPositionMode.ABSOLUTE)
-        .offsetTop(pcw(0.1f))
-        .offsetLeft(pch(0.1f));
+        UICircle knobInner = new UICircle();
+        knobInner.style("width", ppw(0.8f))
+        .style("height", pph(0.8f))
+        .style("position", UIPositionMode.ABSOLUTE)
+        .style("offset-top", ppw(0.1f))
+        .style("offset-left", pph(0.1f));
         
-        c2.borderEnabled(true)
-        .borderColor(col(UIColors.GREEN))
-        .color(col(UIColors.GRAY_008))
-        .oval(false);
+        knobInner.style("border-color", col(UIColors.GREEN))
+        .style("color", col(UIColors.GRAY_008))
+        .style("oval", false)
+        .style("border-enabled", true);
         
-        fRect = new UIRectangle(pcw(0f), pch(1f));
-        fRect.position(UIPositionMode.ABSOLUTE);
+        followingRect = new UIRectangle();
+        followingRect.style("width", ppw(0f))
+        .style("height", pph(1f))
+        .style("position", UIPositionMode.ABSOLUTE);
         
-        fRect.color(col(UIColors.GREEN))
-        .cornerRadius(100f, 0f, 0f, 20f);
+        followingRect.style("color", col(UIColors.GREEN))
+        .style("corner-radius", new Vec4(100f, 0f, 0f, 20f));
         
-        addChild(fRect);
-        addChild(circle);
-        circle.addChild(c2);
+        addChild(followingRect);
+        addChild(knob);
+        knob.addChild(knobInner);
     }
     
     @Override
@@ -84,23 +95,23 @@ public class UISlider extends UIValueControl<Float, Float> {
     protected void implementLocalValueOnUI() {
         float value = getLocalValue();
         float offset = (1-bounds)*0.5f;
-        float parentW = resolveLocal(getWidth());
-        float circW = circle.resolveLocal(circle.getWidth());
-        float fullTravel = parentW-circW;
+        float parentW = resolve(getWidth());
+        float knobW = knob.resolve(knob.getWidth());
+        float fullTravel = parentW-knobW;
         
         float cV = offset*fullTravel+value*(fullTravel*bounds);
-        circle.offsetLeft(px(cV));
+        knob.style("offset-left", px(cV));
         
-        float rV = value*fullTravel*bounds+circW*0.5f;
-        fRect.width(px(rV));
+        float rV = value*fullTravel*bounds+knobW*0.5f;
+        followingRect.style("width", px(rV));
         
         float a = Utils.smoothFalloffBefore(0.05f, value);
-        fRect.getColor().a = a;
+        followingRect.style("color", colWithAlpha(UIColors.GREEN, a));
     }
     
     private void setValueFromMouse(float mouseX) {
-        float localX = mouseX - getLayoutX();
-        float value = localX / getLayoutWidth();
+        float localX = mouseX - getLocalX();
+        float value = localX / getLocalWidth();
         
         setLocalValue(Math.max(Math.min(value, 1f), 0f));
         commitLocalValue();

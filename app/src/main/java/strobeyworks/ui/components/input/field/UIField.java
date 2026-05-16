@@ -36,33 +36,37 @@ public class UIField<T> extends UIValueControl<T, String> {
     private boolean invalidInput;
     
     public UIField(UILength width, UILength height, UIFont font, UIFieldRule<T> inputRule) {
-        super(width, height, inputRule);
+        super(inputRule);
         this.inputRule = inputRule;
         
+        style("width", width);
+        style("height", height);
         focussable(true);
         
-        alignItems(UIAlignItems.CENTER);
-        borderEnabled(true);
-        borderColor(col(UIColors.GREEN));
-        paddingLeft(px(10));
-        color(col(UIColors.TRANSPARENT));
-        cornerRadius(10f);
+        style("align-items", UIAlignItems.CENTER);
+        style("border-enabled", true);
+        style("border-color", col(UIColors.GREEN));
+        style("padding-left",px(10));
+        style("color", col(UIColors.TRANSPARENT));
+        style("corner-radius", new Vec4(10f));
         
-        wrapper = new UIRectangle(pcw(1f), pch(1f));
-        wrapper.alignItems(UIAlignItems.CENTER);
-        //justifyContent(UIJustifyContent.CENTER)
-        //wrapper.color(col(UIColors.PURPLE));
+        wrapper = new UIRectangle();
+        wrapper.style("width", pcw(1f))
+        .style("height", pch(1f))
+        .style("align-items", UIAlignItems.CENTER);
 
-        cursor = new UIRectangle(px(2), pch(0.9f));
-        cursor.position(UIPositionMode.ABSOLUTE)
-        .offsetLeft(pcw(0.1f))
-        .offsetTop(pch(0.1f));
-        cursor.color(col(UIColors.GREEN))
-        .cornerRadius(10f)
-        .visible(false);
+        cursor = new UIRectangle();
+        cursor.style("width", px(2))
+        .style("height", pch(0.9f))
+        .style("position", UIPositionMode.ABSOLUTE)
+        .style("offset-left", pcw(0.1f))
+        .style("offset-top", pch(0.1f))
+        .style("color", col(UIColors.GREEN))
+        .style("corner-radius", new Vec4(10f))
+        .style("visible", false);
         
         textElem = new UIText(font);
-        textElem.color(col(UIColors.GREEN));
+        textElem.style("color", col(UIColors.GREEN));
         
         addChild(wrapper);
         wrapper.addChild(textElem);
@@ -71,8 +75,8 @@ public class UIField<T> extends UIValueControl<T, String> {
         cursorPos = 0;
         
         flash = new Animation(1, (i, v) -> {
-            if (v>=0.5f) cursor.visible(true);
-            if (v<=0.5f) cursor.visible(false);
+            if (v>=0.5f) cursor.style("visible", true);
+            if (v<=0.5f) cursor.style("visible", false);
         });
         flash.setForm(AnimationForm.SINE)
         .setSpeed(1f);
@@ -83,8 +87,8 @@ public class UIField<T> extends UIValueControl<T, String> {
         // Set cursor height
         float tH = textElem.getResolvedTextHeight();
         float r = wrapper.getScreenHeight();
-        cursor.height(px(tH));
-        cursor.offsetTop(px((int) ((r-tH)*0.5)));
+        cursor.style("height", px(tH));
+        cursor.style("offset-top", px((int) ((r-tH)*0.5)));
 
         super.initialise();
     }
@@ -104,7 +108,7 @@ public class UIField<T> extends UIValueControl<T, String> {
     
     @Override
     public void gotFocus(IOEvent event) {
-        float internalX = event.getMouseX()-textElem.getLayoutX();
+        float internalX = event.getMouseX()-textElem.getLocalX();
         Logger.debug(getLocalValue());
         cursorPos = textElem.getFont().getCursorIndexAt(getLocalValue(), internalX);
         
@@ -115,7 +119,7 @@ public class UIField<T> extends UIValueControl<T, String> {
     @Override
     public void lostFocus(IOEvent event) {
         UIRenderer.getInstance().removeAnimation(flash);
-        cursor.visible(false);
+        cursor.style("visible", false);
     }
     
     @Override
@@ -151,7 +155,7 @@ public class UIField<T> extends UIValueControl<T, String> {
         if (!success) {
             if (!invalidInput) cachedColor = textElem.getColor(); // Protect against multiple failed attempts in a row
             invalidInput = true;
-            textElem.color(col(UIColors.RED));
+            textElem.style("color", col(UIColors.RED));
         }
         
         cursorPos = getLocalValue().length();
@@ -160,7 +164,7 @@ public class UIField<T> extends UIValueControl<T, String> {
     
     private void handleBackSpace() {
         if (invalidInput) {
-            textElem.color(cachedColor);
+            textElem.style("color", cachedColor);
             cachedColor = null;
             invalidInput = false;
         }
@@ -177,7 +181,7 @@ public class UIField<T> extends UIValueControl<T, String> {
     
     private void handleCharTyped(char c) {
         if (invalidInput) {
-            textElem.color(cachedColor);
+            textElem.style("color", cachedColor);
             cachedColor = null;
             invalidInput = false;
         }
@@ -196,7 +200,7 @@ public class UIField<T> extends UIValueControl<T, String> {
     
     private void repositionCursor() {
         float x = textElem.getFont().measureTextWidth(getLocalValue().substring(0, cursorPos));
-        cursor.offsetLeft(px(x+wrapper.resolveLocal(wrapper.getPaddingLeft())));
+        cursor.style("offset-left", px(x+wrapper.resolve(wrapper.getPaddingLeft())));
     }
     
     

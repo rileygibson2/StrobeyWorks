@@ -3,16 +3,28 @@ package strobeyworks.ui.primitives;
 import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UILength.px;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.BiConsumer;
+
 import strobeyworks.logger.Logger;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIFont;
-import strobeyworks.ui.style.PrimitiveStyles;
+import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
+import strobeyworks.ui.style.UIStyleProperty;
 import strobeyworks.utils.Vec4;
 
 public class UIText extends UIElement {
     
+    private static final Map<UIStyleProperty<?>, BiConsumer<UIText, Object>> APPLIERS = new HashMap<>();
+
+    static {
+        register(APPLIERS, StyleProps.COLOR, UIText::color);
+        register(APPLIERS, StyleProps.FONT, UIText::font);
+    }
+
     private String text;
     private float resolvedTextWidth;
     private float resolvedTextHeight;
@@ -21,22 +33,22 @@ public class UIText extends UIElement {
     private Vec4 color;
     
     public UIText(UIFont font) {
-        super(px(0), px(0));
+        super();
         this.font = font;
         this.text = "";
-        color = col(UIColors.WHITE);
-        
-        box(UIBoxMode.FIXED);
+
+        style("color", col(UIColors.WHITE));
+        style("box", UIBoxMode.FIXED);
         resolveTextBounds();
     }
     
     public UIText(UIFont font, String text) {
-        super(px(0), px(0));
+        super();
         this.font = font;
         this.text = text!=null ? text : "";
-        color = col(UIColors.WHITE);
         
-        box(UIBoxMode.FIXED);
+        style("color", col(UIColors.WHITE));
+        style("box", UIBoxMode.FIXED);
         resolveTextBounds();
     }
     
@@ -46,19 +58,18 @@ public class UIText extends UIElement {
     }
     
     @Override
-    public void applyStyle(UIStyle style) {
-        super.applyStyle(style);
-        
-        style.ifPresent(PrimitiveStyles.FONT, this::font);
-        style.ifPresent(PrimitiveStyles.COLOR, this::color);
+    protected void applyStyleProperty(UIStyleProperty<?> property, Object value) {
+        BiConsumer<UIText, Object> applier = APPLIERS.get(property);
+        if (applier!=null) applier.accept(this, value);
+        else super.applyStyleProperty(property, value);
     }
     
     @Override
     public UIStyle captureStyle() {
         UIStyle style = super.captureStyle();
         
-        style.set(PrimitiveStyles.FONT, font);
-        style.set(PrimitiveStyles.COLOR, color);
+        style.set(StyleProps.FONT, font);
+        style.set(StyleProps.COLOR, color);
         return style;
     }
     
@@ -69,7 +80,7 @@ public class UIText extends UIElement {
     }
     
     @Override
-    public UIElement box(UIBoxMode boxMode) {
+    protected UIElement box(UIBoxMode boxMode) {
         if (boxMode!=UIBoxMode.FIXED) Logger.throwRuntimeException("Cannot set UIText to any box mode other than UIBoxMode.FIXED");
         return super.box(boxMode);
     }
@@ -81,12 +92,12 @@ public class UIText extends UIElement {
         return this;
     }
     
-    public UIText color(Vec4 color) {
+    private UIText color(Vec4 color) {
         this.color = color;
         return this;
     }
 
-    public UIText font(UIFont font) {
+    private UIText font(UIFont font) {
         this.font = font;
         return this;
     }

@@ -28,11 +28,6 @@ public abstract class UIValueControl<E, L> extends UIRectangle implements Bindab
     private Bindable<E> binding;
     private L localValue;
     
-    public UIValueControl(UILength width, UILength height, UIValueAdaptor<E, L> adaptor) {
-        super(width, height);
-        this.adaptor = adaptor;
-    }
-    
     public UIValueControl(UIValueAdaptor<E, L> adaptor) {
         super();  
         this.adaptor = adaptor;

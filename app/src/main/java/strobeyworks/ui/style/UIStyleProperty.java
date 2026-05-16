@@ -6,24 +6,24 @@ import strobeyworks.utils.Vec4;
 
 public class UIStyleProperty<T> {
     
-    private final Class<T> type;
+    private final Class<T> valueType;
     private final String name;
 
-    public UIStyleProperty(String name, Class<T> type) {
+    public UIStyleProperty(String name, Class<T> valueType) {
         this.name = name;
-        this.type = type;
+        this.valueType = valueType;
     }
 
-    public String name() {
+    public String getName() {
         return this.name;
     }
 
-    public Class<T> type() {
-        return this.type;
+    public Class<T> getValueType() {
+        return this.valueType;
     }
 
     public boolean isTransitionable() {
-        return type==Float.class || type==Vec4.class;
+        return valueType==Float.class || valueType==Vec4.class;
     }
 
     @Override
@@ -31,11 +31,11 @@ public class UIStyleProperty<T> {
         if (this==obj) return true;
         if (!(obj instanceof UIStyleProperty<?> other)) return false;
 
-        return name.equals(other.name) && type.equals(other.type);
+        return name.equals(other.name) && valueType.equals(other.valueType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, type);
+        return Objects.hash(name, valueType);
     }
 }

@@ -5,15 +5,15 @@ import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.primitives.UIRectangle;
-import strobeyworks.ui.style.PrimitiveStyles;
+import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
+import strobeyworks.utils.Vec4;
 
 import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UILength.pch;
 import static strobeyworks.ui.core.UILength.pcw;
 import static strobeyworks.ui.core.UILength.pbh;
 import static strobeyworks.ui.core.UILength.pbw;
-import static strobeyworks.ui.core.UILength.px;
 
 public class UIFloatField extends UIField<Float> {
 
@@ -27,34 +27,41 @@ public class UIFloatField extends UIField<Float> {
     public UIFloatField(UILength width, UILength height, UIFont font, UIFloatFieldRule inputRule) {
         super(width, height, font, inputRule);
 
-        wrapper.width(pcw(0.7f));
-        controlWrapper = new UIRectangle(pcw(0.2f), pch(0.8f));
+        wrapper.style("width", pcw(0.7f));
+        
+        controlWrapper = new UIRectangle();
+        controlWrapper.style("width", pcw(0.2f))
+        .style("height", pch(0.8f));
         //controlWrapper.color(col(UIColors.WHITE));
 
         UIStyle style = new UIStyle();
-        style.set(PrimitiveStyles.ICON_TINT, col(UIColors.WHITE))
-        .set(PrimitiveStyles.TRANSFORM_SCALEX, 1.2f)
-        .set(PrimitiveStyles.TRANSFORM_SCALEY, 1.2f);
+        style.set(StyleProps.ICON_TINT, col(UIColors.WHITE))
+        .set(StyleProps.TRANSFORM_SCALEX, 1.2f)
+        .set(StyleProps.TRANSFORM_SCALEY, 1.2f);
 
-        up = new UIButton(pbw(1f), pbh(0.5f));
+        up = new UIButton();
+        up.style("width", pbw(1f))
+        .style("height", pbh(0.5f));
         up.icon("up_arrow")
-        .clickedAction(() -> {increment(1);})
-        .borderEnabled(false)
-        .cornerRadius(0f)
+        .clickedAction(() -> {increment(1);});
+        up.style("corner-radius", new Vec4(0f))
         //.color(col(UIColors.WHITE))
-        .position(UIPositionMode.ABSOLUTE)
-        .visible(false)
+        .style("border-enabled", false)
+        .style("position", UIPositionMode.ABSOLUTE)
+        .style("visible", false)
         .hoverStyle(style);
 
-        down = new UIButton(pbw(1f), pbh(0.5f));
+        down = new UIButton();
+        down.style("width", pbw(1f))
+        .style("height", pbh(0.5f));
         down.icon("down_arrow")
-        .clickedAction(() -> {increment(-1);})
-        .borderEnabled(false)
-        .cornerRadius(0f)
+        .clickedAction(() -> {increment(-1);});
+        down.style("corner-radius", new Vec4(0f))
+        .style("border-enabled", false)
         //.color(col(UIColors.RED))
-        .position(UIPositionMode.ABSOLUTE)
-        .offsetTop(pbh(0.5f))
-        .visible(false)
+        .style("position", UIPositionMode.ABSOLUTE)
+        .style("offset-top", pbh(0.5f))
+        .style("visible", false)
         .hoverStyle(style);
 
         addChild(controlWrapper);
@@ -64,8 +71,8 @@ public class UIFloatField extends UIField<Float> {
 
     public UIFloatField useButtons(float externalSpaceIncrement) {
         this.externalSpaceIncrement = externalSpaceIncrement;
-        up.visible(true);
-        down.visible(true);
+        up.style("visible", true);
+        down.style("visible", true);
         return this;
     }
 

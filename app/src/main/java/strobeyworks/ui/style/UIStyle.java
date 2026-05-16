@@ -15,16 +15,16 @@ public class UIStyle {
     }
     
     public <T> UIStyle set(UIStyleProperty<T> property, T value) {
-        if (!property.type().isInstance(value)) {
-            throw new IllegalArgumentException("Invalid type for "+property.name());
+        if (!property.getValueType().isInstance(value)) {
+            throw new IllegalArgumentException("Invalid type for "+property.getName());
         }
         properties.put(property, value);
         return this;
     }
 
     public UIStyle setRaw(UIStyleProperty<?> property, Object value) {
-        if (!property.type().isInstance(value)) {
-            throw new IllegalArgumentException("Invalid type for "+property.name());
+        if (!property.getValueType().isInstance(value)) {
+            throw new IllegalArgumentException("Invalid type for "+property.getName());
         }
         properties.put(property, value);
         return this;
@@ -34,7 +34,14 @@ public class UIStyle {
         Object value = properties.get(property);
         if (value==null) return null;
         
-        return property.type().cast(value);
+        return property.getValueType().cast(value);
+    }
+
+    public Object getRaw(UIStyleProperty<?> property) {
+        Object value = properties.get(property);
+        if (value==null) return null;
+        
+        return property.getValueType().cast(value);
     }
     
     public <T> void ifPresent(UIStyleProperty<T> property, Consumer<T> applier) {
@@ -48,7 +55,7 @@ public class UIStyle {
     
     public <T> boolean has(String property) {
         for (Map.Entry<UIStyleProperty<?>, Object> entry : properties.entrySet()) {
-            if (entry.getKey().name().equals(property)) return true;
+            if (entry.getKey().getName().equals(property)) return true;
         }
         return false;
     }
