@@ -278,6 +278,8 @@ public abstract class UIElement {
     
     private float transitionDuration;
     
+    private float opacity;
+    
     private boolean visible;
     
     private float scrollX;
@@ -319,6 +321,7 @@ public abstract class UIElement {
         register(APPLIERS, StyleProps.OFFSET_TOP, UIElement::offsetTop);
         register(APPLIERS, StyleProps.OFFSET_BOTTOM, UIElement::offsetBottom);
         
+        register(APPLIERS, StyleProps.OPACITY, UIElement::opacity);
         register(APPLIERS, StyleProps.VISIBLE, UIElement::visible);
         
         register(APPLIERS, StyleProps.BORDER_ENABLED, UIElement::borderEnabled);
@@ -371,7 +374,7 @@ public abstract class UIElement {
     private boolean debugEnabled;
     
     // Styles
-    private UIStyle cachedStyle;
+    private UIStyle baseStyle;
     private UIStyle hoverStyle;
     
     public UIElement() {
@@ -413,6 +416,8 @@ public abstract class UIElement {
         this.transformScaleX = 1f;
         this.transformScaleY = 1f;
         
+        this.opacity = 1f;
+        
         this.visible = true;
         
         this.layoutDirty = true;
@@ -425,11 +430,14 @@ public abstract class UIElement {
         
         this.debugEnabled = false;
         
+        this.baseStyle = new UIStyle();
+        
         children = new ArrayList<>();
         updateModelMatrix();
     }
     
     public void setRenderUniforms(ShaderManager sM) {
+        sM.setUniformFloat("uOpacity", opacity);
         sM.setUniformInt("uHasBorder", borderEnabled ? 1 : 0);
         sM.setUniformFloat("uBorderThickness", resolve(borderThickness));
         sM.setUniformVec4("uBorderSides", new Vec4(
@@ -457,24 +465,29 @@ public abstract class UIElement {
         UIStyleProperty<?> property = StyleProps.getProperty(n);
         if (property==null) Logger.throwRuntimeException("Unknown style property: '"+n+"'");
         
-        applyStyleProperty(property, v);
+        setAuthoredStyleProperty(property, v);
         return this;
     }
     
     public UIElement style(UIStyleProperty<?> p, Object v) {
-        applyStyleProperty(p, v);
+        setAuthoredStyleProperty(p, v);
         return this;
+    }
+
+    private void applyStyle(UIStyle style) {
+        for (UIStyleProperty<?> property : style.properties()) {
+            setAuthoredStyleProperty(property, style.getRaw(property));
+        }
+    }
+    
+    protected void setAuthoredStyleProperty(UIStyleProperty<?> property, Object value) {
+        applyStyleProperty(property, value);
+        baseStyle.setRaw(property, value);
     }
     
     protected void applyStyleProperty(UIStyleProperty<?> property, Object value) {
         BiConsumer<UIElement, Object> applier = APPLIERS.get(property);
         if (applier!=null) applier.accept(this, value);
-    }
-    
-    private void applyStyle(UIStyle style) {
-        for (UIStyleProperty<?> property : style.properties()) {
-            applyStyleProperty(property, style.getRaw(property));
-        }
     }
     
     protected UIStyle captureStyle() {
@@ -490,15 +503,8 @@ public abstract class UIElement {
         style.set(StyleProps.TRANSITION_DURATION, transitionDuration);
         style.set(StyleProps.TRANSFORM_SCALEX, transformScaleX);
         style.set(StyleProps.TRANSFORM_SCALEY, transformScaleY);
+        style.set(StyleProps.OPACITY, opacity);
         return style;
-    }
-    
-    private void cacheStyle() {
-        cachedStyle = captureStyle();
-    }
-    
-    private void clearCachedStyle() {
-        cachedStyle = null;
     }
     
     public UIElement hoverStyle(UIStyle hoverStyle) {
@@ -506,7 +512,7 @@ public abstract class UIElement {
         return this;
     }
     
-    private Transition transitionToStyle(UIStyle target) {
+    protected void transitionToStyle(UIStyle target, Transition rawTransition) {
         UIStyle current = captureStyle();
         Set<UIStyleProperty<?>> transitionable = new HashSet<>();
         Set<UIStyleProperty<?>> notTransitionable = new HashSet<>();
@@ -527,7 +533,7 @@ public abstract class UIElement {
         applyStyle(immediate);
         
         // Transition all others
-        Transition t = new Transition(transitionDuration, progress -> {
+        rawTransition.setUpdatedAction(progress -> {
             UIStyle frame = new UIStyle();
             
             for (UIStyleProperty<?> property : transitionable) {
@@ -541,11 +547,13 @@ public abstract class UIElement {
                     frame.setRaw(property, ((Vec4) from).lerp((Vec4) to, progress));
                 }
             }
-            applyStyle(frame);
+            
+            for (UIStyleProperty<?> property : frame.properties()) {
+                applyStyleProperty(property, frame.getRaw(property));
+            }
         });
         
-        UIRenderer.getInstance().addTransition(this, t);
-        return t;
+        UIRenderer.getInstance().addTransition(this, rawTransition);
     }
     
     // -----------------------------------------------------------------------------
@@ -599,22 +607,16 @@ public abstract class UIElement {
     
     public void gotHover(IOEvent event) {
         if (hoverStyle==null) return;
-        if (cachedStyle==null) cacheStyle();
         
         if (transitionDuration==0f) applyStyle(hoverStyle);
-        else transitionToStyle(hoverStyle);
+        else transitionToStyle(hoverStyle, new Transition(transitionDuration, "hover", null));
     }
     
     public void lostHover(IOEvent event) {
-        if (cachedStyle==null) return;
-        
-        if (transitionDuration==0f) {
-            applyStyle(cachedStyle);
-            clearCachedStyle();
-        }
+        if (transitionDuration==0f) applyStyle(baseStyle);
         else {
-            Transition t = transitionToStyle(cachedStyle);
-            t.setCompletedAction(() -> {clearCachedStyle();});
+            Transition t = new Transition(transitionDuration, "hover", null);
+            transitionToStyle(baseStyle, t);
         }
     }
     
@@ -1095,7 +1097,7 @@ public abstract class UIElement {
             b.setMaxX(Math.max(b.getMaxX(), c.localX+c.localWidth+mR));
             b.setMaxY(Math.max(b.getMaxY(), c.localY+c.localHeight+mB));
         }
-
+        
         childContentBounds = b;
         updateScrollBars();
     }
@@ -1242,7 +1244,7 @@ public abstract class UIElement {
         y <= cy + h * 0.5f;
     }
     
-    private void updateScrollBars() {
+    public void updateScrollBars() {
         if (overflowX==UIOverflowMode.SCROLL&&horizontalBar!=null&&childContentBounds!=null) {
             horizontalBar.setThumb(
                 childContentBounds.getWidth(),
@@ -1250,7 +1252,7 @@ public abstract class UIElement {
                 scrollX
             );
         }
-
+        
         if (overflowY==UIOverflowMode.SCROLL&&verticalBar!=null&&childContentBounds!=null) {
             verticalBar.setThumb(
                 childContentBounds.getHeight(),
@@ -1290,7 +1292,7 @@ public abstract class UIElement {
     
     // Screen sizes
     
-    private UIBounds getScreenBorderBoxBounds() {
+    public UIBounds getScreenBorderBoxBounds() {
         return new UIBounds(
             screenX,
             screenY,
@@ -1299,7 +1301,7 @@ public abstract class UIElement {
         );
     }
     
-    private UIBounds getScreenPaddingBoxBounds() {
+    public UIBounds getScreenPaddingBoxBounds() {
         UIBounds b = getScreenBorderBoxBounds();
         if (borderEnabled) {
             b = getScreenBorderBoxBounds().inset(
@@ -1312,7 +1314,7 @@ public abstract class UIElement {
         return b;
     }
     
-    private UIBounds getScreenContentBoxBounds() {
+    public UIBounds getScreenContentBoxBounds() {
         return getScreenPaddingBoxBounds().inset(
             resolve(paddingLeft),
             resolve(paddingTop),
@@ -1412,7 +1414,7 @@ public abstract class UIElement {
         private UIElement width(UILength width) {
             if (boxMode==UIBoxMode.FLEX) Logger.throwRuntimeException("Cannot set width of box in UIBoxMode Flex");
             this.width = width;
-
+            
             markLayoutDirty();
             return this;
         }
@@ -1420,7 +1422,7 @@ public abstract class UIElement {
         private UIElement height(UILength height) {
             if (boxMode==UIBoxMode.FLEX) Logger.throwRuntimeException("Cannot set height of box in UIBoxMode Flex");
             this.height = height;
-
+            
             markLayoutDirty();
             return this;
         }
@@ -1518,6 +1520,11 @@ public abstract class UIElement {
         private UIElement offsetBottom(UILength bottom) {
             this.offsetBottom = bottom;
             markLayoutDirty();
+            return this;
+        }
+        
+        private UIElement opacity(float opacity) {
+            this.opacity = opacity;
             return this;
         }
         
@@ -1676,6 +1683,8 @@ public abstract class UIElement {
         public boolean getBorderTop() {return this.borderTop;}
         
         public boolean getBorderBottom() {return this.borderBottom;}
+        
+        public float getOpacity() {return this.opacity;}
         
         public boolean isVisible() {return this.visible;}
         

@@ -6,6 +6,7 @@ flat in vec2 vSize;
 
 uniform int uPrimType;
 
+uniform float uOpacity;
 uniform vec4 uColor;
 uniform vec4 uCornerRadius;
 
@@ -129,6 +130,9 @@ void outputShape(float outerD, float innerD, float sideMask) {
     if (shapeColor.a <= 0.0) {
         discard;
     }
+
+    shapeColor.a = shapeColor.a*uOpacity;
+    shapeColor = clamp(shapeColor, vec4(0.0), vec4(1.0));
 
     FragColor = shapeColor;
 }

@@ -98,7 +98,7 @@ public class UIRenderer extends Renderer {
     private UIElement hoveredElement;
     
     protected Set<Animation> animations;
-    protected Map<UIElement, Transition> transitions;
+    protected Map<UIElement, Set<Transition>> transitions;
     
     public static UIRenderer getInstance() {
         if (instance==null) instance = new UIRenderer();
@@ -280,8 +280,13 @@ public class UIRenderer extends Renderer {
     }
     
     public void addTransition(UIElement e, Transition t) {
-        if (transitions.containsKey(e)) transitions.get(e).interrupt();
-        transitions.put(e, t);
+        if (transitions.containsKey(e)) {
+            for (Transition eT : transitions.get(e)) {
+                if (eT.hasTag()&&t.hasTag()&&eT.getTag().equals(t.getTag())) eT.interrupt();
+            }
+        }
+        else transitions.put(e, new HashSet<>());
+        transitions.get(e).add(t);
     }
     
     @Override
@@ -445,11 +450,16 @@ public class UIRenderer extends Renderer {
     
     @Override
     public void update() {
+        // Animations and transitions
         for (Animation a : animations) a.trigger();
         
-        for (Map.Entry<UIElement, Transition> entry : transitions.entrySet()) entry.getValue().update();
-        transitions.entrySet().removeIf(entry -> entry.getValue().isComplete());
+        for (Map.Entry<UIElement, Set<Transition>> entry : transitions.entrySet()) {
+            for (Transition t : entry.getValue()) t.update();
+            entry.getValue().removeIf(e -> e.isComplete()||e.isInterrupted());
+        }
+        transitions.entrySet().removeIf(entry -> entry.getValue().isEmpty());
         
+        // Layout
         if (rootElement.isLayoutDirty()) layout();
         
         if (rootElement.isSubtreeDirty()) {

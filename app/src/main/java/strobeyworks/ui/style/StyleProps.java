@@ -102,6 +102,10 @@ public final class StyleProps {
         public static final UIStyleProperty<UILength> OFFSET_BOTTOM = 
         register(new UIStyleProperty<>("offset-bottom", UILength.class));
 
+
+        public static final UIStyleProperty<Float> OPACITY = 
+        register(new UIStyleProperty<>("opacity", Float.class));
+
         public static final UIStyleProperty<Boolean> VISIBLE = 
         register(new UIStyleProperty<>("visible", Boolean.class));
 
