@@ -12,6 +12,7 @@ import static org.lwjgl.glfw.GLFW.glfwCreateWindow;
 import static org.lwjgl.glfw.GLFW.glfwDefaultWindowHints;
 import static org.lwjgl.glfw.GLFW.glfwDestroyWindow;
 import static org.lwjgl.glfw.GLFW.glfwFocusWindow;
+import static org.lwjgl.glfw.GLFW.glfwGetFramebufferSize;
 import static org.lwjgl.glfw.GLFW.glfwGetPrimaryMonitor;
 import static org.lwjgl.glfw.GLFW.glfwGetVideoMode;
 import static org.lwjgl.glfw.GLFW.glfwInit;
@@ -35,6 +36,7 @@ import static org.lwjgl.glfw.GLFW.GLFW_FLOATING;
 import static org.lwjgl.glfw.GLFW.GLFW_TRUE;
 import static org.lwjgl.glfw.GLFW.GLFW_FALSE;
 import static org.lwjgl.glfw.GLFW.glfwWindowHint;
+import static org.lwjgl.glfw.GLFW.GLFW_OPENGL_FORWARD_COMPAT;
 
 
 import org.lwjgl.glfw.GLFWErrorCallback;
@@ -54,13 +56,15 @@ public class Window {
     private long windowID;
     private int width;
     private int height;
+    private int framebufferWidth;
+    private int framebufferHeight;
     private GLCapabilities capabilities;
     
     private IO io;
     
     private double fpsTimer;
     private int framesTimer;
-
+    
     private double fps;
     private long lastFrameTime;
     private double frameDeltaTime;
@@ -89,11 +93,11 @@ public class Window {
         
         renderer.setParentWindow(this);
     }
-
+    
     public void stayFocussed() {
         this.stayFocussed = true;
     }
-
+    
     public void setScreenPos(float screenPosX, float screenPosY) {
         this.screenPosX = screenPosX;
         this.screenPosY = screenPosY;
@@ -113,18 +117,19 @@ public class Window {
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         
         // Create window
         glfwWindowHint(GLFW_FLOATING, stayFocussed ? GLFW_TRUE : GLFW_FALSE);
-
+        
         windowID = glfwCreateWindow(width, height, title, NULL, NULL);
         if (windowID == NULL) {
             throw new RuntimeException("Failed to create GLFW window");
         }
-
+        
         // Setup IO
-
+        
         io = new IO(this, windowID);
         io.setupCallbacks();
         for (IOEventType type : IOEventType.values()) io.subscribe(type, renderer);
@@ -152,14 +157,19 @@ public class Window {
         
         glEnable(GL_DEPTH_TEST);
         
-        // Setup initial viewport
-        glViewport(0, 0, width, height);
+        int[] fbWidth = new int[1];
+        int[] fbHeight = new int[1];
+        glfwGetFramebufferSize(windowID, fbWidth, fbHeight);
+        
+        framebufferWidth = fbWidth[0];
+        framebufferHeight = fbHeight[0];
+        
+        glViewport(0, 0, framebufferWidth, framebufferHeight);
         
         // Handle resize
         glfwSetFramebufferSizeCallback(windowID, (win, w, h) -> {
-            this.width = w;
-            this.height = h;
-            glViewport(0, 0, w, h);
+            framebufferWidth = w;
+            framebufferHeight = h;
             if (renderer!=null) renderer.handleWindowResize();
         });
         
@@ -178,20 +188,20 @@ public class Window {
         lastFrameTime = now;
         totalTime += frameDeltaTime;
         totalFrameCount++;
-
+        
         fpsTimer += frameDeltaTime;
         framesTimer++;
         
         // Make this window's context current
         glfwMakeContextCurrent(windowID);
         GL.setCapabilities(capabilities);
-        glViewport(0, 0, width, height);
+        glViewport(0, 0, framebufferWidth, framebufferHeight);
         
         
         // FPS calcs
         if (fpsTimer >= 1.0) {
             fps = framesTimer/fpsTimer;
-
+            
             String s = title + " | " + (int) Math.floor(fps) + " FPS";
             if (titleData != null) s += " - " + titleData;
             glfwSetWindowTitle(windowID, s);
@@ -209,11 +219,11 @@ public class Window {
         if (io!=null) io.endFrame();
         glfwSwapBuffers(windowID);
     }
-
+    
     public void focus() {
         glfwFocusWindow(windowID);
     }
-
+    
     public long getWindowID() {
         return windowID;
     }
@@ -231,16 +241,20 @@ public class Window {
     
     public int getHeight() {return height;}
     
+    public int getFramebufferWidth() {return framebufferWidth;}
+    
+    public int getFramebufferHeight() {return framebufferHeight;}
+    
     public float getAspectRatio() {return (float) width/(float) height;} 
     
     public void setTitleData(String data) {titleData = data;}
     
     public double getApproxFPS() {return fps;}
-
+    
     public double getFrameDeltaTime() {return frameDeltaTime;}
-
+    
     public double getTotalTime() {return totalTime;}
-
+    
     public double getTotalFrameCount() {return totalFrameCount;}
     
     public boolean windowAlive() {

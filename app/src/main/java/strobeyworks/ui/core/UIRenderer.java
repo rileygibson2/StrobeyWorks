@@ -113,10 +113,17 @@ public class UIRenderer extends Renderer {
     
     private UIRectangle buildTestBase() {
         UIFontManager.loadFont("RobotoMono-Medium.ttf", 30f);
+        UIFontManager.loadFont("RobotoMono-Medium.ttf", 20f);
+
         UITextureManager.loadTexture("up_arrow.png");
         UITextureManager.loadTexture("down_arrow.png");
         
-        UITab tab = new UITab(pcw(1f), sh(0.1f), 5);
+        UITab tab = new UITab(pcw(1f), sh(0.1f));
+        tab.addTab("Objects", UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f));
+        tab.addTab("Lights", UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f));
+        tab.addTab("Settings", UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f));
+        tab.addTab("Stuff", UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f));
+
         tab.style("margin-top", px(2));
         addToRoot(tab);
         
@@ -347,7 +354,7 @@ public class UIRenderer extends Renderer {
         buildProjectionMatrix();
         
         UIRectangle pane = buildTestBase();
-        buildTest2(pane);
+        buildTest1(pane);
     }
     
     @Override

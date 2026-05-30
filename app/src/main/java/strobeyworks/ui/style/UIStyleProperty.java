@@ -2,6 +2,7 @@ package strobeyworks.ui.style;
 
 import java.util.Objects;
 
+import strobeyworks.ui.core.UILength;
 import strobeyworks.utils.Vec4;
 
 public class UIStyleProperty<T> {
@@ -23,7 +24,9 @@ public class UIStyleProperty<T> {
     }
 
     public boolean isTransitionable() {
-        return valueType==Float.class || valueType==Vec4.class;
+        return valueType==Float.class ||
+        valueType==Vec4.class ||
+        valueType==UILength.class;
     }
 
     @Override

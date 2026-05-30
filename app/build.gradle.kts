@@ -16,7 +16,7 @@ repositories {
 }
 
 val lwjglVersion = "3.3.3"
-val lwjglNatives = "natives-windows"
+val lwjglNatives = "natives-macos-arm64"
 
 dependencies {
    implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
@@ -43,6 +43,7 @@ java {
 application {
     // Define the main class for the application.
     mainClass = "strobeyworks.SWMain"
+    applicationDefaultJvmArgs = listOf("-XstartOnFirstThread")
 }
 
 tasks.named<Test>("test") {

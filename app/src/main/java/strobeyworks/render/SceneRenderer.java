@@ -223,7 +223,7 @@ public class SceneRenderer extends Renderer {
         
         //Reset
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        sM.assertViewport(getParentWindow().getWidth(), getParentWindow().getHeight());
+        sM.assertViewport(getParentWindow().getFramebufferWidth(), getParentWindow().getFramebufferHeight());
         
         sM.bindVAO(0);
         sM.useProgram(0);

@@ -59,6 +59,8 @@ public class UISlider extends UIValueControl<Float, Float> {
         .style("border-enabled", true)
         .hoverStyle(style)
         .style("transition-duration", 0.2f)
+        .style(StyleProps.TRANSFORM_SCALEX, 1.0f)
+        .style(StyleProps.TRANSFORM_SCALEY, 1.0f)
         .hoverable(true);
         
         UICircle knobInner = new UICircle();
