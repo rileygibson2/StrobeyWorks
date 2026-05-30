@@ -74,4 +74,8 @@ public class IOEvent {
     public static IOEvent charTyped(IO io, int keyCode) {
         return new IOEvent(io, IOEventType.CHAR_TYPED, -1, -1, keyCode);
     }
+
+    public static IOEvent dummyEvent() {
+        return new IOEvent(null, null, -1, -1, -1);
+    }
 }

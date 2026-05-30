@@ -6,6 +6,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import strobeyworks.logger.Logger;
+import strobeyworks.ui.primitives.UIElement;
+
 public class UIStyle {
     
     Map<UIStyleProperty<?>, Object> properties;
@@ -19,6 +22,14 @@ public class UIStyle {
             throw new IllegalArgumentException("Invalid type for "+property.getName());
         }
         properties.put(property, value);
+        return this;
+    }
+
+    public UIStyle set(String n, Object v) {
+        UIStyleProperty<?> property = StyleProps.getProperty(n);
+        if (property==null) Logger.throwRuntimeException("Unknown style property: '"+n+"'");
+        
+        setRaw(property, v);
         return this;
     }
 
@@ -49,7 +60,7 @@ public class UIStyle {
         if (value!=null) applier.accept(value);
     }
     
-    public <T> boolean has(UIStyleProperty<T> property) {
+    public <T> boolean contains(UIStyleProperty<T> property) {
         return properties.containsKey(property);
     }
     

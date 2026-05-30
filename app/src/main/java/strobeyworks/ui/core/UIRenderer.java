@@ -133,7 +133,7 @@ public class UIRenderer extends Renderer {
         .style("color", col(UIColors.GRAY_008))
         .style("corner-radius", new Vec4(0f, 0f, 20f, 20f))
         .style("border-color", col(UIColors.GREEN))
-        .style("border-thickness", px(2))
+        .style("border-thickness", px(1))
         .style("border-top", false)
         .style("border-enabled", true)
         .style("padding-left", px(5))
@@ -435,6 +435,12 @@ public class UIRenderer extends Renderer {
             
             default: break;
         }
+    }
+
+    public void setFocussedElement(UIElement e) {
+        if (focussedElement!=null) focussedElement.lostFocus(IOEvent.dummyEvent());
+        focussedElement = e;
+        if (focussedElement!=null) focussedElement.gotFocus(IOEvent.dummyEvent());
     }
     
     public void buildVisibleElementList() {

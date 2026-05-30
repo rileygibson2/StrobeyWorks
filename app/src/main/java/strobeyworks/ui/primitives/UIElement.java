@@ -220,15 +220,10 @@ public abstract class UIElement {
     }
     
     @FunctionalInterface
-    public interface UIClickCallback {
-        void implement(float x, float y, boolean leftButton, boolean rightButton);
-    }
-    
-    @FunctionalInterface
     public interface UIEventCallback {
         void implement(IOEvent event);
     }
-
+    
     @FunctionalInterface
     public interface UIBasicCallback {
         void implement();
@@ -375,7 +370,10 @@ public abstract class UIElement {
     private boolean clickable;
     
     // Callbacks
-    private UIBasicCallback onInitialise; // Called after initial layout is calculated, before first render
+    private UIBasicCallback onInitialise;
+    private UIEventCallback onClicked;
+    private UIEventCallback onGotFocus;
+    private UIEventCallback onLostFocus;
     private UIEventCallback onGotHover;
     private UIEventCallback onLostHover;
     
@@ -389,7 +387,7 @@ public abstract class UIElement {
     private boolean debugEnabled;
     
     // Styles
-    private UIStyle baseStyle;
+    private UIStyle authoredStyle;
     private UIStyle hoverStyle;
     
     public UIElement() {
@@ -445,7 +443,7 @@ public abstract class UIElement {
         
         this.debugEnabled = false;
         
-        this.baseStyle = new UIStyle();
+        this.authoredStyle = new UIStyle();
         
         children = new ArrayList<>();
         updateModelMatrix();
@@ -497,7 +495,7 @@ public abstract class UIElement {
     
     protected void setAuthoredStyleProperty(UIStyleProperty<?> property, Object value) {
         applyStyleProperty(property, value);
-        baseStyle.setRaw(property, value);
+        authoredStyle.setRaw(property, value);
     }
     
     protected void applyStyleProperty(UIStyleProperty<?> property, Object value) {
@@ -514,6 +512,21 @@ public abstract class UIElement {
         if (minHeight != null) style.set(StyleProps.MIN_HEIGHT, minHeight);
         if (maxWidth != null) style.set(StyleProps.MAX_WIDTH, maxWidth);
         if (maxHeight != null) style.set(StyleProps.MAX_HEIGHT, maxHeight);
+        
+        style.set(StyleProps.MARGIN_LEFT, marginLeft);
+        style.set(StyleProps.MARGIN_RIGHT, marginRight);
+        style.set(StyleProps.MARGIN_TOP, marginTop);
+        style.set(StyleProps.MARGIN_BOTTOM, marginBottom);
+
+        style.set(StyleProps.PADDING_LEFT, paddingLeft);
+        style.set(StyleProps.PADDING_RIGHT, paddingRight);
+        style.set(StyleProps.PADDING_TOP, paddingTop);
+        style.set(StyleProps.PADDING_BOTTOM, paddingBottom);
+
+        style.set(StyleProps.OFFSET_LEFT, offsetLeft);
+        style.set(StyleProps.OFFSET_RIGHT, offsetRight);
+        style.set(StyleProps.OFFSET_TOP, offsetTop);
+        style.set(StyleProps.OFFSET_BOTTOM, offsetBottom);
         
         style.set(StyleProps.BORDER_ENABLED, borderEnabled);
         style.set(StyleProps.BORDER_THICKNESS, borderThickness);
@@ -551,7 +564,7 @@ public abstract class UIElement {
         
         // Find all valid properties
         for (UIStyleProperty<?> property : current.properties()) {
-            if (target.has(property)) {
+            if (target.contains(property)) {
                 if (property.isTransitionable()) transitionable.add(property);
                 else notTransitionable.add(property);
             }
@@ -593,16 +606,15 @@ public abstract class UIElement {
         UIRenderer.getInstance().addTransition(this, rawTransition);
     }
     
+    public void transitionToStyle(UIStyle target, String tag) {
+        if (transitionDuration==0f) applyStyle(target);
+        else transitionToStyle(target, new Transition(transitionDuration, tag, null));
+    }
+    
     // -----------------------------------------------------------------------------
     // UI Interaction
     // -----------------------------------------------------------------------------
     
-    
-    public UIElement onInitialise(UIBasicCallback callback) {
-        this.onInitialise = callback;
-        return this;
-    }
-
     public UIElement focussable(boolean focussable) {
         this.focussable = focussable;
         return this;
@@ -623,14 +635,6 @@ public abstract class UIElement {
         return this;
     }
     
-    public void onGotHover(UIEventCallback callback) {
-        this.onGotHover = callback;
-    }
-    
-    public void onLostHover(UIEventCallback callback) {
-        this.onLostHover = callback;
-    }
-    
     public boolean isFocussable() {
         return this.focussable;
     }
@@ -647,33 +651,51 @@ public abstract class UIElement {
         return this.clickable;
     }
     
-    public void gotFocus(IOEvent event) {}
+    public void onClicked(UIEventCallback callback) {
+        this.onClicked = callback;
+    }
     
-    public void lostFocus(IOEvent event) {}
+    public void onGotHover(UIEventCallback callback) {
+        this.onGotHover = callback;
+    }
+    
+    public void onLostHover(UIEventCallback callback) {
+        this.onLostHover = callback;
+    }
+    
+    public void onGotFocus(UIEventCallback callback) {
+        this.onGotFocus = callback;
+    }
+    
+    public void onLostFocus(UIEventCallback callback) {
+        this.onLostFocus = callback;
+    }
+    
+    public void gotFocus(IOEvent event) {
+        if (onGotFocus!=null) onGotFocus.implement(event);
+    }
+    
+    public void lostFocus(IOEvent event) {
+        if (onLostFocus!=null) onLostFocus.implement(event);
+    }
     
     public void gotPointer(IOEvent event) {}
     
     public void lostPointer(IOEvent event) {}
     
     public void gotHover(IOEvent event) {
-        if (hoverStyle==null) return;
         if (onGotHover!=null) onGotHover.implement(event);
-        
-        if (transitionDuration==0f) applyStyle(hoverStyle);
-        else transitionToStyle(hoverStyle, new Transition(transitionDuration, "hover", null));
+        if (hoverStyle!=null) transitionToStyle(hoverStyle, "hover");
     }
     
     public void lostHover(IOEvent event) {
         if (onLostHover!=null) onLostHover.implement(event);
-        
-        if (transitionDuration==0f) applyStyle(baseStyle);
-        else {
-            Transition t = new Transition(transitionDuration, "hover", null);
-            transitionToStyle(baseStyle, t);
-        }
+        transitionToStyle(authoredStyle, "hover");
     }
     
-    public void clicked(IOEvent event) {}
+    public void clicked(IOEvent event) {
+        if (onClicked!=null) onClicked.implement(event);
+    }
     
     public void handleIOEvent(IOEvent event) {}
     
@@ -727,6 +749,10 @@ public abstract class UIElement {
         markSubtreeDirty();
     }
     
+    public int getChildCount() {
+        return children.size();
+    }
+    
     public List<UIElement> getAllChildren() {
         List<UIElement> elems = new ArrayList<>();
         
@@ -775,6 +801,11 @@ public abstract class UIElement {
     public void clearSubtreeDirtyMark() {
         subtreeDirty = false;
         for (UIElement c : children) c.clearSubtreeDirtyMark();
+    }
+    
+    public UIElement onInitialise(UIBasicCallback callback) {
+        this.onInitialise = callback;
+        return this;
     }
     
     public void initialise() {
@@ -1287,6 +1318,18 @@ public abstract class UIElement {
             Logger.throwRuntimeException("Cannot use parental units on element with parent in box mode flex");
         }
     }
+
+    public UIElement freeze(String n) {
+        UIStyleProperty<?> property = StyleProps.getProperty(n);
+        if (property==null) Logger.throwRuntimeException("Unknown style property: '"+n+"'");
+        if (property.getValueType()!=UILength.class) Logger.throwRuntimeException("Cannot freeze non-UILength property: '"+n+"'");
+
+        if (authoredStyle.contains(property)) {
+            UILength authored = (UILength) authoredStyle.get(property);
+            style(property, px(resolve(authored)));
+        }
+        return this;
+    }
     
     public boolean contains(float x, float y) {
         if (effectiveClip!=null && !effectiveClip.contains(x, y)) return false;
@@ -1395,16 +1438,7 @@ public abstract class UIElement {
             1.0f
         );
     }
-
-    // -----------------------------------------------------------------------------
-    // Freeze Setters
-    // -----------------------------------------------------------------------------
     
-    public UIElement freezeWidth() {
-        style("width", px(getLocalWidth()));
-        return this;
-    }
-
     // -----------------------------------------------------------------------------
     // Setters
     // -----------------------------------------------------------------------------
@@ -1757,6 +1791,10 @@ public abstract class UIElement {
     
     public boolean isVisible() {return this.visible;}
     
+    public UIBounds getChildContentBounds() {return this.childContentBounds;}
+    
     public Matrix4f getModelMatrix() {return this.modelMatrix;}
+    
+    public UIStyle getAuthoredStyle() {return this.authoredStyle;}
 }
 
