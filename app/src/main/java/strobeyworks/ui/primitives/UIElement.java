@@ -4,6 +4,7 @@ import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UILength.px;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -284,8 +285,8 @@ public abstract class UIElement {
     private float transitionDuration;
     
     private float opacity;
-    
     private boolean visible;
+    private int zIndex;
     
     private float scrollX;
     private float scrollY;
@@ -328,6 +329,7 @@ public abstract class UIElement {
         
         register(APPLIERS, StyleProps.OPACITY, UIElement::opacity);
         register(APPLIERS, StyleProps.VISIBLE, UIElement::visible);
+        register(APPLIERS, StyleProps.Z_INDEX, UIElement::zIndex);
         
         register(APPLIERS, StyleProps.BORDER_ENABLED, UIElement::borderEnabled);
         register(APPLIERS, StyleProps.BORDER_THICKNESS, UIElement::borderThickness);
@@ -430,8 +432,8 @@ public abstract class UIElement {
         this.transformScaleY = 1f;
         
         this.opacity = 1f;
-        
         this.visible = true;
+        this.zIndex = 0;
         
         this.layoutDirty = true;
         this.subtreeDirty = false;
@@ -517,12 +519,12 @@ public abstract class UIElement {
         style.set(StyleProps.MARGIN_RIGHT, marginRight);
         style.set(StyleProps.MARGIN_TOP, marginTop);
         style.set(StyleProps.MARGIN_BOTTOM, marginBottom);
-
+        
         style.set(StyleProps.PADDING_LEFT, paddingLeft);
         style.set(StyleProps.PADDING_RIGHT, paddingRight);
         style.set(StyleProps.PADDING_TOP, paddingTop);
         style.set(StyleProps.PADDING_BOTTOM, paddingBottom);
-
+        
         style.set(StyleProps.OFFSET_LEFT, offsetLeft);
         style.set(StyleProps.OFFSET_RIGHT, offsetRight);
         style.set(StyleProps.OFFSET_TOP, offsetTop);
@@ -707,8 +709,10 @@ public abstract class UIElement {
         if (!contains(x, y)) return null;
         UIElement hit = null;
         
-        for (UIElement c : children) {
-            if (!c.isVisible()) continue;
+        List<UIElement> sortedChildren = new ArrayList<>(children);
+        sortedChildren.sort(Comparator.comparingInt(UIElement::getZIndex));
+
+        for (UIElement c : sortedChildren) {
             UIElement result = c.getDeepestElementAt(x, y);
             if (result!=null) hit = result;
         }
@@ -755,29 +759,38 @@ public abstract class UIElement {
     
     public List<UIElement> getAllChildren() {
         List<UIElement> elems = new ArrayList<>();
+        List<UIElement> sortedChildren = new ArrayList<>(children);
+        sortedChildren.sort(Comparator.comparingInt(UIElement::getZIndex));
         
-        for (UIElement e : children) {
+        for (UIElement e : sortedChildren) {
             elems.add(e);
             elems.addAll(e.getAllChildren());
         }
+        
         return elems;
     }
     
     public List<UIElement> getVisibleChildren() {
         List<UIElement> elems = new ArrayList<>();
+        List<UIElement> sortedChildren = new ArrayList<>(children);
+        sortedChildren.sort(Comparator.comparingInt(UIElement::getZIndex));
         
-        for (UIElement e : children) {
-            if (!e.isVisible())
-                continue;
+        for (UIElement e : sortedChildren) {
+            if (!e.isVisible()) continue;
             elems.add(e);
             elems.addAll(e.getVisibleChildren());
         }
+        
         return elems;
     }
     
     public UIElement getChildAtIndex(int i) {
         if (i<0||i>children.size()-1) return null;
         return children.get(i);
+    }
+    
+    public int getChildIndex(UIElement e) {
+        return children.indexOf(e);
     }
     
     public void markLayoutDirty() {
@@ -1318,12 +1331,12 @@ public abstract class UIElement {
             Logger.throwRuntimeException("Cannot use parental units on element with parent in box mode flex");
         }
     }
-
+    
     public UIElement freeze(String n) {
         UIStyleProperty<?> property = StyleProps.getProperty(n);
         if (property==null) Logger.throwRuntimeException("Unknown style property: '"+n+"'");
         if (property.getValueType()!=UILength.class) Logger.throwRuntimeException("Cannot freeze non-UILength property: '"+n+"'");
-
+        
         if (authoredStyle.contains(property)) {
             UILength authored = (UILength) authoredStyle.get(property);
             style(property, px(resolve(authored)));
@@ -1637,6 +1650,12 @@ public abstract class UIElement {
         return this;
     }
     
+    private UIElement zIndex(int zIndex) {
+        this.zIndex = zIndex;
+        markSubtreeDirty();
+        return this;
+    }
+    
     private UIElement borderEnabled(boolean borderEnabled) {
         this.borderEnabled = borderEnabled;
         markLayoutDirty();
@@ -1790,6 +1809,8 @@ public abstract class UIElement {
     public float getOpacity() {return this.opacity;}
     
     public boolean isVisible() {return this.visible;}
+    
+    public int getZIndex() {return this.zIndex;}
     
     public UIBounds getChildContentBounds() {return this.childContentBounds;}
     

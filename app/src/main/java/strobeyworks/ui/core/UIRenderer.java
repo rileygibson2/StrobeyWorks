@@ -27,6 +27,8 @@ import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UILength.pcw;
 import static strobeyworks.ui.core.UILength.pch;
+import static strobeyworks.ui.core.UILength.pbw;
+import static strobeyworks.ui.core.UILength.pbh;
 import static strobeyworks.ui.core.UILength.px;
 import static strobeyworks.ui.core.UILength.sh;
 import static strobeyworks.ui.core.UILength.sw;
@@ -41,6 +43,7 @@ import java.util.Set;
 import org.joml.Matrix4f;
 
 import strobeyworks.SWMain;
+import strobeyworks.logger.Logger;
 import strobeyworks.platform.Animation;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.Renderer;
@@ -99,6 +102,8 @@ public class UIRenderer extends Renderer {
     
     protected Set<Animation> animations;
     protected Map<UIElement, Set<Transition>> transitions;
+
+    private UITab mainTab;
     
     public static UIRenderer getInstance() {
         if (instance==null) instance = new UIRenderer();
@@ -110,43 +115,39 @@ public class UIRenderer extends Renderer {
         animations = new HashSet<>();
         transitions = new HashMap<>();
     }
-    
-    private UIRectangle buildTestBase() {
+
+    private void loadUIResources() {
         UIFontManager.loadFont("RobotoMono-Medium.ttf", 30f);
         UIFontManager.loadFont("RobotoMono-Medium.ttf", 20f);
 
         UITextureManager.loadTexture("up_arrow.png");
         UITextureManager.loadTexture("down_arrow.png");
-        
-        UITab tab = new UITab(pcw(1f), sh(0.1f));
-        tab.addTab("Objects", UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f));
-        tab.addTab("Lights", UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f));
-        tab.addTab("Settings", UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f));
-        tab.addTab("Stuff", UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f));
+        UITextureManager.loadTexture("cube.png");
+        UITextureManager.loadTexture("light.png");
+        UITextureManager.loadTexture("data.png");
+    }
+    
+    private void buildBase() {
+
+        UIFont f = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f);
+        UITab tab = new UITab(pbw(1f), pbh(0.9f), f);
+        tab.addTab("Objects", "cube");
+        tab.addTab("Lights", "light");
+        tab.addTab("Data", "data");
 
         tab.style("margin-top", px(2));
         addToRoot(tab);
         
-        UIRectangle pane2 = new UIRectangle();
-        pane2.style("width", sw(1f))
-        .style("height", sh(0.89f))
-        .style("color", col(UIColors.GRAY_008))
-        .style("corner-radius", new Vec4(0f, 0f, 20f, 20f))
-        .style("border-color", col(UIColors.GREEN))
-        .style("border-thickness", px(1))
-        .style("border-top", false)
-        .style("border-enabled", true)
+        /*
+        
         .style("padding-left", px(5))
         .style("padding-right", px(5))
         .style("padding-top", px(5))
         .style("padding-bottom", px(5))
-        //.justifyContent(UIJustifyContent.CENTER)
         .style("align-items", UIAlignItems.CENTER)
         .style("align-content", UIAlignContent.CENTER)
-        .style("flow-direction", UIFlowDirection.COLUMN);
+        .style("flow-direction", UIFlowDirection.COLUMN); */
         
-        addToRoot(pane2);
-        return pane2;
     }
     
     public void buildTest1(UIRectangle pane) {
@@ -353,8 +354,9 @@ public class UIRenderer extends Renderer {
         
         buildProjectionMatrix();
         
-        UIRectangle pane = buildTestBase();
-        buildTest1(pane);
+        loadUIResources();
+        buildBase();
+        //buildTest1(pane);
     }
     
     @Override

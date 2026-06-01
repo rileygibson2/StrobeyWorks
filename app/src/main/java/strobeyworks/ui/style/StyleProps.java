@@ -109,6 +109,9 @@ public final class StyleProps {
         public static final UIStyleProperty<Boolean> VISIBLE = 
         register(new UIStyleProperty<>("visible", Boolean.class));
 
+        public static final UIStyleProperty<Integer> Z_INDEX = 
+        register(new UIStyleProperty<>("z-index", Integer.class));
+
         
         public static final UIStyleProperty<Boolean> BORDER_ENABLED = 
         register(new UIStyleProperty<>("border-enabled", Boolean.class));
