@@ -1,4 +1,4 @@
-package strobeyworks.render.scenes;
+package strobeyworks.stagerender.scenes;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -8,9 +8,9 @@ import java.util.Set;
 import strobeyworks.object.Mesh;
 import strobeyworks.object.SceneObject;
 import strobeyworks.platform.Animation;
-import strobeyworks.render.lightsources.DirectionalLight;
-import strobeyworks.render.lightsources.LightSource;
-import strobeyworks.render.lightsources.SpotLight;
+import strobeyworks.stagerender.lightsources.DirectionalLight;
+import strobeyworks.stagerender.lightsources.LightSource;
+import strobeyworks.stagerender.lightsources.SpotLight;
 
 public abstract class Scene {
     protected Set<Mesh> meshes;

@@ -1,4 +1,4 @@
-package strobeyworks.render;
+package strobeyworks.stagerender;
 
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
@@ -34,11 +34,11 @@ import strobeyworks.platform.Animation;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.Renderer;
 import strobeyworks.platform.ShaderManager;
-import strobeyworks.render.lightsources.DirectionalLight;
-import strobeyworks.render.lightsources.LightSource;
-import strobeyworks.render.lightsources.SpotLight;
-import strobeyworks.render.scenes.Scene;
-import strobeyworks.render.scenes.WorkingScene;
+import strobeyworks.stagerender.lightsources.DirectionalLight;
+import strobeyworks.stagerender.lightsources.LightSource;
+import strobeyworks.stagerender.lightsources.SpotLight;
+import strobeyworks.stagerender.scenes.Scene;
+import strobeyworks.stagerender.scenes.WorkingScene;
 import strobeyworks.utils.MeshStatics;
 import strobeyworks.utils.Vec3;
 

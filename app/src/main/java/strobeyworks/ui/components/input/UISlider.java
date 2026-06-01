@@ -6,6 +6,7 @@ import static strobeyworks.ui.core.UILength.pph;
 import static strobeyworks.ui.core.UILength.ppw;
 import static strobeyworks.ui.core.UILength.px;
 
+import strobeyworks.logger.Logger;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UILength;
@@ -22,13 +23,13 @@ public class UISlider extends UIValueControl<Float, Float> {
     private UIRectangle followingRect;
     private float bounds = 0.99f;
     
-    public UISlider(UILength width, UILength height) {
-        super(UIValueAdaptor.FLOAT_IDENTITY);
+    public UISlider(UILength width, UILength height, UIValueAdaptor<Float, Float> adaptor) {
+        super(adaptor);
         
         style("width", width);
         style("height", height);
         wantsPointer(true);
-
+        
         style("box", UIBoxMode.FIXED);
         style("flow-direction", UIFlowDirection.ROW);
         style("flow-wrap", false);
@@ -46,7 +47,7 @@ public class UISlider extends UIValueControl<Float, Float> {
         UIStyle style = new UIStyle();
         style.set(StyleProps.TRANSFORM_SCALEX, 1.2f)
         .set(StyleProps.TRANSFORM_SCALEY, 1.2f);
-
+        
         knob = new UICircle();
         knob.style("width", pph(1f))
         .style("height", pph(1f))
@@ -101,29 +102,37 @@ public class UISlider extends UIValueControl<Float, Float> {
         float knobW = knob.resolve(knob.getWidth());
         float fullTravel = parentW-knobW;
         
-        float cV = offset*fullTravel+value*(fullTravel*bounds);
+        float cV = offset * fullTravel + value * (fullTravel * bounds);
         knob.style("offset-left", px(cV));
         
-        float rV = value*fullTravel*bounds+knobW*0.5f;
+        float rV = cV + knobW * 0.5f;
         followingRect.style("width", px(rV));
+        
+        Logger.debug(
+            "sliderW=" + getLocalWidth() +
+            ", sliderH=" + getLocalHeight() +
+            ", knobLocalW=" + knob.getLocalWidth() +
+            ", knobResolvedW=" + knob.resolve(knob.getWidth())
+        );
+        Logger.debug("");
         
         float a = Utils.smoothFalloffBefore(0.05f, value);
         followingRect.style("color", colWithAlpha(UIColors.GREEN, a));
     }
     
     private void setValueFromMouse(float mouseX) {
-        float localX = mouseX - getLocalX();
-        float value = localX / getLocalWidth();
+        float localX = mouseX - getScreenX();
+        float value = localX / getScreenWidth();
         
         setLocalValue(Math.max(Math.min(value, 1f), 0f));
         commitLocalValue();
     }
-
+    
     @Override
     public void gotPointer(IOEvent event) {
         setValueFromMouse(event.getMouseX());
     }
-
+    
     @Override
     public void lostPointer(IOEvent event) {
         setValueFromMouse(event.getMouseX());

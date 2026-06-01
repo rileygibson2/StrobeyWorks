@@ -752,6 +752,14 @@ public abstract class UIElement {
         markLayoutDirty();
         markSubtreeDirty();
     }
+
+    public void removeAllChildren() {
+        for (UIElement c : children) c.setParent(null);
+        children.clear();
+        
+        markLayoutDirty();
+        markSubtreeDirty();
+    }
     
     public int getChildCount() {
         return children.size();

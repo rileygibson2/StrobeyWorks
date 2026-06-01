@@ -147,7 +147,7 @@ public class Window {
         glfwMakeContextCurrent(windowID);
         
         // Enable vsync
-        glfwSwapInterval(0);
+        glfwSwapInterval(1);
         
         // Show window
         glfwShowWindow(windowID);

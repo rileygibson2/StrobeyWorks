@@ -1,4 +1,4 @@
-package strobeyworks.render;
+package strobeyworks.stagerender;
 
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_A;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_D;

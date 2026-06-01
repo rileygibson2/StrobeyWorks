@@ -1,4 +1,4 @@
-package strobeyworks.render.lightsources;
+package strobeyworks.stagerender.lightsources;
 
 import static org.lwjgl.opengl.GL11.GL_DEPTH_COMPONENT;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
@@ -30,7 +30,7 @@ import org.joml.Matrix4f;
 
 import strobeyworks.SWMain;
 import strobeyworks.object.SceneObject;
-import strobeyworks.render.SceneRenderer;
+import strobeyworks.stagerender.SceneRenderer;
 import strobeyworks.utils.Bindable;
 import strobeyworks.utils.Vec3;
 

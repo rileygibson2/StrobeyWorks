@@ -54,7 +54,15 @@ public class ShaderManager {
     private int currentProgram;
     
     public int SCREEN_VAO;
-    
+
+    public static float[] QUAD_VERTICES = {
+        -0.5f, -0.5f, 0.0f,
+        0.5f, -0.5f, 0.0f,
+        0.5f,  0.5f, 0.0f,
+        0.5f,  0.5f, 0.0f,
+        -0.5f,  0.5f, 0.0f,
+        -0.5f, -0.5f, 0.0f
+    };
     
     public ShaderManager() {
         clearCurrentProgram();

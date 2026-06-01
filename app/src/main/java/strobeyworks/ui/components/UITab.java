@@ -6,11 +6,11 @@ import static strobeyworks.ui.core.UILength.pbw;
 import static strobeyworks.ui.core.UILength.pph;
 import static strobeyworks.ui.core.UILength.ppw;
 import static strobeyworks.ui.core.UILength.px;
-import static strobeyworks.ui.core.UILength.sh;
-import static strobeyworks.ui.core.UILength.sw;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import strobeyworks.logger.Logger;
-import strobeyworks.platform.IOEvent;
 import strobeyworks.ui.core.UIColors;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.core.UILength;
@@ -25,21 +25,22 @@ import strobeyworks.utils.Vec4;
 public class UITab extends UIRectangle {
     
     private UIFont font;
-    private int numTabs;
-    private UIRectangle follower;
     private UIElement selectedTab;
 
     private UIElement tabBar;
+    private UIRectangle follower;
     private UIElement content;
+
+    private List<UIElement> tabRoots;
     
     public UITab(UILength width, UILength height, UIFont font) {
         super();
         
         this.font = font;
+        tabRoots = new ArrayList<>();
 
         style("width", width)
-        .style("height", height)
-        .style("color", col(UIColors.RED));
+        .style("height", height);
         
         // Tab bar
         tabBar = new UIRectangle();
@@ -54,14 +55,12 @@ public class UITab extends UIRectangle {
         .style("border-enabled", true)
         .style("border-color", col(UIColors.GREEN))
         .style("border-thickness", px(1))
-        .style("padding-top", px(10))
-        .style("padding-bottom", px(10))
         .style("z-index", 1);
         
         // Follower
         follower = new UIRectangle();
-        follower.style("width", sw(0.1f))
-        .style("height", pbh(1f))
+        follower.style("width", ppw(1f))
+        .style("height", pph(1f))
         .style("position", UIPositionMode.ABSOLUTE)
         .style("color", UIColors.colWithAlpha(UIColors.TRANSPARENT, 0.3f))
         .style("corner-radius", new Vec4(12f))
@@ -88,9 +87,8 @@ public class UITab extends UIRectangle {
         addChild(content);
     }
     
-    public void addTab(String title, String iconName) {
-        float t = numTabs;
-        numTabs++;
+    public void addTab(String title, String iconName, UIElement tabRoot) {
+        float t = tabRoots.size();
         
         UIRectangle tab = new UIRectangle();
         tab.style("width", pbw(0.1f))
@@ -125,7 +123,7 @@ public class UITab extends UIRectangle {
         tab.onGotFocus(event -> {
             // Expand tab
             text.style("opacity", 1f);
-            float w = tab.getChildContentBounds().getWidth()+5;
+            float w = tab.getChildContentBounds().getWidth()+10;
             
             UIStyle s = new UIStyle().set("width", px(w));
             tab.transitionToStyle(s, "focus");
@@ -146,7 +144,6 @@ public class UITab extends UIRectangle {
             tab.transitionToStyle(tab.getAuthoredStyle(), "focus");
             
             // Reset follower
-            Logger.debug("Click outside of tab, resetting follower");
             float x = t*selectedTab.resolve(pbw(0.1f))+t*5;
             
             UIStyle s = new UIStyle();
@@ -158,20 +155,21 @@ public class UITab extends UIRectangle {
         tab.addChild(icon);
         tab.addChild(text);
         tabBar.addChild(tab);
+
+        tabRoots.add(tabRoot);
     }
     
-    @Override
-    public void initialise() {
-        if (getChildCount()>1) {
-            UIElement firstTab = getChildAtIndex(1);
-            UIRenderer.getInstance().setFocussedElement(firstTab);
-        }
-        
-        super.initialise();
+    public void setTab(int tabIndex) {
+        UIElement tab = tabBar.getChildAtIndex(tabIndex+1);
+        if (tab!=null) setTab(tab);
     }
-    
-    public void setTab(UIElement tab) {
+
+    private void setTab(UIElement tab) {
         selectedTab = tab;
+        int i = tabBar.getChildIndex(tab)-1;
         
+        content.removeAllChildren();
+        UIElement tabRoot = tabRoots.get(i);
+        if (tabRoot!=null) content.addChild(tabRoot);
     }
 }

@@ -45,7 +45,9 @@ public class UIFloatField extends UIField<Float> {
         .style("corner-radius", new Vec4(0f))
         .style("border-enabled", false)
         .style("position", UIPositionMode.ABSOLUTE)
-        .style("visible", false);
+        .style("visible", false)
+        .style(StyleProps.TRANSFORM_SCALEX, 1f)
+        .style(StyleProps.TRANSFORM_SCALEY, 1f);
 
         up.icon("up_arrow")
         .clickedAction(() -> {increment(1);})
@@ -58,7 +60,9 @@ public class UIFloatField extends UIField<Float> {
         .style("border-enabled", false)
         .style("position", UIPositionMode.ABSOLUTE)
         .style("offset-top", pbh(0.5f))
-        .style("visible", false);
+        .style("visible", false)
+        .style(StyleProps.TRANSFORM_SCALEX, 1f)
+        .style(StyleProps.TRANSFORM_SCALEY, 1f);
 
         down.icon("down_arrow")
         .clickedAction(() -> {increment(-1);})

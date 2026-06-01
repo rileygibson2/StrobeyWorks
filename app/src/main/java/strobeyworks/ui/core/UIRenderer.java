@@ -25,10 +25,12 @@ import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
 import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 import static strobeyworks.ui.core.UIColors.col;
-import static strobeyworks.ui.core.UILength.pcw;
-import static strobeyworks.ui.core.UILength.pch;
-import static strobeyworks.ui.core.UILength.pbw;
 import static strobeyworks.ui.core.UILength.pbh;
+import static strobeyworks.ui.core.UILength.pbw;
+import static strobeyworks.ui.core.UILength.pch;
+import static strobeyworks.ui.core.UILength.pcw;
+import static strobeyworks.ui.core.UILength.pph;
+import static strobeyworks.ui.core.UILength.ppw;
 import static strobeyworks.ui.core.UILength.px;
 import static strobeyworks.ui.core.UILength.sh;
 import static strobeyworks.ui.core.UILength.sw;
@@ -43,18 +45,16 @@ import java.util.Set;
 import org.joml.Matrix4f;
 
 import strobeyworks.SWMain;
-import strobeyworks.logger.Logger;
+import strobeyworks.noiserender.NoiseRenderer;
 import strobeyworks.platform.Animation;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.Renderer;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.platform.Transition;
-import strobeyworks.render.SceneRenderer;
-import strobeyworks.render.lightsources.LightSource;
-import strobeyworks.render.scenes.Scene;
 import strobeyworks.ui.components.UITab;
 import strobeyworks.ui.components.input.UICheckBox;
 import strobeyworks.ui.components.input.UISlider;
+import strobeyworks.ui.components.input.UIValueAdaptor;
 import strobeyworks.ui.components.input.field.UIFieldRule;
 import strobeyworks.ui.components.input.field.UIFloatField;
 import strobeyworks.ui.components.input.field.UIFloatFieldRule;
@@ -69,7 +69,7 @@ import strobeyworks.ui.primitives.UIElement.UIPositionMode;
 import strobeyworks.ui.primitives.UIIcon;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
-import strobeyworks.utils.Vec4;
+import strobeyworks.utils.Bindable;
 
 public class UIRenderer extends Renderer {
     
@@ -81,14 +81,6 @@ public class UIRenderer extends Renderer {
     
     private Matrix4f projectionMatrix;
     
-    private float[] quadVertices = {
-        -0.5f, -0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        0.5f,  0.5f, 0.0f,
-        0.5f,  0.5f, 0.0f,
-        -0.5f,  0.5f, 0.0f,
-        -0.5f, -0.5f, 0.0f
-    };
     private int quadVAO;
     
     private int textVAO;
@@ -102,7 +94,7 @@ public class UIRenderer extends Renderer {
     
     protected Set<Animation> animations;
     protected Map<UIElement, Set<Transition>> transitions;
-
+    
     private UITab mainTab;
     
     public static UIRenderer getInstance() {
@@ -115,11 +107,14 @@ public class UIRenderer extends Renderer {
         animations = new HashSet<>();
         transitions = new HashMap<>();
     }
-
+    
     private void loadUIResources() {
         UIFontManager.loadFont("RobotoMono-Medium.ttf", 30f);
+        UIFontManager.loadFont("RobotoMono-Medium.ttf", 25f);
         UIFontManager.loadFont("RobotoMono-Medium.ttf", 20f);
-
+        UIFontManager.loadFont("RobotoMono-Medium.ttf", 15f);
+        UIFontManager.loadFont("RobotoMono-Medium.ttf", 10f);
+        
         UITextureManager.loadTexture("up_arrow.png");
         UITextureManager.loadTexture("down_arrow.png");
         UITextureManager.loadTexture("cube.png");
@@ -128,77 +123,156 @@ public class UIRenderer extends Renderer {
     }
     
     private void buildBase() {
-
-        UIFont f = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f);
-        UITab tab = new UITab(pbw(1f), pbh(0.9f), f);
-        tab.addTab("Objects", "cube");
-        tab.addTab("Lights", "light");
-        tab.addTab("Data", "data");
-
-        tab.style("margin-top", px(2));
-        addToRoot(tab);
+        mainTab = new UITab(pbw(1f), pbh(1f), UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f));
+        addToRoot(mainTab);
+    }
+    
+    public void buildObjectsTab() {
+        UIRectangle pane = new UIRectangle();
+        pane.style("width", ppw(1f))
+        .style("height", pph(1f))
+        .style("padding-left", px(5))
+        .style("padding-right", px(5))
+        .style("padding-top", px(5))
+        .style("padding-bottom", px(5))
+        .style("align-content", UIAlignContent.CENTER)
+        .style("flow-direction", UIFlowDirection.COLUMN)
+        .style("color", col(UIColors.TRANSPARENT))
+        .style("overflow-y", UIOverflowMode.SCROLL);
         
-        /*
+        mainTab.addTab("OBJECTS", "cube", pane);
         
+        NoiseRenderer r = NoiseRenderer.getInstance();
+        
+        record FloatControlConfig(
+            String name,
+            Bindable<Float> binding,
+            float min,
+            float max,
+            int precision,
+            float butIncrement
+        ) {}
+        
+        record BooleanControlConfig(
+            String name,
+            Bindable<Boolean> binding
+        ) {}
+        
+        FloatControlConfig[] sliderControls = {
+            new FloatControlConfig("Speed", r.getSpeed(), 0f, 5f, 1, 0.1f),
+            new FloatControlConfig("Scale", r.getGridSize(), 2f, 50f, 0, 1f),
+            new FloatControlConfig("Octaves", r.getOctaves(), 1f, 10f, 0, 1f),
+            new FloatControlConfig("Gamma", r.getGamma(), 0.1f, 20f, 1, 0.1f),
+            new FloatControlConfig("Gain", r.getGain(), 1f, 200f, 1, 1f),
+            new FloatControlConfig("Warp Strength", r.getWarpStrength(), 0f, 10f, 1, 0.1f),
+            new FloatControlConfig("Warp Scale", r.getWarpScale(), 0.1f, 5f, 2, 0.1f),
+            new FloatControlConfig("Ridge Scale", r.getRidgePow(), 1f, 10f, 0, 1f),
+            new FloatControlConfig("Turbulence Scale", r.getTurbulencePow(), 0.25f, 8f, 1, 0.1f)
+        };
+        
+        BooleanControlConfig[] cbControls = {
+            new BooleanControlConfig("Warp", r.getWarp()),
+            new BooleanControlConfig("Octave Ridge", r.getOctaveRidge()),
+            new BooleanControlConfig("Post Ridge", r.getPostRidge()),
+            new BooleanControlConfig("Octave Turbulence", r.getOctaveTurbulence())
+        };
+        
+        UIFont titleFont = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f);
+        UIFont fieldFont = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f);
+        
+        UIRectangle line = new UIRectangle();
+        line.style("width", pcw(1f))
+        .style("box", UIBoxMode.FLEX)
+        //.style("height", pch(0.08f))
+        .style("margin-top", px(10))
+        .style("max-width", pcw(1f))
+        .style("align-items", UIAlignItems.CENTER)
+        //.style("color", col(UIColors.RED))
+        .style("flow-wrap", true);
+        pane.addChild(line);
+        
+        for (BooleanControlConfig config : cbControls) {
+            UIText title = new UIText(titleFont, config.name());
+            title.style("margin-left", px(10))
+            .style("color", col(UIColors.GREEN));
+            
+            UICheckBox cB = new UICheckBox(px(40), px(40), true);
+            cB.style("margin-left", px(10));
+            cB.bindTo(config.binding());
+            
+            line.addChild(title);
+            line.addChild(cB);
+            
+        }
+        
+        for (FloatControlConfig config : sliderControls) {
+            line = new UIRectangle();
+            line.style("width", pcw(1f))
+            .style("height", pch(0.08f))
+            //.style("color", col(UIColors.RED))
+            .style("margin-top", px(10))
+            .style("align-items", UIAlignItems.CENTER);
+            
+            UIRectangle right = new UIRectangle();
+            right.style("width", ppw(0.8f))
+            .style("height", pph(1f))
+            .style("position", UIPositionMode.ABSOLUTE)
+            .style("offset-left", ppw(0.2f))
+            .style("color", col(UIColors.TRANSPARENT))
+            .style("margin-top", px(10))
+            .style("align-items", UIAlignItems.CENTER);
+            
+            UIText title = new UIText(titleFont, config.name());
+            title.style("margin-left", px(10))
+            .style("color", col(UIColors.GREEN));
+            
+            UIFloatFieldRule inputRule = UIFieldRule.defaultFloat();
+            inputRule.maxCharacters(3)
+            .maxPrecision(config.precision())
+            .inputMinMax(config.min(), config.max());
+            
+            UIFloatField field = new UIFloatField(fieldFont, inputRule);
+            field.useButtons(config.butIncrement());
+            field.style("width", ppw(0.2f))
+            .style("height", pph(1f))
+            .style("margin-left", ppw(0.05f));
+            
+            UISlider slider = new UISlider(
+                ppw(0.65f),
+                pph(1f),
+                UIValueAdaptor.floatRange(config.min(), config.max())
+            );
+            slider.style("margin-left", ppw(0.1f));
+            
+            field.bindTo(config.binding());
+            slider.bindTo(config.binding);
+            
+            line.addChild(title);
+            line.addChild(right);
+            right.addChild(slider);
+            right.addChild(field);
+            pane.addChild(line);
+        }
+    }
+    
+    public void buildLightsTab() {
+        UIRectangle pane = new UIRectangle();
+        pane.style("width", ppw(1f))
+        .style("height", pph(1f))
         .style("padding-left", px(5))
         .style("padding-right", px(5))
         .style("padding-top", px(5))
         .style("padding-bottom", px(5))
         .style("align-items", UIAlignItems.CENTER)
         .style("align-content", UIAlignContent.CENTER)
-        .style("flow-direction", UIFlowDirection.COLUMN); */
+        .style("flow-direction", UIFlowDirection.COLUMN)
+        .style("color", col(UIColors.BLUE));
         
+        mainTab.addTab("LIGHTS", "light", pane);
     }
     
-    public void buildTest1(UIRectangle pane) {
-        UIFont font = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 30f);
-        
-        UIFloatFieldRule inputRule = UIFieldRule.defaultFloat();
-        inputRule.maxCharacters(3)
-        .maxPrecision(0)
-        .inputMinMax(0f, 100f)
-        .mappedMinMax(0f, 1f);
-        
-        UIFloatField field = new UIFloatField(font, inputRule);
-        field.useButtons(0.1f);
-        field.style("width", sw(0.2f))
-        .style("height", sh(0.08f))
-        .style("margin-top", px(20));
-        
-        pane.addChild(field);
-        
-        List<UISlider> sliders = new ArrayList<>();
-        int num = 4;
-        for (int i=0; i<num; i++) {
-            UISlider slider = new UISlider(sw(0.9f), sh(0.08f));
-            slider.style("margin-top", px(10));
-            pane.addChild(slider);
-            sliders.add(slider);
-        }
-        
-        UICheckBox checkBox = new UICheckBox(sw(0.1f), sw(0.1f), true);
-        checkBox.style("margin-top", px(10));
-        pane.addChild(checkBox);
-        
-        Scene scene = SceneRenderer.getInstance().getScene();
-        LightSource spot = scene.getSpotLights().get(0);
-        
-        field.bindTo(spot.getIntensity());
-        sliders.get(0).bindTo(spot.getIntensity());
-        sliders.get(1).bindTo(spot.getRed());
-        sliders.get(2).bindTo(spot.getGreen());
-        sliders.get(3).bindTo(spot.getBlue());
-        checkBox.bindTo(spot.getShadowEnabled());
-        
-        Animation a = new Animation(3, (i, value) -> {
-            sliders.get(i+1).setLocalValue(value);
-            sliders.get(i+1).commitLocalValue();
-        });
-        a.setWidth(1f);
-        a.setSpeed(0.2f);
-        //a.setPhase(0f, 0.2f);
-        //addAnimation(a);
-        
+    public void buildDataTab() {
+        mainTab.addTab("DATA", "data", null);
     }
     
     public void buildTest2(UIRectangle pane) {
@@ -224,7 +298,7 @@ public class UIRenderer extends Renderer {
             .style("align-items", UIAlignItems.CENTER)
             .style("border-enabled", true);
             box.addChild(bC);
-
+            
             UIRectangle bC1 = new UIRectangle();
             bC1.style("width", pcw(0.5f))
             .style("height", pch(0.5f))
@@ -232,7 +306,7 @@ public class UIRenderer extends Renderer {
             .style("border-enabled", true);
             bC.addChild(bC1);
         }
-
+        
         // Vertical
         UIRectangle boxV = new UIRectangle();
         boxV.style("width", pcw(0.5f))
@@ -257,7 +331,7 @@ public class UIRenderer extends Renderer {
             .style("align-items", UIAlignItems.CENTER)
             .style("border-enabled", true);
             boxV.addChild(bC);
-
+            
             UIRectangle bC1 = new UIRectangle();
             bC1.style("width", pcw(0.5f))
             .style("height", pch(0.5f))
@@ -265,7 +339,7 @@ public class UIRenderer extends Renderer {
             .style("border-enabled", true);
             bC.addChild(bC1);
         }
-
+        
         Animation a = new Animation((i, value) -> {
             box.scrollX(value);
         });
@@ -327,7 +401,7 @@ public class UIRenderer extends Renderer {
         int quadVBO = glGenBuffers();
         sM.bindVAO(quadVAO);
         sM.bindVBO(quadVBO);
-        glBufferData(GL_ARRAY_BUFFER, quadVertices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, ShaderManager.QUAD_VERTICES, GL_STATIC_DRAW);
         
         glVertexAttribPointer(0, 3, GL_FLOAT, false, 3 * Float.BYTES, 0);
         glEnableVertexAttribArray(0);
@@ -356,7 +430,11 @@ public class UIRenderer extends Renderer {
         
         loadUIResources();
         buildBase();
-        //buildTest1(pane);
+        buildObjectsTab();
+        buildLightsTab();
+        buildDataTab();
+        
+        mainTab.setTab(0);
     }
     
     @Override
@@ -438,7 +516,7 @@ public class UIRenderer extends Renderer {
             default: break;
         }
     }
-
+    
     public void setFocussedElement(UIElement e) {
         if (focussedElement!=null) focussedElement.lostFocus(IOEvent.dummyEvent());
         focussedElement = e;

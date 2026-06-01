@@ -1,6 +1,6 @@
 package strobeyworks.ui.components.input;
 
-import strobeyworks.ui.core.UILength;
+import strobeyworks.logger.Logger;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Bindable;
 import strobeyworks.utils.BindableObserver;
@@ -39,6 +39,7 @@ public abstract class UIValueControl<E, L> extends UIRectangle implements Bindab
     
     @Override
     public void initialise() {
+        super.initialise();
         if (hasBinding()) setLocalValue(adaptor.adaptExternalToLocal(binding.getValue()));
         else if (!hasLocalValue()) setLocalValue(getDefaultLocalValue());
         else implementLocalValueOnUI();

@@ -106,7 +106,7 @@ public class UIField<T> extends UIValueControl<T, String> {
     
     @Override
     public void gotFocus(IOEvent event) {
-        float internalX = event.getMouseX()-textElem.getLocalX();
+        float internalX = event.getMouseX()-textElem.getScreenX();
         Logger.debug(getLocalValue());
         cursorPos = textElem.getFont().getCursorIndexAt(getLocalValue(), internalX);
         

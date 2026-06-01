@@ -33,8 +33,8 @@ public final class Utils {
         return Math.max(0f, Math.min(1f, v));
     }
     
-    public static float clamp(float low, float high, float v) {
-        return Math.max(low, Math.min(1f, high));
+    public static float clamp(Number low, Number high, Number v) {
+        return Math.max(low.floatValue(), Math.min(high.floatValue(), v.floatValue()));
     }
     
     public static float quadratic(float v) {
