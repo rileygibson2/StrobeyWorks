@@ -5,10 +5,9 @@ import static org.lwjgl.glfw.GLFW.glfwPollEvents;
 import javax.swing.Timer;
 
 import strobeyworks.logger.Logger;
-import strobeyworks.noiserender.NoiseRenderer;
+import strobeyworks.noiserender.AgentRenderer;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.platform.Window;
-import strobeyworks.stagerender.SceneRenderer;
 import strobeyworks.ui.core.UIRenderer;
 
 public class SWMain {
@@ -44,7 +43,7 @@ public class SWMain {
         shaderManager = new ShaderManager();
         
         //renderWindow = new Window(SceneRenderer.getInstance(), 1500, 900, "Render");
-        renderWindow = new Window(NoiseRenderer.getInstance(), 1500, 900, "Noise Render");
+        renderWindow = new Window(AgentRenderer.getInstance(), 1500, 900, "Agent Render");
 
         
         uiWindow = new Window(UIRenderer.getInstance(), 500, 500, "UI");

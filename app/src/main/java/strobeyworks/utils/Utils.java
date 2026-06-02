@@ -10,6 +10,10 @@ import strobeyworks.ui.core.UIFont;
 
 public final class Utils {
     private Utils() {}
+
+    public static float randomBetween(float min, float max) {
+        return min+(float) Math.random()*(max-min);
+    }
     
     public static Vec3 directionTo(Vec3 position, Vec3 referencePoint) {
         float x = referencePoint.x - position.x;

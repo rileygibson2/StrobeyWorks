@@ -31,12 +31,15 @@ import static org.lwjgl.opengl.GL20.glShaderSource;
 import static org.lwjgl.opengl.GL20.glUniform1f;
 import static org.lwjgl.opengl.GL20.glUniform1i;
 import static org.lwjgl.opengl.GL20.glUniform3f;
+import static org.lwjgl.opengl.GL20.glUniform2f;
 import static org.lwjgl.opengl.GL20.glUniform4f;
 import static org.lwjgl.opengl.GL20.glUniformMatrix4fv;
 import static org.lwjgl.opengl.GL20.glUseProgram;
 import static org.lwjgl.opengl.GL30.GL_FRAMEBUFFER;
+import static org.lwjgl.opengl.GL30.GL_INTERLEAVED_ATTRIBS;
 import static org.lwjgl.opengl.GL30.glBindFramebuffer;
 import static org.lwjgl.opengl.GL30.glBindVertexArray;
+import static org.lwjgl.opengl.GL30.glTransformFeedbackVaryings;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -46,6 +49,7 @@ import java.nio.FloatBuffer;
 import org.joml.Matrix4f;
 import org.lwjgl.system.MemoryStack;
 
+import strobeyworks.utils.Vec2;
 import strobeyworks.utils.Vec3;
 import strobeyworks.utils.Vec4;
 
@@ -54,7 +58,7 @@ public class ShaderManager {
     private int currentProgram;
     
     public int SCREEN_VAO;
-
+    
     public static float[] QUAD_VERTICES = {
         -0.5f, -0.5f, 0.0f,
         0.5f, -0.5f, 0.0f,
@@ -124,9 +128,40 @@ public class ShaderManager {
         return program;
     }
     
+    public int createFeedbackProgram(String vertPath, String varyings) {
+        String vertSrc = loadResource("/shaders/"+vertPath);
+        int vs = compileShader(vertSrc, GL_VERTEX_SHADER);
+        
+        int program = glCreateProgram();
+        glAttachShader(program, vs);
+        
+        glTransformFeedbackVaryings(
+            program,
+            new CharSequence[] {varyings},
+            GL_INTERLEAVED_ATTRIBS
+        );
+        glLinkProgram(program);
+        
+        int status = glGetProgrami(program, GL_LINK_STATUS);
+        if (status == GL_FALSE) {
+            String log = glGetProgramInfoLog(program);
+            throw new RuntimeException("Program link error: " + log);
+        }
+        
+        glDeleteShader(vs);
+        
+        return program;
+    }
+    
     public int getUniformLocation(String n) {
         if (currentProgram==-1) throw new RuntimeException("Cannot get uniform - no current program");
         return glGetUniformLocation(currentProgram, n);
+    }
+
+    public void setUniformVec2(String n, Vec2 v) {
+        if (currentProgram==-1) throw new RuntimeException("Cannot set uniform - no current program");
+        int id = glGetUniformLocation(currentProgram, n);
+        glUniform2f(id, v.x, v.y);
     }
     
     public void setUniformVec3(String n, Vec3 v) {
@@ -134,8 +169,7 @@ public class ShaderManager {
         int id = glGetUniformLocation(currentProgram, n);
         glUniform3f(id, v.x, v.y, v.z);
     }
-
-
+    
     public void setUniformVec4(String n, Vec4 v) {
         if (currentProgram==-1) throw new RuntimeException("Cannot set uniform - no current program");
         int id = glGetUniformLocation(currentProgram, n);
