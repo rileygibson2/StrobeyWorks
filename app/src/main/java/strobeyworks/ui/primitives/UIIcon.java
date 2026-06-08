@@ -1,13 +1,10 @@
 package strobeyworks.ui.primitives;
 
-import static strobeyworks.ui.core.UIColors.col;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-import strobeyworks.ui.core.UIColors;
-import strobeyworks.ui.core.UILength;
+import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UITexture;
 import strobeyworks.ui.core.UITextureManager;
 import strobeyworks.ui.style.StyleProps;
@@ -26,20 +23,20 @@ public class UIIcon extends UIElement {
     private Vec4 uvRect = new Vec4(0f, 0f, 1f, 1f);
     
     private UITexture texture;
-    private Vec4 tint = col(UIColors.WHITE);
+    private UIColor tint = UIColor.WHITE;
     
     public UIIcon(String textureName) {
         super();
         this.texture = UITextureManager.getUITexture(textureName);
         
-        style("border-color", col(UIColors.WHITE));
+        style("border-color", UIColor.WHITE);
         style("box", UIBoxMode.FIXED);
     }
     
     public UIIcon() {
         super();
         
-        style("border-color", col(UIColors.WHITE));
+        style("border-color", UIColor.WHITE);
         style("box", UIBoxMode.FIXED);
     }
     
@@ -63,7 +60,7 @@ public class UIIcon extends UIElement {
         return this;
     }
     
-    private UIIcon tint(Vec4 tint) {
+    private UIIcon tint(UIColor tint) {
         this.tint = tint;
         return this;
     }
@@ -72,7 +69,7 @@ public class UIIcon extends UIElement {
         return texture.getTextureId();
     }
     
-    public Vec4 getTint() {
+    public UIColor getTint() {
         return tint;
     }
     

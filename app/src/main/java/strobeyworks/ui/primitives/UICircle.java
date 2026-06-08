@@ -1,6 +1,5 @@
 package strobeyworks.ui.primitives;
 
-import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UILength.px;
 
 import java.util.HashMap;
@@ -8,7 +7,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 
 import strobeyworks.platform.ShaderManager;
-import strobeyworks.ui.core.UIColors;
+import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
@@ -28,15 +27,15 @@ public class UICircle extends UIElement {
     private static final int PRIM_TYPE_OVAL = 2;
     private static final int PRIM_TYPE_CIRCLE = 3;
     
-    private Vec4 color;
-    private Vec4 borderColor;
+    private UIColor color;
+    private UIColor borderColor;
     private boolean oval;
     
     public UICircle() {
         super();
         
-        style("color", col(UIColors.TRANSPARENT));
-        style("border-color", col(UIColors.WHITE));
+        style("color", UIColor.TRANSPARENT);
+        style("border-color", UIColor.WHITE);
         style("border-thickness", px(2));
         style("oval", true);
     }
@@ -44,9 +43,9 @@ public class UICircle extends UIElement {
     @Override
     public void setRenderUniforms(ShaderManager sM) {
         sM.setUniformInt("uPrimType", oval ? PRIM_TYPE_OVAL : PRIM_TYPE_CIRCLE);
-        sM.setUniformVec4("uColor", color);
+        sM.setUniformVec4("uColor", new Vec4(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha()));
         
-        sM.setUniformVec4("uBorderColor", borderColor);
+        sM.setUniformVec4("uBorderColor", new Vec4(borderColor.getRed(), borderColor.getGreen(), borderColor.getBlue(), borderColor.getAlpha()));
         super.setRenderUniforms(sM);
     }
 
@@ -66,12 +65,12 @@ public class UICircle extends UIElement {
         return style;
     }
     
-    private UICircle color(Vec4 color) {
+    private UICircle color(UIColor color) {
         this.color = color;
         return this;
     }
     
-    private UICircle borderColor(Vec4 borderColor) {
+    private UICircle borderColor(UIColor borderColor) {
         this.borderColor = borderColor;
         return this;
     }

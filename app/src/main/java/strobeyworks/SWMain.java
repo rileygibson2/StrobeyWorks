@@ -6,6 +6,7 @@ import javax.swing.Timer;
 
 import strobeyworks.logger.Logger;
 import strobeyworks.noiserender.AgentRenderer;
+import strobeyworks.noiserender.NoiseRenderer;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.platform.Window;
 import strobeyworks.ui.core.UIRenderer;

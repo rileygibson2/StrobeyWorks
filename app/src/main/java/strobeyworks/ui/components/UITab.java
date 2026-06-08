@@ -1,6 +1,5 @@
 package strobeyworks.ui.components;
 
-import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UILength.pbh;
 import static strobeyworks.ui.core.UILength.pbw;
 import static strobeyworks.ui.core.UILength.pph;
@@ -10,11 +9,9 @@ import static strobeyworks.ui.core.UILength.px;
 import java.util.ArrayList;
 import java.util.List;
 
-import strobeyworks.logger.Logger;
-import strobeyworks.ui.core.UIColors;
+import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.core.UILength;
-import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.ui.primitives.UIElement;
 import strobeyworks.ui.primitives.UIIcon;
 import strobeyworks.ui.primitives.UIRectangle;
@@ -50,10 +47,10 @@ public class UITab extends UIRectangle {
         .style("flow-direction", UIFlowDirection.ROW)
         .style("flow-wrap", false)
         .style("align-items", UIAlignItems.CENTER)
-        .style("color", col(UIColors.GRAY_008))
+        .style("color", UIColor.GRAY_008)
         .style("corner-radius", new Vec4(10f))
         .style("border-enabled", true)
-        .style("border-color", col(UIColors.GREEN))
+        .style("border-color", UIColor.GREEN)
         .style("border-thickness", px(1))
         .style("z-index", 1);
         
@@ -62,10 +59,10 @@ public class UITab extends UIRectangle {
         follower.style("width", ppw(1f))
         .style("height", pph(1f))
         .style("position", UIPositionMode.ABSOLUTE)
-        .style("color", UIColors.colWithAlpha(UIColors.TRANSPARENT, 0.3f))
+        .style("color", UIColor.TRANSPARENT.setAlpha(0.3f))
         .style("corner-radius", new Vec4(12f))
         .style("border-enabled", true)
-        .style("border-color", col(UIColors.GREEN))
+        .style("border-color", UIColor.GREEN)
         .style("border-thickness", px(1))
         .style("transition-duration", 0.2f);
 
@@ -75,9 +72,9 @@ public class UITab extends UIRectangle {
         .style("height", pbh(0.9f))
         .style("position", UIPositionMode.ABSOLUTE)
         .style("offset-top", pbh(0.1f))
-        .style("color", col(UIColors.GRAY_008))
+        .style("color", UIColor.GRAY_008)
         .style("corner-radius", new Vec4(0f, 0f, 20f, 20f))
-        .style("border-color", col(UIColors.GREEN))
+        .style("border-color", UIColor.GREEN)
         .style("border-thickness", px(1))
         .style("border-top", false)
         .style("border-enabled", true);
@@ -95,7 +92,7 @@ public class UITab extends UIRectangle {
         .style("height", pbh(0.9f));
         
         tab.style("corner-radius", new Vec4(10f))
-        .style("color", UIColors.col(UIColors.TRANSPARENT))
+        .style("color", UIColor.TRANSPARENT)
         .style("border-enabled", false)
         .style("transition-duration", 0.2f)
         .style("align-items", UIAlignItems.CENTER)
@@ -108,10 +105,10 @@ public class UITab extends UIRectangle {
         icon.style("width", ppw(0.8f))
         .style("height", pph(0.8f))
         .style("margin-left", ppw(0.1f))
-        .style("tint", col(UIColors.GREEN));
+        .style("tint", UIColor.GREEN);
         
         UIText text = new UIText(font, title);
-        text.style("color", col(UIColors.GREEN))
+        text.style("color", UIColor.GREEN)
         .style("margin-left", px(10))
         .style("opacity", 0f);
         

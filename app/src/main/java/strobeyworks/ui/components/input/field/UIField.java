@@ -4,7 +4,6 @@ import static org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT;
-import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UILength.pch;
 import static strobeyworks.ui.core.UILength.pcw;
 import static strobeyworks.ui.core.UILength.px;
@@ -14,9 +13,8 @@ import strobeyworks.platform.Animation;
 import strobeyworks.platform.Animation.AnimationForm;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.ui.components.input.UIValueControl;
-import strobeyworks.ui.core.UIColors;
+import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIFont;
-import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
@@ -32,7 +30,7 @@ public class UIField<T> extends UIValueControl<T, String> {
     private Animation flash;
     
     private int cursorPos;
-    private Vec4 cachedColor;
+    private UIColor cachedColor;
     private boolean invalidInput;
     
     public UIField(UIFont font, UIFieldRule<T> inputRule) {
@@ -43,9 +41,9 @@ public class UIField<T> extends UIValueControl<T, String> {
         
         style("align-items", UIAlignItems.CENTER);
         style("border-enabled", true);
-        style("border-color", col(UIColors.GREEN));
+        style("border-color", UIColor.GREEN);
         style("padding-left",px(10));
-        style("color", col(UIColors.TRANSPARENT));
+        style("color", UIColor.TRANSPARENT);
         style("corner-radius", new Vec4(10f));
         
         wrapper = new UIRectangle();
@@ -59,12 +57,12 @@ public class UIField<T> extends UIValueControl<T, String> {
         .style("position", UIPositionMode.ABSOLUTE)
         .style("offset-left", pcw(0.1f))
         .style("offset-top", pch(0.1f))
-        .style("color", col(UIColors.GREEN))
+        .style("color", UIColor.GREEN)
         .style("corner-radius", new Vec4(10f))
         .style("visible", false);
         
         textElem = new UIText(font);
-        textElem.style("color", col(UIColors.GREEN));
+        textElem.style("color", UIColor.GREEN);
         
         addChild(wrapper);
         wrapper.addChild(textElem);
@@ -153,7 +151,7 @@ public class UIField<T> extends UIValueControl<T, String> {
         if (!success) {
             if (!invalidInput) cachedColor = textElem.getColor(); // Protect against multiple failed attempts in a row
             invalidInput = true;
-            textElem.style("color", col(UIColors.RED));
+            textElem.style("color", UIColor.RED);
         }
         
         cursorPos = getLocalValue().length();

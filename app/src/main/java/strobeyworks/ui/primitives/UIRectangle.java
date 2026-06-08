@@ -1,17 +1,13 @@
 package strobeyworks.ui.primitives;
 
-import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UILength.px;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BiConsumer;
 
 import strobeyworks.platform.ShaderManager;
-import strobeyworks.ui.core.UIColors;
-import strobeyworks.ui.core.UILength;
+import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
 import strobeyworks.ui.style.UIStyleProperty;
@@ -29,23 +25,23 @@ public class UIRectangle extends UIElement {
     
     private static final int PRIM_TYPE = 1;
     
-    private Vec4 color;
+    private UIColor color;
     private Vec4 cornerRadius;
-    private Vec4 borderColor;
+    private UIColor borderColor;
     
     public UIRectangle() {
         super();
-        style("color", col(UIColors.TRANSPARENT));
+        style("color", UIColor.TRANSPARENT);
         style("corner-radius", new Vec4(0f));
-        style("border-color", col(UIColors.WHITE));
+        style("border-color", UIColor.WHITE);
         style("border-thickness", px(2));
     }
     
     public void setRenderUniforms(ShaderManager sM) {
         sM.setUniformInt("uPrimType", PRIM_TYPE);
-        sM.setUniformVec4("uColor", color);
+        sM.setUniformVec4("uColor", new Vec4(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha()));
         sM.setUniformVec4("uCornerRadius", cornerRadius);
-        sM.setUniformVec4("uBorderColor", borderColor);
+        sM.setUniformVec4("uBorderColor", new Vec4(borderColor.getRed(), borderColor.getGreen(), borderColor.getBlue(), borderColor.getAlpha()));
         
         super.setRenderUniforms(sM);
     }
@@ -66,7 +62,7 @@ public class UIRectangle extends UIElement {
         return style;
     }
     
-    private UIRectangle color(Vec4 color) {
+    private UIRectangle color(UIColor color) {
         this.color = color;
         return this;
     }
@@ -76,12 +72,8 @@ public class UIRectangle extends UIElement {
         return this;
     }
     
-    private UIRectangle borderColor(Vec4 borderColor) {
+    private UIRectangle borderColor(UIColor borderColor) {
         this.borderColor = borderColor;
         return this;
-    }
-
-    public Vec4 getColor() {
-        return this.color;
     }
 }

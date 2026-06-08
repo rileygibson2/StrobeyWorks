@@ -1,13 +1,13 @@
 package strobeyworks.ui.components;
 
-import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UILength.pch;
 import static strobeyworks.ui.core.UILength.pcw;
 
-import strobeyworks.platform.IOEvent;
-import strobeyworks.ui.core.UIColors;
+import strobeyworks.ui.core.UIColor;
+import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.primitives.UIIcon;
 import strobeyworks.ui.primitives.UIRectangle;
+import strobeyworks.ui.primitives.UIText;
 import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
 import strobeyworks.ui.style.UIStyleProperty;
@@ -21,34 +21,54 @@ public class UIButton extends UIRectangle {
     }
     
     private UIIcon icon;
+    private UIText text;
     
     private UIButtonCallback callback;
     
-    public UIButton() {
-        
+    public UIButton(String iconName) {
         clickable(true);
         hoverable(true);
-
+        
         style("transition-duration", 0.3f);
         style("box", UIBoxMode.FIXED);
-        style("color", col(UIColors.TRANSPARENT));
+        style("color", UIColor.TRANSPARENT);
         style("border-enabled", true);
-        style("border-color", col(UIColors.GREEN));
+        style("border-color", UIColor.GREEN);
         style("corner-radius", new Vec4(10f));
         
         icon = new UIIcon();
         icon.style("width", pcw(1.0f))
         .style("height", pch(1.0f))
-        .style("tint", col(UIColors.GREEN))
+        .style("tint", UIColor.GREEN)
         .style("visible", false);
+        icon.texture(iconName);
         addChild(icon);
+    }
+    
+    public UIButton(UIFont font, String t) {
+        clickable(true);
+        hoverable(true);
+        
+        style("transition-duration", 0.3f);
+        style("box", UIBoxMode.FIXED);
+        style("color", UIColor.TRANSPARENT);
+        style("border-enabled", true);
+        style("border-color", UIColor.GREEN);
+        style("corner-radius", new Vec4(10f));
+        style("justify-content", UIJustifyContent.CENTER);
+        
+        text = new UIText(font, t);
+        text.style("color", UIColor.GREEN);
+        addChild(text);
     }
     
     @Override
     protected void applyStyleProperty(UIStyleProperty<?> property, Object value) {
-        if (property==StyleProps.ICON_TINT) icon.style(property, value);
-        if (property==StyleProps.TRANSFORM_SCALEX) icon.style(property, value);
-        if (property==StyleProps.TRANSFORM_SCALEY) icon.style(property, value);
+        if (icon!=null) {
+            if (property==StyleProps.ICON_TINT) icon.style(property, value);
+            if (property==StyleProps.TRANSFORM_SCALEX) icon.style(property, value);
+            if (property==StyleProps.TRANSFORM_SCALEY) icon.style(property, value);
+        }
         super.applyStyleProperty(property, value);
     }
     
@@ -56,23 +76,14 @@ public class UIButton extends UIRectangle {
     public UIStyle captureStyle() {
         UIStyle style = super.captureStyle();
         
-        style.set(StyleProps.ICON_TINT, icon.getTint());
+        if (icon!=null) style.set(StyleProps.ICON_TINT, icon.getTint());
         return style;
     }
     
     public UIButton icon(String iconName) {
+        if (icon==null) return this;
         icon.texture(iconName);
         icon.style("visible", true);
         return this;
-    }
-    
-    public UIButton clickedAction(UIButtonCallback callback) {
-        this.callback = callback;
-        return this;
-    }
-    
-    @Override
-    public void clicked(IOEvent event) {
-        if (callback!=null) callback.implement();
     }
 }

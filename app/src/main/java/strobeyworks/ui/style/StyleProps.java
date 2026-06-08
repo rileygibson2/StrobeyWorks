@@ -3,6 +3,7 @@ package strobeyworks.ui.style;
 import java.util.HashMap;
 import java.util.Map;
 
+import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.primitives.UIElement.UIAlignContent;
@@ -119,8 +120,8 @@ public final class StyleProps {
         public static final UIStyleProperty<UILength> BORDER_THICKNESS = 
         register(new UIStyleProperty<>("border-thickness", UILength.class));
         
-        public static final UIStyleProperty<Vec4> BORDER_COLOR = 
-        register(new UIStyleProperty<>("border-color", Vec4.class));
+        public static final UIStyleProperty<UIColor> BORDER_COLOR = 
+        register(new UIStyleProperty<>("border-color", UIColor.class));
         
         public static final UIStyleProperty<Boolean> BORDER_LEFT = 
         register(new UIStyleProperty<>("border-left", Boolean.class));
@@ -135,8 +136,8 @@ public final class StyleProps {
         register(new UIStyleProperty<>("border-bottom", Boolean.class));
 
 
-        public static final UIStyleProperty<Vec4> COLOR = 
-        register(new UIStyleProperty<>("color", Vec4.class));
+        public static final UIStyleProperty<UIColor> COLOR = 
+        register(new UIStyleProperty<>("color", UIColor.class));
         
         public static final UIStyleProperty<Vec4> CORNER_RADIUS = 
         register(new UIStyleProperty<>("corner-radius", Vec4.class));
@@ -144,14 +145,14 @@ public final class StyleProps {
         public static final UIStyleProperty<Boolean> OVAL = 
         register(new UIStyleProperty<>("oval", Boolean.class));
 
-        public static final UIStyleProperty<Vec4> TINT = 
-        register(new UIStyleProperty<>("tint", Vec4.class));
+        public static final UIStyleProperty<UIColor> TINT = 
+        register(new UIStyleProperty<>("tint", UIColor.class));
         
         public static final UIStyleProperty<UIFont> FONT = 
         register(new UIStyleProperty<>("font", UIFont.class));
         
-        public static final UIStyleProperty<Vec4> ICON_TINT = 
-        register(new UIStyleProperty<>("icon-tint", Vec4.class));
+        public static final UIStyleProperty<UIColor> ICON_TINT = 
+        register(new UIStyleProperty<>("icon-tint", UIColor.class));
         
         //Transform
         public static final UIStyleProperty<Float> TRANSFORM_SCALEX = 

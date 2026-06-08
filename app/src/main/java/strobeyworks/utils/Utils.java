@@ -10,7 +10,7 @@ import strobeyworks.ui.core.UIFont;
 
 public final class Utils {
     private Utils() {}
-
+    
     public static float randomBetween(float min, float max) {
         return min+(float) Math.random()*(max-min);
     }
@@ -99,8 +99,79 @@ public final class Utils {
             return buffer;
         }
     }
-
+    
     public static float lerpFloat(float a, float b, float i) {
         return a+((b-a)*i);
+    }
+    
+    public static Vec3 hsbToRgb(float h, float s, float b) {
+        h = h - (float) Math.floor(h);
+        s = Math.max(0f, Math.min(s, 1f));
+        b = Math.max(0f, Math.min(b, 1f));
+        
+        float r = b;
+        float g = b;
+        float bl = b;
+        
+        if (s != 0f) {
+            float scaledHue = h * 6f;
+            int sector = (int) Math.floor(scaledHue);
+            float fraction = scaledHue - sector;
+            
+            float p = b * (1f - s);
+            float q = b * (1f - s * fraction);
+            float t = b * (1f - s * (1f - fraction));
+            
+            switch (sector) {
+                case 0 -> {
+                    r = b; g = t; bl = p;
+                }
+                case 1 -> {
+                    r = q; g = b; bl = p;
+                }
+                case 2 -> {
+                    r = p; g = b; bl = t;
+                }
+                case 3 -> {
+                    r = p; g = q; bl = b;
+                }
+                case 4 -> {
+                    r = t; g = p; bl = b;
+                }
+                default -> {
+                    r = b; g = p; bl = q;
+                }
+            }
+        }
+        
+        return new Vec3(r, g, bl);
+    }
+    
+    public static Vec3 rgbToHsb(float r, float g, float b) {
+        float max = Math.max(r, Math.max(g, b));
+        float min = Math.min(r, Math.min(g, b));
+        float delta = max - min;
+        
+        float hue = 0f;
+        float saturation = max == 0f ? 0f : delta / max;
+        float brightness = max;
+        
+        if (delta != 0f) {
+            if (max == r) {
+                hue = ((g - b) / delta) % 6f;
+            } else if (max == g) {
+                hue = ((b - r) / delta) + 2f;
+            } else {
+                hue = ((r - g) / delta) + 4f;
+            }
+            
+            hue /= 6f;
+            
+            if (hue < 0f) {
+                hue += 1f;
+            }
+        }
+        
+        return new Vec3(hue, saturation, brightness);
     }
 }

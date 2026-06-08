@@ -1,6 +1,5 @@
 package strobeyworks.ui.primitives;
 
-import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UILength.px;
 
 import java.util.ArrayList;
@@ -23,7 +22,7 @@ import strobeyworks.platform.Transition;
 import strobeyworks.ui.components.UIScrollBar;
 import strobeyworks.ui.components.UIScrollBar.ScrollAxis;
 import strobeyworks.ui.core.UIBounds;
-import strobeyworks.ui.core.UIColors;
+import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.ui.style.StyleProps;
@@ -385,7 +384,7 @@ public abstract class UIElement {
     private UIScrollBar horizontalBar;
     private UIScrollBar verticalBar;
     
-    private Vec4 debugColor = col(UIColors.RED);
+    private UIColor debugColor = UIColor.RED;
     private boolean debugEnabled;
     
     // Styles
@@ -462,7 +461,7 @@ public abstract class UIElement {
             borderLeft ? 1f : 0f
         ));
         
-        sM.setUniformVec4("uDebugColor", debugColor);
+        sM.setUniformVec4("uDebugColor", new Vec4(debugColor.getRed(), debugColor.getGreen(), debugColor.getBlue(), debugColor.getAlpha()));
         sM.setUniformInt("uDebugEnabled", debugEnabled ? 1 : 0);
         
         if (effectiveClip!=null) {
@@ -653,24 +652,29 @@ public abstract class UIElement {
         return this.clickable;
     }
     
-    public void onClicked(UIEventCallback callback) {
+    public UIElement onClicked(UIEventCallback callback) {
         this.onClicked = callback;
+        return this;
     }
     
-    public void onGotHover(UIEventCallback callback) {
+    public UIElement onGotHover(UIEventCallback callback) {
         this.onGotHover = callback;
+        return this;
     }
     
-    public void onLostHover(UIEventCallback callback) {
+    public UIElement onLostHover(UIEventCallback callback) {
         this.onLostHover = callback;
+        return this;
     }
     
-    public void onGotFocus(UIEventCallback callback) {
+    public UIElement onGotFocus(UIEventCallback callback) {
         this.onGotFocus = callback;
+        return this;
     }
     
-    public void onLostFocus(UIEventCallback callback) {
+    public UIElement onLostFocus(UIEventCallback callback) {
         this.onLostFocus = callback;
+        return this;
     }
     
     public void gotFocus(IOEvent event) {
@@ -1819,6 +1823,10 @@ public abstract class UIElement {
     public boolean isVisible() {return this.visible;}
     
     public int getZIndex() {return this.zIndex;}
+
+    public float getScrollX() {return this.scrollX;}
+
+    public float getScrollY() {return this.scrollY;}
     
     public UIBounds getChildContentBounds() {return this.childContentBounds;}
     

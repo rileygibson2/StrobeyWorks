@@ -17,6 +17,13 @@ public class Vec4 {
         this.a = a;
     }
 
+    public Vec4(Vec3 rgb, float a) {
+        this.r = rgb.x;
+        this.g = rgb.y;
+        this.b = rgb.z;
+        this.a = a;
+    }
+
     public Vec4 lerp(Vec4 to, float i) {
         float rN = r+(to.r-r)*i;
         float gN = g+(to.g-g)*i;

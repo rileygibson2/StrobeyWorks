@@ -80,6 +80,18 @@ public class IO {
         glfwSetScrollCallback(windowID, (win, xOffset, yOffset) -> {
             scrollDX += xOffset;
             scrollDY += yOffset;
+            
+            double[] mouseX = new double[1];
+            double[] mouseY = new double[1];
+            glfwGetCursorPos(windowID, mouseX, mouseY);
+            
+            publish(IOEvent.scroll(
+                this,
+                (float) mouseX[0],
+                (float) mouseY[0],
+                (float) xOffset,
+                (float) yOffset
+            ));
         });
         
         glfwSetMouseButtonCallback(windowID, (window, button, action, mods) -> {
@@ -120,8 +132,8 @@ public class IO {
         if (mouseX!=prevMouseX||mouseY!=prevMouseY) {
             publish(IOEvent.mouseMove(this, (float) xPos[0], (float) yPos[0]));
         }
-
-
+        
+        
         if (leftPressed&&(mouseDX!=0||mouseDY!=0)) {
             publish(IOEvent.drag(this, (float) xPos[0], (float) yPos[0]));
         }

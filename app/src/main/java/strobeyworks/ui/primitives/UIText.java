@@ -1,15 +1,12 @@
 package strobeyworks.ui.primitives;
 
-import static strobeyworks.ui.core.UIColors.col;
-import static strobeyworks.ui.core.UILength.px;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
 import strobeyworks.logger.Logger;
 import strobeyworks.platform.ShaderManager;
-import strobeyworks.ui.core.UIColors;
+import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
@@ -19,25 +16,25 @@ import strobeyworks.utils.Vec4;
 public class UIText extends UIElement {
     
     private static final Map<UIStyleProperty<?>, BiConsumer<UIText, Object>> APPLIERS = new HashMap<>();
-
+    
     static {
         register(APPLIERS, StyleProps.COLOR, UIText::color);
         register(APPLIERS, StyleProps.FONT, UIText::font);
     }
-
+    
     private String text;
     private float resolvedTextWidth;
     private float resolvedTextHeight;
     
     private UIFont font;
-    private Vec4 color;
+    private UIColor color;
     
     public UIText(UIFont font) {
         super();
         this.font = font;
         this.text = "";
-
-        style("color", col(UIColors.WHITE));
+        
+        style("color", UIColor.WHITE);
         style("box", UIBoxMode.FIXED);
         resolveTextBounds();
     }
@@ -47,13 +44,13 @@ public class UIText extends UIElement {
         this.font = font;
         this.text = text!=null ? text : "";
         
-        style("color", col(UIColors.WHITE));
+        style("color", UIColor.WHITE);
         style("box", UIBoxMode.FIXED);
         resolveTextBounds();
     }
     
     public void setRenderUniforms(ShaderManager sM) {
-        sM.setUniformVec4("uColor", color);
+        sM.setUniformVec4("uColor", new Vec4(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha()));
         super.setRenderUniforms(sM);
     }
     
@@ -92,11 +89,11 @@ public class UIText extends UIElement {
         return this;
     }
     
-    private UIText color(Vec4 color) {
+    private UIText color(UIColor color) {
         this.color = color;
         return this;
     }
-
+    
     private UIText font(UIFont font) {
         this.font = font;
         return this;
@@ -114,15 +111,15 @@ public class UIText extends UIElement {
         return font.getFontSize();
     }
     
-    public Vec4 getColor() {
-        return color;
-    }
-    
     public float getResolvedTextWidth() {
         return this.resolvedTextWidth;
     }
     
     public float getResolvedTextHeight() {
         return this.resolvedTextHeight;
+    }
+
+    public UIColor getColor() {
+        return this.color;
     }
 }

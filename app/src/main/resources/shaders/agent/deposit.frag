@@ -1,7 +1,9 @@
 #version 330 core
 
+uniform float uPheramoneContribution;
+
 out float FragPheromone;
 
 void main() {
-    FragPheromone = 1.0;
+    FragPheromone = uPheramoneContribution;
 }

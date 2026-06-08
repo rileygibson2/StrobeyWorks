@@ -1,19 +1,17 @@
 package strobeyworks.ui.components.input.field;
 
+import static strobeyworks.ui.core.UILength.pbh;
+import static strobeyworks.ui.core.UILength.pbw;
+import static strobeyworks.ui.core.UILength.pch;
+import static strobeyworks.ui.core.UILength.pcw;
+
 import strobeyworks.ui.components.UIButton;
-import strobeyworks.ui.core.UIColors;
+import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIFont;
-import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
 import strobeyworks.utils.Vec4;
-
-import static strobeyworks.ui.core.UIColors.col;
-import static strobeyworks.ui.core.UILength.pch;
-import static strobeyworks.ui.core.UILength.pcw;
-import static strobeyworks.ui.core.UILength.pbh;
-import static strobeyworks.ui.core.UILength.pbw;
 
 public class UIFloatField extends UIField<Float> {
 
@@ -35,11 +33,11 @@ public class UIFloatField extends UIField<Float> {
         //controlWrapper.color(col(UIColors.WHITE));
 
         UIStyle style = new UIStyle();
-        style.set(StyleProps.ICON_TINT, col(UIColors.WHITE))
+        style.set(StyleProps.ICON_TINT, UIColor.WHITE)
         .set(StyleProps.TRANSFORM_SCALEX, 1.2f)
         .set(StyleProps.TRANSFORM_SCALEY, 1.2f);
 
-        up = new UIButton();
+        up = new UIButton("up_arrow");
         up.style("width", pbw(1f))
         .style("height", pbh(0.5f))
         .style("corner-radius", new Vec4(0f))
@@ -47,13 +45,11 @@ public class UIFloatField extends UIField<Float> {
         .style("position", UIPositionMode.ABSOLUTE)
         .style("visible", false)
         .style(StyleProps.TRANSFORM_SCALEX, 1f)
-        .style(StyleProps.TRANSFORM_SCALEY, 1f);
-
-        up.icon("up_arrow")
-        .clickedAction(() -> {increment(1);})
+        .style(StyleProps.TRANSFORM_SCALEY, 1f)
+        .onClicked(e -> {increment(1);})
         .hoverStyle(style);
 
-        down = new UIButton();
+        down = new UIButton("down_arrow");
         down.style("width", pbw(1f))
         .style("height", pbh(0.5f))
         .style("corner-radius", new Vec4(0f))
@@ -62,10 +58,8 @@ public class UIFloatField extends UIField<Float> {
         .style("offset-top", pbh(0.5f))
         .style("visible", false)
         .style(StyleProps.TRANSFORM_SCALEX, 1f)
-        .style(StyleProps.TRANSFORM_SCALEY, 1f);
-
-        down.icon("down_arrow")
-        .clickedAction(() -> {increment(-1);})
+        .style(StyleProps.TRANSFORM_SCALEY, 1f)
+        .onClicked(e -> {increment(-1);})
         .hoverStyle(style);
 
         addChild(controlWrapper);

@@ -1,14 +1,12 @@
 package strobeyworks.ui.components;
 
-import static strobeyworks.ui.core.UIColors.col;
 import static strobeyworks.ui.core.UILength.pph;
 import static strobeyworks.ui.core.UILength.ppw;
 import static strobeyworks.ui.core.UILength.px;
 
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.Transition;
-import strobeyworks.ui.core.UIColors;
-import strobeyworks.ui.core.UIRenderer;
+import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
@@ -36,7 +34,7 @@ public class UIScrollBar extends UIRectangle {
         
         style("position", UIPositionMode.ABSOLUTE_FIXED);
         style("corner-radius", new Vec4(10f));
-        style("color", col(UIColors.GREEN));
+        style("color", UIColor.GREEN);
         style("transition-duration", 0.2f);
         style("opacity", 0.5f);
         
