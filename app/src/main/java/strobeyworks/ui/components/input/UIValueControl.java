@@ -2,8 +2,8 @@ package strobeyworks.ui.components.input;
 
 import strobeyworks.logger.Logger;
 import strobeyworks.ui.primitives.UIRectangle;
-import strobeyworks.utils.Bindable;
-import strobeyworks.utils.BindableObserver;
+import strobeyworks.utils.BindableValue;
+import strobeyworks.utils.BindableValueObserver;
 
 /**
 * Defines this element as having a local value and optionally a binding to an external value.
@@ -22,10 +22,10 @@ import strobeyworks.utils.BindableObserver;
 * Alternativly subclasses may not use an externally bound value at all and in that case this class provides the same
 * validation and remapping for a locally committed value.
 */
-public abstract class UIValueControl<E, L> extends UIRectangle implements BindableObserver<E> {
+public abstract class UIValueControl<E, L> extends UIRectangle implements BindableValueObserver<E> {
     
     private UIValueAdaptor<E, L> adaptor;
-    private Bindable<E> binding;
+    private BindableValue<E> binding;
     private L localValue;
     
     public UIValueControl(UIValueAdaptor<E, L> adaptor) {
@@ -78,11 +78,11 @@ public abstract class UIValueControl<E, L> extends UIRectangle implements Bindab
     }
     
     @Override
-    public void bindableValueChanged(Bindable<E> v) {
+    public void bindableValueChanged(BindableValue<E> v) {
         setLocalValue(adaptor.adaptExternalToLocal(v.getValue()));
     }
     
-    public void bindTo(Bindable<E> binding) {
+    public void bindTo(BindableValue<E> binding) {
         if (this.binding!=null) this.binding.unbind(this);
         
         this.binding = binding;

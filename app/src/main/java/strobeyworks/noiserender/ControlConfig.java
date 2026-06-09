@@ -1,10 +1,10 @@
 package strobeyworks.noiserender;
 
-import strobeyworks.utils.Bindable;
+import strobeyworks.utils.BindableValue;
 
 public record ControlConfig<T> (
     String name,
-    Bindable<T> binding,
+    BindableValue<T> binding,
     float min,
     float max,
     int precision,

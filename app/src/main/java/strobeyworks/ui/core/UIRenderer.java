@@ -70,7 +70,7 @@ import strobeyworks.ui.primitives.UIElement.UIPositionMode;
 import strobeyworks.ui.primitives.UIIcon;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
-import strobeyworks.utils.Bindable;
+import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.Vec4;
 
 public class UIRenderer extends Renderer {
@@ -154,7 +154,7 @@ public class UIRenderer extends Renderer {
         
         record FloatControlConfig(
             String name,
-            Bindable<Float> binding,
+            BindableValue<Float> binding,
             float min,
             float max,
             int precision,
@@ -163,7 +163,7 @@ public class UIRenderer extends Renderer {
         
         record BooleanControlConfig(
             String name,
-            Bindable<Boolean> binding
+            BindableValue<Boolean> binding
         ) {}
         
         FloatControlConfig[] sliderControls = {
@@ -620,9 +620,9 @@ public class UIRenderer extends Renderer {
             .translation(x + fittedW * 0.5f, y + fittedH * 0.5f, 0f)
             .scale(fittedW, fittedH, 1f);
         }
-
+        
         sM.setUniformMat4("uModel", model);       
-
+        
         // Other uniforms
         UIColor tint = icon.getTint();
         sM.setUniformVec4("uTint", new Vec4(tint.getRed(), tint.getGreen(), tint.getBlue(), tint.getAlpha()));
@@ -649,10 +649,10 @@ public class UIRenderer extends Renderer {
         sM.bindVAO(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
-
+    
     public void renderColorGradient(ShaderManager sM, UIElement e) {
-        sM.useProgram(colorPickerProgram);
-        sM.setCurrentProgram(colorPickerProgram);
+        sM.useProgram(colorGradientProgram);
+        sM.setCurrentProgram(colorGradientProgram);
         
         sM.setUniformMat4("uProjection", projectionMatrix);
         sM.setUniformMat4("uModel", e.getModelMatrix());

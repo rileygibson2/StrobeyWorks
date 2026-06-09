@@ -27,7 +27,7 @@ import strobeyworks.platform.Animation;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.Renderer;
 import strobeyworks.platform.ShaderManager;
-import strobeyworks.utils.Bindable;
+import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.Utils;
 import strobeyworks.utils.Vec3;
 
@@ -38,24 +38,24 @@ public class NoiseRenderer extends Renderer {
     private int noiseProgram;
     private int quadVAO;
     
-    private Bindable<Float> speed;
-    private Bindable<Float> gridSize;
+    private BindableValue<Float> speed;
+    private BindableValue<Float> gridSize;
 
-    private Bindable<Float> octaves;
+    private BindableValue<Float> octaves;
 
-    private Bindable<Float> gamma;
-    private Bindable<Float> gain;
+    private BindableValue<Float> gamma;
+    private BindableValue<Float> gain;
 
-    private Bindable<Boolean> warp;
-    private Bindable<Float> warpStrength;
-    private Bindable<Float> warpScale;
+    private BindableValue<Boolean> warp;
+    private BindableValue<Float> warpStrength;
+    private BindableValue<Float> warpScale;
 
-    private Bindable<Boolean> octaveRidge;
-    private Bindable<Boolean> postRidge;
-    private Bindable<Float> ridgePow;
+    private BindableValue<Boolean> octaveRidge;
+    private BindableValue<Boolean> postRidge;
+    private BindableValue<Float> ridgePow;
 
-    private Bindable<Boolean> octaveTurbulence;
-    private Bindable<Float> turbulencePow;
+    private BindableValue<Boolean> octaveTurbulence;
+    private BindableValue<Float> turbulencePow;
 
     private Vec3 colorLow;
     private Vec3 colorHigh;
@@ -66,22 +66,22 @@ public class NoiseRenderer extends Renderer {
     }
     
     private NoiseRenderer() {
-        this.speed = Bindable.of(0.5f);
-        this.gridSize = Bindable.of(10f);
-        this.octaves = Bindable.of(1f);
-        this.gamma = Bindable.of(1f);
-        this.gain = Bindable.of(1f);
+        this.speed = BindableValue.of(0.5f);
+        this.gridSize = BindableValue.of(10f);
+        this.octaves = BindableValue.of(1f);
+        this.gamma = BindableValue.of(1f);
+        this.gain = BindableValue.of(1f);
 
-        this.warp = Bindable.of(false);
-        this.warpStrength = Bindable.of(0f);
-        this.warpScale = Bindable.of(1f);
+        this.warp = BindableValue.of(false);
+        this.warpStrength = BindableValue.of(0f);
+        this.warpScale = BindableValue.of(1f);
 
-        this.octaveRidge = Bindable.of(false);
-        this.postRidge = Bindable.of(false);
-        this.ridgePow = Bindable.of(2f);
+        this.octaveRidge = BindableValue.of(false);
+        this.postRidge = BindableValue.of(false);
+        this.ridgePow = BindableValue.of(2f);
 
-        this.octaveTurbulence = Bindable.of(false);
-        this.turbulencePow = Bindable.of(2f);
+        this.octaveTurbulence = BindableValue.of(false);
+        this.turbulencePow = BindableValue.of(2f);
 
         this.colorLow = new Vec3(0f, 0f, 0f);
         this.colorHigh = new Vec3(1f, 0f, 0.8f);
@@ -178,55 +178,55 @@ public class NoiseRenderer extends Renderer {
         sM.useProgram(0);
     }
     
-    public Bindable<Float> getSpeed() {
+    public BindableValue<Float> getSpeed() {
         return speed;
     }
     
-    public Bindable<Float> getGridSize() {
+    public BindableValue<Float> getGridSize() {
         return gridSize;
     }
     
-    public Bindable<Float> getOctaves() {
+    public BindableValue<Float> getOctaves() {
         return octaves;
     }
     
-    public Bindable<Float> getGamma() {
+    public BindableValue<Float> getGamma() {
         return gamma;
     }
     
-    public Bindable<Float> getGain() {
+    public BindableValue<Float> getGain() {
         return gain;
     }
     
-    public Bindable<Boolean> getWarp() {
+    public BindableValue<Boolean> getWarp() {
         return warp;
     }
     
-    public Bindable<Float> getWarpStrength() {
+    public BindableValue<Float> getWarpStrength() {
         return warpStrength;
     }
     
-    public Bindable<Float> getWarpScale() {
+    public BindableValue<Float> getWarpScale() {
         return warpScale;
     }
 
-    public Bindable<Boolean> getOctaveRidge() {
+    public BindableValue<Boolean> getOctaveRidge() {
         return octaveRidge;
     }
 
-    public Bindable<Boolean> getPostRidge() {
+    public BindableValue<Boolean> getPostRidge() {
         return postRidge;
     }
 
-    public Bindable<Float> getRidgePow() {
+    public BindableValue<Float> getRidgePow() {
         return ridgePow;
     }
 
-    public Bindable<Boolean> getOctaveTurbulence() {
+    public BindableValue<Boolean> getOctaveTurbulence() {
         return octaveTurbulence;
     }
 
-    public Bindable<Float> getTurbulencePow() {
+    public BindableValue<Float> getTurbulencePow() {
         return turbulencePow;
     }
 }

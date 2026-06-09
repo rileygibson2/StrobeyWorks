@@ -31,6 +31,8 @@ import static org.lwjgl.opengl.GL20.glShaderSource;
 import static org.lwjgl.opengl.GL20.glUniform1f;
 import static org.lwjgl.opengl.GL20.glUniform1i;
 import static org.lwjgl.opengl.GL20.glUniform3f;
+import static org.lwjgl.opengl.GL20.glUniform3fv;
+import static org.lwjgl.opengl.GL20.glUniform1fv;
 import static org.lwjgl.opengl.GL20.glUniform2f;
 import static org.lwjgl.opengl.GL20.glUniform4f;
 import static org.lwjgl.opengl.GL20.glUniformMatrix4fv;
@@ -186,6 +188,20 @@ public class ShaderManager {
         if (currentProgram==-1) throw new RuntimeException("Cannot set uniform - no current program");
         int id = glGetUniformLocation(currentProgram, n);
         glUniform1i(id, v);
+    }
+
+    public void setUniform3FV(String n, float[] v) {
+        if (currentProgram == -1) throw new RuntimeException("Cannot set uniform - no current program");
+        
+        int id = glGetUniformLocation(currentProgram, n);
+        glUniform3fv(id, v);
+    }
+
+    public void setUniform1FV(String n, float[] v) {
+        if (currentProgram == -1) throw new RuntimeException("Cannot set uniform - no current program");
+        
+        int id = glGetUniformLocation(currentProgram, n);
+        glUniform1fv(id, v);
     }
     
     public void setUniformMat4(String n, Matrix4f m) {

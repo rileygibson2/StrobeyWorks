@@ -7,9 +7,35 @@ uniform float uOpacityCuttoff;
 
 out vec4 FragColor;
 
-vec3 colBase = vec3(1.0, 1.0, 1.0);
+vec3 colBase = vec3(0.0, 0.0, 0.0);
 vec3 colA = vec3(1.0, 1.0, 1.0);
 vec3 colB = vec3(0.0, 0.0, 0.2);
+
+#define MAX_STOPS 5
+uniform int uStopCount;
+uniform vec3 uStopColors[MAX_STOPS];
+uniform float uStopPositions[MAX_STOPS];
+
+vec3 gradient(float v) {
+    if (uStopCount <= 0) return vec3(0.0);
+    if (uStopCount == 1) return uStopColors[0];
+
+    if (v <= uStopPositions[0]) return uStopColors[0];
+
+    for (int i = 0; i < MAX_STOPS - 1; i++) {
+        if (i >= uStopCount - 1) break;
+
+        float a = uStopPositions[i];
+        float b = uStopPositions[i + 1];
+
+        if (v >= a && v <= b) {
+            float t = (v - a) / max(b - a, 0.00001);
+            return mix(uStopColors[i], uStopColors[i + 1], t);
+        }
+    }
+
+    return uStopColors[uStopCount - 1];
+}
 
 void main() {
     float pheromone = texture(uDepositTexture, vUV).r;
@@ -31,7 +57,7 @@ void main() {
         return;
     }
 
-    vec3 gradientColor = mix(colA, colB, pheromone);
+    vec3 gradientColor = gradient(pheromone);
     vec3 finalColor = mix(colBase, gradientColor, t);
 
     FragColor = vec4(finalColor, 1.0);

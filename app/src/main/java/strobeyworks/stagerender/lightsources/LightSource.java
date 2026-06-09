@@ -31,16 +31,16 @@ import org.joml.Matrix4f;
 import strobeyworks.SWMain;
 import strobeyworks.object.SceneObject;
 import strobeyworks.stagerender.SceneRenderer;
-import strobeyworks.utils.Bindable;
+import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.Vec3;
 
 public abstract class LightSource {
     
-    private Bindable<Float> intensity;
-    private Bindable<Float> red;
-    private Bindable<Float> green;
-    private Bindable<Float> blue;
-    private Bindable<Boolean> shadowEnabled;
+    private BindableValue<Float> intensity;
+    private BindableValue<Float> red;
+    private BindableValue<Float> green;
+    private BindableValue<Float> blue;
+    private BindableValue<Boolean> shadowEnabled;
 
     protected int shadowFBO;
     protected int shadowDepthTexture;
@@ -49,11 +49,11 @@ public abstract class LightSource {
     protected SceneObject indicator;
 
     public LightSource() {
-        this.intensity = Bindable.of(1f);
-        this.red = Bindable.of(1f);
-        this.green = Bindable.of(1f);
-        this.blue = Bindable.of(1f);
-        this.shadowEnabled = Bindable.of(true);
+        this.intensity = BindableValue.of(1f);
+        this.red = BindableValue.of(1f);
+        this.green = BindableValue.of(1f);
+        this.blue = BindableValue.of(1f);
+        this.shadowEnabled = BindableValue.of(true);
         
         this.shadowFBO = 0;
         this.shadowDepthTexture = 0;
@@ -62,11 +62,11 @@ public abstract class LightSource {
     }
     
     public LightSource(Vec3 color, float intensity) {
-        this.intensity = Bindable.of(intensity);
-        this.red = Bindable.of(color.x);
-        this.green = Bindable.of(color.y);
-        this.blue = Bindable.of(color.z);
-        this.shadowEnabled = Bindable.of(true);
+        this.intensity = BindableValue.of(intensity);
+        this.red = BindableValue.of(color.x);
+        this.green = BindableValue.of(color.y);
+        this.blue = BindableValue.of(color.z);
+        this.shadowEnabled = BindableValue.of(true);
 
         this.shadowFBO = 0;
         this.shadowDepthTexture = 0;
@@ -162,13 +162,13 @@ public abstract class LightSource {
 
     public SceneObject getIndicator() {return this.indicator;}
 
-    public Bindable<Float> getIntensity() {return this.intensity;}
+    public BindableValue<Float> getIntensity() {return this.intensity;}
 
-    public Bindable<Float> getRed() {return this.red;}
+    public BindableValue<Float> getRed() {return this.red;}
 
-    public Bindable<Float> getGreen() {return this.green;}
+    public BindableValue<Float> getGreen() {return this.green;}
 
-    public Bindable<Float> getBlue() {return this.blue;}
+    public BindableValue<Float> getBlue() {return this.blue;}
 
-    public Bindable<Boolean> getShadowEnabled() {return this.shadowEnabled;}
+    public BindableValue<Boolean> getShadowEnabled() {return this.shadowEnabled;}
 }

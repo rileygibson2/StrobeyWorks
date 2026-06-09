@@ -69,15 +69,18 @@ import strobeyworks.platform.MidiManager.MidiEvent;
 import strobeyworks.platform.MidiManager.MidiHandle;
 import strobeyworks.platform.MidiManager.MidiHandleType;
 import strobeyworks.platform.MidiManager.MidiType;
-import strobeyworks.platform.MidiManager.MidiHandleType;
 import strobeyworks.platform.MidiSubscriber;
 import strobeyworks.platform.Renderer;
 import strobeyworks.platform.ShaderManager;
-import strobeyworks.utils.Bindable;
+import strobeyworks.utils.BindableList;
+import strobeyworks.utils.BindableListObserver;
+import strobeyworks.utils.BindableValue;
+import strobeyworks.utils.BindableValueObserver;
 import strobeyworks.utils.Utils;
 import strobeyworks.utils.Vec2;
+import strobeyworks.utils.Vec3;
 
-public class AgentRenderer extends Renderer implements MidiSubscriber {
+public class AgentRenderer extends Renderer implements MidiSubscriber, BindableListObserver {
     
     private static AgentRenderer instance;
     
@@ -98,21 +101,23 @@ public class AgentRenderer extends Renderer implements MidiSubscriber {
     private int screenVAO;
     
     private int numAgents = 1000000;
-    private Bindable<Float> diffusion;
-    private Bindable<Float> decay;
-    private Bindable<Float> speed;
-    private Bindable<Float> pheramoneContribution;
+    private BindableValue<Float> diffusion;
+    private BindableValue<Float> decay;
+    private BindableValue<Float> speed;
+    private BindableValue<Float> pheramoneContribution;
     
-    private Bindable<Float> sensorDistance;
-    private Bindable<Float> sensorAngle;
-    private Bindable<Float> turnSpeed;
-    private Bindable<Float> randomTurnStrength;
-    private Bindable<Float> randomSpeedStrength;
+    private BindableValue<Float> sensorDistance;
+    private BindableValue<Float> sensorAngle;
+    private BindableValue<Float> turnSpeed;
+    private BindableValue<Float> randomTurnStrength;
+    private BindableValue<Float> randomSpeedStrength;
     
-    private Bindable<Float> opacityCuttoff;
+    private BindableValue<Float> opacityCuttoff;
+    
+    private BindableList<Vec3> stopColors;
+    private BindableList<Float> stopPositions;
     
     private List<ControlConfig<Float>> floatControlConfigs;
-    
     private HashMap<MidiHandle, Consumer<MidiEvent>> midiHandleMap;
     
     public static AgentRenderer getInstance() {
@@ -124,6 +129,17 @@ public class AgentRenderer extends Renderer implements MidiSubscriber {
         floatControlConfigs = new ArrayList<>();
         buildControlConfigs();
         loadDefaults();
+        
+        stopColors = new BindableList<>();
+        stopPositions = new BindableList<>();
+        
+        stopColors.set(new Vec3(0.0f, 0.0f, 0.0f));
+        stopColors.set(new Vec3(0.2f, 0.0f, 0.3f));
+        stopColors.set(new Vec3(0.5f, 0.5f, 0.9f));
+        
+        stopPositions.set(0.0f);
+        stopPositions.set(0.5f);
+        stopPositions.set(1.0f);
         
         midiHandleMap = new HashMap<>();
         loadDefaultMidiMap();
@@ -142,7 +158,7 @@ public class AgentRenderer extends Renderer implements MidiSubscriber {
         pheramoneContribution = addFloatControl("Contribution", 0f, 1f, 2, 0.01f, 1f);
     }
     
-    private Bindable<Float> addFloatControl(
+    private BindableValue<Float> addFloatControl(
         String name,
         float min,
         float max,
@@ -150,16 +166,16 @@ public class AgentRenderer extends Renderer implements MidiSubscriber {
         float increment,
         float defaultValue
     ) {
-        Bindable<Float> binding = Bindable.of(defaultValue);
+        BindableValue<Float> binding = BindableValue.of(defaultValue);
         floatControlConfigs.add(new ControlConfig<Float>(name, binding, min, max, precision, increment, defaultValue));
         return binding;
     }
-
+    
     public List<ControlConfig<Float>> getFloatControlConfigs() {
         return floatControlConfigs;
     }
-
-    public ControlConfig<Float> getFloatControlConfig(Bindable<Float> b) {
+    
+    public ControlConfig<Float> getFloatControlConfig(BindableValue<Float> b) {
         for (ControlConfig<Float> c : floatControlConfigs) {
             if (c.binding()==b) return c;
         }
@@ -174,38 +190,38 @@ public class AgentRenderer extends Renderer implements MidiSubscriber {
     
     public void loadDefaultMidiMap() {
         MidiManager m = MidiManager.getInstance();
-
+        
         midiHandleMap.put(m.getHandle(MidiHandleType.FADER, 1), e -> tempFloat(diffusion, e));
         midiHandleMap.put(m.getHandle(MidiHandleType.FADER, 2), e -> tempFloat(decay, e));
         midiHandleMap.put(m.getHandle(MidiHandleType.FADER, 3), e -> tempFloat(sensorAngle, e));
         midiHandleMap.put(m.getHandle(MidiHandleType.FADER, 4), e -> tempFloat(turnSpeed, e));
         midiHandleMap.put(m.getHandle(MidiHandleType.FADER, 5), e -> tempFloat(pheramoneContribution, e));
-
+        
         midiHandleMap.put(m.getHandle(MidiHandleType.BUTTON, 11), e -> flashFloat(speed, e));
-
+        
         m.subscribe(this, m.getHandle(MidiHandleType.FADER, 1));
         m.subscribe(this, m.getHandle(MidiHandleType.FADER, 2));
         m.subscribe(this, m.getHandle(MidiHandleType.FADER, 3));
         m.subscribe(this, m.getHandle(MidiHandleType.FADER, 4));
         m.subscribe(this, m.getHandle(MidiHandleType.FADER, 5));
-
+        
         m.subscribe(this, m.getHandle(MidiHandleType.BUTTON, 11));
     }
-
-    private void tempFloat(Bindable<Float> b, MidiEvent e) {
+    
+    private void tempFloat(BindableValue<Float> b, MidiEvent e) {
         ControlConfig<Float> c = getFloatControlConfig(b);
         if (c==null) return;
         c.binding().setValue(Utils.lerpFloat(c.min(), c.max(), e.value()));
     }
-
-    private void flashFloat(Bindable<Float> b, MidiEvent e) {
+    
+    private void flashFloat(BindableValue<Float> b, MidiEvent e) {
         ControlConfig<Float> c = getFloatControlConfig(b);
         if (c==null) return;
-
+        
         float v;
         if (e.noteType()==MidiType.NOTE_ON) v = c.max();
         else v = c.defaultValue();
-
+        
         c.binding().setValue(v);
     }
     
@@ -227,7 +243,12 @@ public class AgentRenderer extends Renderer implements MidiSubscriber {
     
     @Override
     public void removeAnimation(Animation a) {}
-
+    
+    @Override
+    public void bindableListChanged(BindableList<?> v) {
+        
+    }
+    
     public void randomize() {
         diffusion.setValue(Utils.randomBetween(0.1f, 1f));
         decay.setValue(Utils.randomBetween(2f, 8f));
@@ -569,6 +590,23 @@ public class AgentRenderer extends Renderer implements MidiSubscriber {
         
         sM.setUniformFloat("uOpacityCuttoff", opacityCuttoff.getValue());
         
+        int maxStops = 5;
+        sM.setUniformInt("uStopCount", stopColors.size());
+        
+        float[] colors = new float[maxStops * 3];
+        for (int i = 0; i < stopColors.size(); i++) {
+            colors[i * 3 + 0] = stopColors.get(i).x;
+            colors[i * 3 + 1] = stopColors.get(i).y;
+            colors[i * 3 + 2] = stopColors.get(i).z;
+        }
+        
+        float[] positions = new float[maxStops];
+        for (int i = 0; i < stopPositions.size(); i++) {
+            positions[i] = stopPositions.get(i); 
+        }
+        sM.setUniform3FV("uStopColors", colors);
+        sM.setUniform1FV("uStopPositions", positions);
+        
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, depositTextures[depositReadIndex]);
         sM.setUniformInt("uDepositTexture", 0);
@@ -581,43 +619,43 @@ public class AgentRenderer extends Renderer implements MidiSubscriber {
         sM.useProgram(0);
     }
     
-    public Bindable<Float> getDiffusion() {
+    public BindableValue<Float> getDiffusion() {
         return this.diffusion;
     }
     
-    public Bindable<Float> getDecay() {
+    public BindableValue<Float> getDecay() {
         return this.decay;
     }
     
-    public Bindable<Float> getSpeed() {
+    public BindableValue<Float> getSpeed() {
         return this.speed;
     }
     
-    public Bindable<Float> getSensorDistance() {
+    public BindableValue<Float> getSensorDistance() {
         return this.sensorDistance;
     }
     
-    public Bindable<Float> getSensorAngle() {
+    public BindableValue<Float> getSensorAngle() {
         return this.sensorAngle;
     }
     
-    public Bindable<Float> getTurnSpeed() {
+    public BindableValue<Float> getTurnSpeed() {
         return this.turnSpeed;
     }
     
-    public Bindable<Float> getRandomTurnStrength() {
+    public BindableValue<Float> getRandomTurnStrength() {
         return this.randomTurnStrength;
     }
     
-    public Bindable<Float> getRandomSpeedStrength() {
+    public BindableValue<Float> getRandomSpeedStrength() {
         return this.randomSpeedStrength;
     }
     
-    public Bindable<Float> getOpacityCuttoff() {
+    public BindableValue<Float> getOpacityCuttoff() {
         return this.opacityCuttoff;
     }
     
-    public Bindable<Float> getPheramoneContribution() {
+    public BindableValue<Float> getPheramoneContribution() {
         return this.pheramoneContribution;
     }
 }

@@ -23,7 +23,7 @@ import strobeyworks.ui.core.UIFontManager;
 import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
-import strobeyworks.utils.Bindable;
+import strobeyworks.utils.BindableValue;
 
 public class UIAgentPage extends UIRectangle {
     
@@ -33,7 +33,7 @@ public class UIAgentPage extends UIRectangle {
     
     private void build() {
         UIRenderer ui = UIRenderer.getInstance();
-
+        
         style("width", ppw(1f));
         style("height", pph(1f));
         style("padding-left", px(5));
@@ -49,32 +49,36 @@ public class UIAgentPage extends UIRectangle {
         UIFont titleFont = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f);
         UIFont fieldFont = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f);
         
+        UIRectangle line = new UIRectangle();
+        line.style("width", pcw(1f))
+        .style("height", pch(0.08f));
+        addChild(line);
+        
         UIButton but = new UIButton(fieldFont, "Popup");
         but.style("width", pcw(0.2f))
-        .style("height", px(30))
+        .style("height", pch(1.0f))
         .onClicked(e -> {
             ui.createFullScreenPopup(buildGradientPopup());
         });
-        addChild(but);
-        
+        line.addChild(but);
         
         but = new UIButton(fieldFont, "Restore");
         but.style("width", pcw(0.2f))
-        .style("height", px(30))
+        .style("height", pch(1.0f))
         .onClicked(e -> {
             r.loadDefaults();
         });
-        addChild(but);
+        line.addChild(but);
         
         but = new UIButton(fieldFont, "Randomize");
         but.style("width", pcw(0.2f))
-        .style("height", px(30))
+        .style("height", pch(1.0f))
         .onClicked(e -> {
             r.randomize();
         });
-        addChild(but);
+        line.addChild(but);
         
-        UIRectangle line = new UIRectangle();
+        line = new UIRectangle();
         line.style("width", pcw(1f))
         .style("box", UIBoxMode.FLEX)
         //.style("height", pch(0.08f))
@@ -134,12 +138,12 @@ public class UIAgentPage extends UIRectangle {
             addChild(line);
         }
     }
-
+    
     private UIContentPopup buildGradientPopup() {
         UIContentPopup popup = new UIContentPopup("-- Gradient --");
-
+        
         UIRectangle pane = UIRectangle.fullContentCollumn();
-
+        
         UIColorPicker colPick = new UIColorPicker();
         colPick.style("width", pcw(1f))
         .style("height", pch(0.5f));
@@ -148,25 +152,25 @@ public class UIAgentPage extends UIRectangle {
         gradSlider.style("width", pcw(1f))
         .style("height", pch(0.1f))
         .style("margin-top", px(10));
-
-        Bindable<UIColor> s1 = Bindable.of(UIColor.red());
-        Bindable<UIColor> s2 = Bindable.of(UIColor.green());
-        Bindable<UIColor> s3 = Bindable.of(UIColor.blue());
-
+        
+        BindableValue<UIColor> s1 = BindableValue.of(UIColor.red());
+        BindableValue<UIColor> s2 = BindableValue.of(UIColor.green());
+        BindableValue<UIColor> s3 = BindableValue.of(UIColor.blue());
+        
         gradSlider.addStop(s1, 0.1f);
         gradSlider.addStop(s2, 0.3f);
         gradSlider.addStop(s3, 0.5f);
-
+        
         gradSlider.setActiveCallback(c -> {
             colPick.bindColor(c);
         });
-
-
+        
+        
         pane.addChild(colPick);
         pane.addChild(gradSlider);
-
+        
         popup.addContent(pane);
-
+        
         return popup;
     }
 }

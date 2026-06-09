@@ -11,15 +11,15 @@ import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.ui.primitives.UICircle;
 import strobeyworks.ui.primitives.UIRectangle;
-import strobeyworks.utils.Bindable;
-import strobeyworks.utils.BindableObserver;
+import strobeyworks.utils.BindableValue;
+import strobeyworks.utils.BindableValueObserver;
 import strobeyworks.utils.Utils;
 import strobeyworks.utils.Vec3;
 import strobeyworks.utils.Vec4;
 
-public class UIColorPicker extends UIRectangle implements BindableObserver<UIColor> {
+public class UIColorPicker extends UIRectangle implements BindableValueObserver<UIColor> {
     
-    private Bindable<UIColor> boundColor;
+    private BindableValue<UIColor> boundColor;
     
     private UICircle cursor;
     private UICircle inner;
@@ -38,7 +38,7 @@ public class UIColorPicker extends UIRectangle implements BindableObserver<UICol
         style("border-color", UIColor.green());
         style("corner-radius", new Vec4(10f));
         
-        boundColor = Bindable.of(UIColor.white());
+        boundColor = BindableValue.of(UIColor.white());
         setHueSat();
         
         cursor = new UICircle();
@@ -64,7 +64,7 @@ public class UIColorPicker extends UIRectangle implements BindableObserver<UICol
         repositionCursor();
     }
     
-    public UIColorPicker bindColor(Bindable<UIColor> color) {
+    public UIColorPicker bindColor(BindableValue<UIColor> color) {
         if (boundColor!=null) boundColor.unbind(this);
 
         boundColor = color;
@@ -75,7 +75,7 @@ public class UIColorPicker extends UIRectangle implements BindableObserver<UICol
     }
 
     @Override
-    public void bindableValueChanged(Bindable<UIColor> v) {
+    public void bindableValueChanged(BindableValue<UIColor> v) {
         repositionCursor();
     }
 
