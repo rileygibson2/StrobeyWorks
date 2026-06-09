@@ -34,8 +34,8 @@ public class UICircle extends UIElement {
     public UICircle() {
         super();
         
-        style("color", UIColor.TRANSPARENT);
-        style("border-color", UIColor.WHITE);
+        style("color", UIColor.transparent());
+        style("border-color", UIColor.white());
         style("border-thickness", px(2));
         style("oval", true);
     }

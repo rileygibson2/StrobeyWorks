@@ -218,6 +218,14 @@ public abstract class UIElement {
         */
         SCROLL
     }
+
+    public enum UIRenderType {
+        SHAPE,
+        TEXT,
+        ICON,
+        COLOR_PICKER,
+        GRADIENT_SLIDER
+    }
     
     @FunctionalInterface
     public interface UIEventCallback {
@@ -227,6 +235,16 @@ public abstract class UIElement {
     @FunctionalInterface
     public interface UIBasicCallback {
         void implement();
+    }
+
+    @FunctionalInterface
+    public interface UIGenericCallback<T> {
+        void implement(T t);
+    }
+
+    @FunctionalInterface
+    public interface UISuccessCallback {
+        void implement(boolean success);
     }
     
     // Tree
@@ -289,6 +307,9 @@ public abstract class UIElement {
     
     private float scrollX;
     private float scrollY;
+
+    // Render
+    private UIRenderType renderType;
     
     // Style appliers
     private static final Map<UIStyleProperty<?>, BiConsumer<UIElement, Object>> APPLIERS = new HashMap<>();
@@ -384,7 +405,7 @@ public abstract class UIElement {
     private UIScrollBar horizontalBar;
     private UIScrollBar verticalBar;
     
-    private UIColor debugColor = UIColor.RED;
+    private UIColor debugColor = UIColor.red();
     private boolean debugEnabled;
     
     // Styles
@@ -441,7 +462,7 @@ public abstract class UIElement {
         this.wantsPointer = false;
         this.hoverable = false;
         this.clickable = false;
-        
+
         this.debugEnabled = false;
         
         this.authoredStyle = new UIStyle();
@@ -450,6 +471,10 @@ public abstract class UIElement {
         updateModelMatrix();
     }
     
+    // -----------------------------------------------------------------------------
+    // Render
+    // -----------------------------------------------------------------------------
+
     public void setRenderUniforms(ShaderManager sM) {
         sM.setUniformFloat("uOpacity", opacity);
         sM.setUniformInt("uHasBorder", borderEnabled ? 1 : 0);
@@ -469,6 +494,14 @@ public abstract class UIElement {
             sM.setUniformVec4("uClipBounds", effectiveClip.toVec4());
         }
         else sM.setUniformInt("uClipEnabled", 0);
+    }
+
+    public UIRenderType getRenderType() {
+        return UIRenderType.SHAPE;
+    }
+
+    public void render(UIRenderer renderer, ShaderManager sM) {
+        renderer.renderShape(sM, this);
     }
     
     // -----------------------------------------------------------------------------
@@ -739,6 +772,10 @@ public abstract class UIElement {
         
         markLayoutDirty();
         markSubtreeDirty();
+    }
+
+    public boolean hasParent() {
+        return this.parent!=null;
     }
     
     public void addChild(UIElement e) {

@@ -1,6 +1,8 @@
 package strobeyworks.ui.primitives;
 
 import static strobeyworks.ui.core.UILength.px;
+import static strobeyworks.ui.core.UILength.pcw;
+import static strobeyworks.ui.core.UILength.pch;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,9 +33,9 @@ public class UIRectangle extends UIElement {
     
     public UIRectangle() {
         super();
-        style("color", UIColor.TRANSPARENT);
+        style("color", UIColor.transparent());
         style("corner-radius", new Vec4(0f));
-        style("border-color", UIColor.WHITE);
+        style("border-color", UIColor.white());
         style("border-thickness", px(2));
     }
     
@@ -75,5 +77,14 @@ public class UIRectangle extends UIElement {
     private UIRectangle borderColor(UIColor borderColor) {
         this.borderColor = borderColor;
         return this;
+    }
+
+    public static UIRectangle fullContentCollumn() {
+        UIRectangle r = new UIRectangle();
+        r.style("width", pcw(1.0f))
+        .style("height", pch(1.0f))
+        .style("flow-direction", UIFlowDirection.COLUMN);
+
+        return r;
     }
 }

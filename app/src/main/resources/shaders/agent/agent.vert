@@ -11,6 +11,7 @@ uniform float uSensorAngle;
 uniform float uTurnSpeed;
 
 uniform float uRandomTurnStrength;
+uniform float uRandomSpeedStrength;
 uniform float uTime;
 
 out vec3 oAgent;
@@ -47,6 +48,7 @@ void main() {
     vec2 position = aAgent.xy;
     float heading = aAgent.z;
 
+    // Sense
     float forward = sense(position, 0.0);
     float left = sense(position, uSensorAngle);
     float right = sense(position, -uSensorAngle);
@@ -59,17 +61,22 @@ void main() {
         heading -= uTurnSpeed * uDeltaTime;
     }
 
-    //float seed = float(gl_VertexID) * 12.9898 + uTime * 78.233;
-    //float randomSigned = hash(seed) * 2.0 - 1.0;
-    //heading += randomSigned * uRandomTurnStrength * uDeltaTime;
-
+    // Randomise heading
     float frameSeed = floor(uTime * 60.0);
     float randomSigned = hash12(vec2(float(gl_VertexID), frameSeed)) * 2.0 - 1.0;
     heading += randomSigned * uRandomTurnStrength * uDeltaTime;
 
+    // Randomise speed
+    float randomSpeed = hash12(vec2(float(gl_VertexID) + 123.45, frameSeed + 67.89));
+    float speedVariation = mix(0, 2, randomSpeed);
+    float speedMultiplier = mix(1.0, speedVariation, uRandomSpeedStrength);
+    float agentSpeed = uSpeed * speedMultiplier;
+
+    // Apply movment
     vec2 direction = vec2(cos(heading), sin(heading));
-    position += direction * uSpeed * uDeltaTime;
+    position += direction * agentSpeed * uDeltaTime;
     
+
     // Collision
     if (position.x < 0.0 || position.x > 1.0) {
         heading = 3.14159265 - heading;

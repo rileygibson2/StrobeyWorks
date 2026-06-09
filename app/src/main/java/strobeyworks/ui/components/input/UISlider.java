@@ -37,8 +37,8 @@ public class UISlider extends UIValueControl<Float, Float> {
         style("align-items", UIAlignItems.CENTER);
         
         style("border-enabled", true);
-        style("border-color", UIColor.GREEN);
-        style("color", UIColor.GRAY_008);
+        style("border-color", UIColor.green());
+        style("color", UIColor.gray008());
         style("corner-radius", new Vec4(20f));
         
         UIStyle style = new UIStyle();
@@ -51,8 +51,8 @@ public class UISlider extends UIValueControl<Float, Float> {
         .style("position", UIPositionMode.ABSOLUTE)
         .style("offset-left", pph(0.05f));
         
-        knob.style("border-color", UIColor.GREEN)
-        .style("color", UIColor.GRAY_008)
+        knob.style("border-color", UIColor.green())
+        .style("color", UIColor.gray008())
         .style("oval", false)
         .style("border-enabled", true)
         .hoverStyle(style)
@@ -68,8 +68,8 @@ public class UISlider extends UIValueControl<Float, Float> {
         .style("offset-top", ppw(0.1f))
         .style("offset-left", pph(0.1f));
         
-        knobInner.style("border-color", UIColor.GREEN)
-        .style("color", UIColor.GRAY_008)
+        knobInner.style("border-color", UIColor.green())
+        .style("color", UIColor.gray008())
         .style("oval", false)
         .style("border-enabled", true);
         
@@ -78,7 +78,7 @@ public class UISlider extends UIValueControl<Float, Float> {
         .style("height", pph(1f))
         .style("position", UIPositionMode.ABSOLUTE);
         
-        followingRect.style("color", UIColor.GREEN)
+        followingRect.style("color", UIColor.green())
         .style("corner-radius", new Vec4(100f, 0f, 0f, 20f));
         
         addChild(followingRect);
@@ -106,7 +106,7 @@ public class UISlider extends UIValueControl<Float, Float> {
         followingRect.style("width", px(rV));
         
         float a = Utils.smoothFalloffBefore(0.05f, value);
-        followingRect.style("color", UIColor.GREEN.setAlpha(a));
+        followingRect.style("color", UIColor.green().setAlpha(a));
     }
     
     private void setValueFromMouse(float mouseX) {

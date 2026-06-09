@@ -1,12 +1,14 @@
 package strobeyworks;
 
 import static org.lwjgl.glfw.GLFW.glfwPollEvents;
+import static org.lwjgl.glfw.GLFW.glfwTerminate;
 
 import javax.swing.Timer;
 
 import strobeyworks.logger.Logger;
 import strobeyworks.noiserender.AgentRenderer;
 import strobeyworks.noiserender.NoiseRenderer;
+import strobeyworks.platform.MidiManager;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.platform.Window;
 import strobeyworks.ui.core.UIRenderer;
@@ -14,12 +16,12 @@ import strobeyworks.ui.core.UIRenderer;
 public class SWMain {
     
     private static SWMain instance;
-
+    
     private static Window renderWindow;
     private static Window uiWindow;
     private static ShaderManager shaderManager;
+    private static MidiManager midiManager;
     
-    private Timer timer;
     private static long lastTime;
     private static float deltaTime;
     private static float totalTime;
@@ -30,7 +32,7 @@ public class SWMain {
         if (instance==null) instance = new SWMain();
         return instance;
     }
-
+    
     private SWMain() {}
     
     public static ShaderManager getShaderManager() {return shaderManager;}
@@ -45,7 +47,6 @@ public class SWMain {
         
         //renderWindow = new Window(SceneRenderer.getInstance(), 1500, 900, "Render");
         renderWindow = new Window(AgentRenderer.getInstance(), 1500, 900, "Agent Render");
-
         
         uiWindow = new Window(UIRenderer.getInstance(), 500, 500, "UI");
         uiWindow.stayFocussed();
@@ -53,6 +54,9 @@ public class SWMain {
         
         renderWindow.initialise();
         uiWindow.initialise();
+        
+        midiManager = MidiManager.getInstance();
+        midiManager.open("MIDICRAFT ENC");
     }
     
     private void start() {
@@ -61,7 +65,7 @@ public class SWMain {
         totalTime = 0L;
         running = true;
         
-        Logger.info("Starting render thread");
+        Logger.info("Starting main loop");
         while (running) {
             long now = System.nanoTime();
             deltaTime = Math.min((now - lastTime) * 1e-9f, 0.05f);
@@ -70,6 +74,8 @@ public class SWMain {
             totalFrameCount++;
             
             glfwPollEvents();
+
+            midiManager.update();
             
             // Exit condition
             if (!renderWindow.windowAlive()||!uiWindow.windowAlive()) running = false;
@@ -78,19 +84,31 @@ public class SWMain {
                 uiWindow.iterate();
             }
         }
-        Logger.info("Main loop exited");
+        Logger.info("Exiting main loop");
         shutdown();
     }
     
     private void shutdown() {
+        MidiManager.getInstance().cleanup();
         if (renderWindow!=null) renderWindow.cleanup();
         if (uiWindow!=null) uiWindow.cleanup();
-        if (timer!=null) timer.stop();
+        glfwTerminate();
+        
+        
         Logger.info("Shutting down");
+        System.exit(0);
+    }
+
+    private void logAllOpenThreads() {
+        for (Thread t : Thread.getAllStackTraces().keySet()) {
+            if (t.isAlive()&&!t.isDaemon()&&!t.getName().equals("main")) {
+                Logger.error("Non-daemon thread still alive: " + t.getName());
+            }
+        }
     }
     
     public static float getDeltaTime() {return deltaTime;}
-
+    
     public static float getTotalTime() {return totalTime;}
     
     public static long getTotalFrameCount() {return totalFrameCount;}

@@ -33,7 +33,7 @@ public class UIFloatField extends UIField<Float> {
         //controlWrapper.color(col(UIColors.WHITE));
 
         UIStyle style = new UIStyle();
-        style.set(StyleProps.ICON_TINT, UIColor.WHITE)
+        style.set(StyleProps.ICON_TINT, UIColor.white())
         .set(StyleProps.TRANSFORM_SCALEX, 1.2f)
         .set(StyleProps.TRANSFORM_SCALEY, 1.2f);
 

@@ -8,6 +8,7 @@ import strobeyworks.logger.Logger;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIFont;
+import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
 import strobeyworks.ui.style.UIStyleProperty;
@@ -34,7 +35,7 @@ public class UIText extends UIElement {
         this.font = font;
         this.text = "";
         
-        style("color", UIColor.WHITE);
+        style("color", UIColor.white());
         style("box", UIBoxMode.FIXED);
         resolveTextBounds();
     }
@@ -44,7 +45,7 @@ public class UIText extends UIElement {
         this.font = font;
         this.text = text!=null ? text : "";
         
-        style("color", UIColor.WHITE);
+        style("color", UIColor.white());
         style("box", UIBoxMode.FIXED);
         resolveTextBounds();
     }
@@ -121,5 +122,10 @@ public class UIText extends UIElement {
 
     public UIColor getColor() {
         return this.color;
+    }
+
+    @Override
+    public void render(UIRenderer renderer, ShaderManager sM) {
+        renderer.renderText(sM, this);
     }
 }

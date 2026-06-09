@@ -44,14 +44,12 @@ import java.util.Set;
 import org.joml.Matrix4f;
 
 import strobeyworks.SWMain;
-import strobeyworks.noiserender.AgentRenderer;
 import strobeyworks.noiserender.NoiseRenderer;
 import strobeyworks.platform.Animation;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.Renderer;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.platform.Transition;
-import strobeyworks.ui.components.UIButton;
 import strobeyworks.ui.components.UIColorPicker;
 import strobeyworks.ui.components.UITab;
 import strobeyworks.ui.components.input.UICheckBox;
@@ -60,6 +58,8 @@ import strobeyworks.ui.components.input.UIValueAdaptor;
 import strobeyworks.ui.components.input.field.UIFieldRule;
 import strobeyworks.ui.components.input.field.UIFloatField;
 import strobeyworks.ui.components.input.field.UIFloatFieldRule;
+import strobeyworks.ui.components.popups.UIPopup;
+import strobeyworks.ui.logicpages.UIAgentPage;
 import strobeyworks.ui.primitives.UIElement;
 import strobeyworks.ui.primitives.UIElement.UIAlignContent;
 import strobeyworks.ui.primitives.UIElement.UIAlignItems;
@@ -81,6 +81,7 @@ public class UIRenderer extends Renderer {
     private int textProgram;
     private int iconProgram;
     private int colorPickerProgram;
+    private int colorGradientProgram;
     
     private Matrix4f projectionMatrix;
     
@@ -99,6 +100,9 @@ public class UIRenderer extends Renderer {
     protected Map<UIElement, Set<Transition>> transitions;
     
     private UITab mainTab;
+    
+    private UIPopup fullScreenPopup;
+    private UIRectangle fullScreenPopupBG;
     
     public static UIRenderer getInstance() {
         if (instance==null) instance = new UIRenderer();
@@ -123,6 +127,7 @@ public class UIRenderer extends Renderer {
         UITextureManager.loadTexture("cube.png");
         UITextureManager.loadTexture("light.png");
         UITextureManager.loadTexture("data.png");
+        UITextureManager.loadTexture("close.png");
     }
     
     private void buildBase() {
@@ -140,7 +145,7 @@ public class UIRenderer extends Renderer {
         .style("padding-bottom", px(5))
         .style("align-content", UIAlignContent.CENTER)
         .style("flow-direction", UIFlowDirection.COLUMN)
-        .style("color", UIColor.TRANSPARENT)
+        .style("color", UIColor.transparent())
         .style("overflow-y", UIOverflowMode.SCROLL);
         
         mainTab.addTab("OBJECTS", "cube", pane);
@@ -197,7 +202,7 @@ public class UIRenderer extends Renderer {
         for (BooleanControlConfig config : cbControls) {
             UIText title = new UIText(titleFont, config.name());
             title.style("margin-left", px(10))
-            .style("color", UIColor.GREEN);
+            .style("color", UIColor.green());
             
             UICheckBox cB = new UICheckBox(px(40), px(40), true);
             cB.style("margin-left", px(10));
@@ -221,13 +226,13 @@ public class UIRenderer extends Renderer {
             .style("height", pph(1f))
             .style("position", UIPositionMode.ABSOLUTE)
             .style("offset-left", ppw(0.2f))
-            .style("color", UIColor.TRANSPARENT)
+            .style("color", UIColor.transparent())
             .style("margin-top", px(10))
             .style("align-items", UIAlignItems.CENTER);
             
             UIText title = new UIText(titleFont, config.name());
             title.style("margin-left", px(10))
-            .style("color", UIColor.GREEN);
+            .style("color", UIColor.green());
             
             UIFloatFieldRule inputRule = UIFieldRule.defaultFloat();
             inputRule.maxCharacters(3)
@@ -259,181 +264,8 @@ public class UIRenderer extends Renderer {
     }
     
     public void buildAgentTab() {
-        UIRectangle pane = new UIRectangle();
-        pane.style("width", ppw(1f))
-        .style("height", pph(1f))
-        .style("padding-left", px(5))
-        .style("padding-right", px(5))
-        .style("padding-top", px(5))
-        .style("padding-bottom", px(5))
-        .style("align-content", UIAlignContent.CENTER)
-        .style("flow-direction", UIFlowDirection.COLUMN)
-        .style("color", UIColor.TRANSPARENT)
-        .style("overflow-y", UIOverflowMode.SCROLL);
-        
-        mainTab.addTab("AGENTS", "cube", pane);
-        
-        AgentRenderer r = AgentRenderer.getInstance();
-        UIFont titleFont = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f);
-        UIFont fieldFont = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f);
-        
-        Bindable<UIColor> pickerColor = Bindable.of(UIColor.rgb(1f, 1f, 1f));
-
-
-        UIColorPicker colPick = new UIColorPicker();
-        colPick.style("width", pcw(0.2f))
-        .style("height", pch(0.2f));
-        colPick.bindColor(pickerColor);
-
-        UIRectangle ind = new UIRectangle();
-        ind.style("width", pcw(0.2f))
-        .style("height", pch(0.2f))
-        .style("margin-left", px(20))
-        .style("color", pickerColor.getValue());
-
-        //pane.addChild(colPick);
-        //pane.addChild(ind);
-
-
-
-        UIButton but = new UIButton(fieldFont, "Restore");
-        but.style("width", pcw(0.2f))
-        .style("height", px(30))
-        .onClicked(e -> {
-            r.loadDefaults();
-        });
-        pane.addChild(but);
-        
-        but = new UIButton(fieldFont, "Randomize");
-        but.style("width", pcw(0.2f))
-        .style("height", px(30))
-        .onClicked(e -> {
-            r.randomize();
-        });
-        pane.addChild(but);
-        
-        record FloatControlConfig(
-            String name,
-            Bindable<Float> binding,
-            float min,
-            float max,
-            int precision,
-            float butIncrement
-        ) {}
-        
-        record BooleanControlConfig(
-            String name,
-            Bindable<Boolean> binding
-        ) {}
-        
-        FloatControlConfig[] sliderControls = {
-            new FloatControlConfig("Diffusion", r.getDiffusion(), 0f, 1.5f, 2, 0.01f),
-            new FloatControlConfig("Decay", r.getDecay(), 0f, 10f, 2, 1f),
-            new FloatControlConfig("Speed", r.getSpeed(), 0f, 1f, 2, 0.01f),
-            new FloatControlConfig("Sensor Angle", r.getSensorAngle(), 0f, 3f, 2, 0.1f),
-            new FloatControlConfig("Sensor Distance", r.getSensorDistance(), 0f, 0.5f, 2, 0.01f),
-            new FloatControlConfig("Random", r.getRandomTurnStrength(), 0f, 20f, 2, 0.01f),
-            new FloatControlConfig("Turn Speed", r.getTurnSpeed(), 0.2f, 20f, 2, 1f),
-            new FloatControlConfig("Opacity Cuttoff", r.getOpacityCuttoff(), 0f, 1f, 2, 0.01f),
-            new FloatControlConfig("Contribution", r.getPheramoneContribution(), 0f, 1f, 2, 0.01f)
-        };
-        
-        BooleanControlConfig[] cbControls = {
-        };
-        
-        UIRectangle line = new UIRectangle();
-        line.style("width", pcw(1f))
-        .style("box", UIBoxMode.FLEX)
-        //.style("height", pch(0.08f))
-        .style("margin-top", px(10))
-        .style("max-width", pcw(1f))
-        .style("align-items", UIAlignItems.CENTER)
-        //.style("color", col(UIColors.RED))
-        .style("flow-wrap", true);
-        pane.addChild(line);
-        
-        for (BooleanControlConfig config : cbControls) {
-            UIText title = new UIText(titleFont, config.name());
-            title.style("margin-left", px(10))
-            .style("color", UIColor.GREEN);
-            
-            UICheckBox cB = new UICheckBox(px(40), px(40), true);
-            cB.style("margin-left", px(10));
-            cB.bindTo(config.binding());
-            
-            line.addChild(title);
-            line.addChild(cB);
-            
-        }
-        
-        for (FloatControlConfig config : sliderControls) {
-            line = new UIRectangle();
-            line.style("width", pcw(1f))
-            .style("height", pch(0.08f))
-            //.style("color", col(UIColors.RED))
-            .style("margin-top", px(10))
-            .style("align-items", UIAlignItems.CENTER);
-            
-            UIRectangle right = new UIRectangle();
-            right.style("width", ppw(0.8f))
-            .style("height", pph(1f))
-            .style("position", UIPositionMode.ABSOLUTE)
-            .style("offset-left", ppw(0.2f))
-            .style("color", UIColor.TRANSPARENT)
-            .style("margin-top", px(10))
-            .style("align-items", UIAlignItems.CENTER);
-            
-            UIText title = new UIText(titleFont, config.name());
-            title.style("margin-left", px(10))
-            .style("color", UIColor.GREEN);
-            
-            UIFloatFieldRule inputRule = UIFieldRule.defaultFloat();
-            inputRule.maxCharacters(3)
-            .maxPrecision(config.precision())
-            .inputMinMax(config.min(), config.max());
-            
-            UIFloatField field = new UIFloatField(fieldFont, inputRule);
-            field.useButtons(config.butIncrement());
-            field.style("width", ppw(0.2f))
-            .style("height", pph(1f))
-            .style("margin-left", ppw(0.05f));
-            
-            UISlider slider = new UISlider(
-                ppw(0.65f),
-                pph(1f),
-                UIValueAdaptor.floatRange(config.min(), config.max())
-            );
-            slider.style("margin-left", ppw(0.1f));
-            
-            field.bindTo(config.binding());
-            slider.bindTo(config.binding);
-            
-            line.addChild(title);
-            line.addChild(right);
-            right.addChild(slider);
-            right.addChild(field);
-            pane.addChild(line);
-        }
-    }
-    
-    public void buildLightsTab() {
-        UIRectangle pane = new UIRectangle();
-        pane.style("width", ppw(1f))
-        .style("height", pph(1f))
-        .style("padding-left", px(5))
-        .style("padding-right", px(5))
-        .style("padding-top", px(5))
-        .style("padding-bottom", px(5))
-        .style("align-items", UIAlignItems.CENTER)
-        .style("align-content", UIAlignContent.CENTER)
-        .style("flow-direction", UIFlowDirection.COLUMN)
-        .style("color", UIColor.BLUE);
-        
-        mainTab.addTab("LIGHTS", "light", pane);
-    }
-    
-    public void buildDataTab() {
-        mainTab.addTab("DATA", "data", null);
+        UIAgentPage page = new UIAgentPage();
+        addMainTab("AGENTS", "cube", page);
     }
     
     public void addToRoot(UIElement e) {
@@ -460,6 +292,34 @@ public class UIRenderer extends Renderer {
         transitions.get(e).add(t);
     }
     
+    public void createFullScreenPopup(UIPopup popup) {
+        if (fullScreenPopup!=null) return;
+        
+        fullScreenPopupBG = new UIRectangle();
+        fullScreenPopupBG.style("width", sw(1f))
+        .style("height", sh(1f))
+        .style("position", UIPositionMode.ABSOLUTE)
+        .style("color", UIColor.black())
+        .style("opacity", 0.5f)
+        .style("z-index", 999)
+        .clickable(true)
+        .onClicked(e -> popup.close(false));
+        
+        popup.style("z-index", 1000);
+        popup.addClosedAction(s -> {
+            rootElement.removeChild(fullScreenPopupBG);
+            fullScreenPopup = null;
+        });
+        
+        fullScreenPopup = popup;
+        rootElement.addChild(fullScreenPopupBG);
+        rootElement.addChild(fullScreenPopup);
+    }
+    
+    public void addMainTab(String name, String icon, UIElement content) {
+        mainTab.addTab(name, icon, content);
+    }
+    
     @Override
     public void handleWindowResize() {
         buildProjectionMatrix();
@@ -471,7 +331,7 @@ public class UIRenderer extends Renderer {
         rootElement = new UIRectangle();
         rootElement.style("width", sw(1f))
         .style("height", sh(1f))
-        .style("color", UIColor.BLACK)
+        .style("color", UIColor.black())
         .style("position", UIPositionMode.SCREEN)
         .style("box", UIBoxMode.FIXED)
         .style("flow-direction", UIFlowDirection.COLUMN);
@@ -485,6 +345,7 @@ public class UIRenderer extends Renderer {
         textProgram = sM.createProgram("ui/ui_text.vert", "ui/ui_text.frag");
         iconProgram = sM.createProgram("ui/ui_icon.vert", "ui/ui_icon.frag");
         colorPickerProgram = sM.createProgram("ui/ui_shapes.vert", "ui/ui_colorpicker.frag");
+        colorGradientProgram = sM.createProgram("ui/ui_shapes.vert", "ui/ui_colorgradient.frag");
         
         // Shape setup
         quadVAO = glGenVertexArrays();
@@ -682,12 +543,7 @@ public class UIRenderer extends Renderer {
         ShaderManager sM = SWMain.getShaderManager();
         
         // Draw objects
-        for (UIElement e : visibleUIElements) {
-            if (e instanceof UIText) renderText(sM, (UIText) e);
-            else if (e instanceof UIIcon) renderIcon(sM, (UIIcon) e);
-            else if (e instanceof UIColorPicker) renderColorPicker(sM, (UIColorPicker) e);
-            else renderShape(sM, e);
-        }
+        for (UIElement e : visibleUIElements) e.render(this, sM);
         
         // Reset
         glActiveTexture(GL_TEXTURE0);
@@ -695,7 +551,7 @@ public class UIRenderer extends Renderer {
         sM.useProgram(0);
     }
     
-    private void renderText(ShaderManager sM, UIText tE) {
+    public void renderText(ShaderManager sM, UIText tE) {
         UIFont font = tE.getFont();
         float baselineY = tE.getScreenY() + font.getAscent();
         
@@ -724,7 +580,7 @@ public class UIRenderer extends Renderer {
         
     }
     
-    private void renderShape(ShaderManager sM, UIElement e) {
+    public void renderShape(ShaderManager sM, UIElement e) {
         sM.useProgram(shapeProgram);
         sM.setCurrentProgram(shapeProgram);
         
@@ -736,12 +592,38 @@ public class UIRenderer extends Renderer {
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
     
-    private void renderIcon(ShaderManager sM, UIIcon icon) {
+    public void renderIcon(ShaderManager sM, UIIcon icon) {
         sM.useProgram(iconProgram);
         sM.setCurrentProgram(iconProgram);
         
         sM.setUniformMat4("uProjection", projectionMatrix);
-        sM.setUniformMat4("uModel", icon.getModelMatrix());
+        
+        // Fit mode
+        Matrix4f model = icon.getModelMatrix();
+        
+        if (icon.getFitMode() == UIIcon.UIIconFitMode.FIT) {
+            float boxW = icon.getScreenWidth();
+            float boxH = icon.getScreenHeight();
+            
+            float texW = icon.getTexture().getWidth();
+            float texH = icon.getTexture().getHeight();
+            
+            float scale = Math.min(boxW / texW, boxH / texH);
+            
+            float fittedW = texW * scale;
+            float fittedH = texH * scale;
+            
+            float x = icon.getScreenX() + (boxW - fittedW) * 0.5f;
+            float y = icon.getScreenY() + (boxH - fittedH) * 0.5f;
+            
+            model = new Matrix4f()
+            .translation(x + fittedW * 0.5f, y + fittedH * 0.5f, 0f)
+            .scale(fittedW, fittedH, 1f);
+        }
+
+        sM.setUniformMat4("uModel", model);       
+
+        // Other uniforms
         UIColor tint = icon.getTint();
         sM.setUniformVec4("uTint", new Vec4(tint.getRed(), tint.getGreen(), tint.getBlue(), tint.getAlpha()));
         sM.setUniformVec4("uUVRect", icon.getUVRect());
@@ -755,19 +637,30 @@ public class UIRenderer extends Renderer {
         sM.bindVAO(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
-
-    private void renderColorPicker(ShaderManager sM, UIColorPicker cP) {
+    
+    public void renderColorPicker(ShaderManager sM, UIColorPicker cP) {
         sM.useProgram(colorPickerProgram);
         sM.setCurrentProgram(colorPickerProgram);
-
+        
         sM.setUniformMat4("uProjection", projectionMatrix);
         sM.setUniformMat4("uModel", cP.getModelMatrix());
         cP.setRenderUniforms(sM);
-
+        
         sM.bindVAO(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
-    
+
+    public void renderColorGradient(ShaderManager sM, UIElement e) {
+        sM.useProgram(colorPickerProgram);
+        sM.setCurrentProgram(colorPickerProgram);
+        
+        sM.setUniformMat4("uProjection", projectionMatrix);
+        sM.setUniformMat4("uModel", e.getModelMatrix());
+        e.setRenderUniforms(sM);
+        
+        sM.bindVAO(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
     
     private void buildProjectionMatrix() {
         projectionMatrix = new Matrix4f().ortho(

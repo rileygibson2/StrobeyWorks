@@ -31,16 +31,16 @@ public class UIButton extends UIRectangle {
         
         style("transition-duration", 0.3f);
         style("box", UIBoxMode.FIXED);
-        style("color", UIColor.TRANSPARENT);
+        style("color", UIColor.transparent());
         style("border-enabled", true);
-        style("border-color", UIColor.GREEN);
+        style("border-color", UIColor.green());
         style("corner-radius", new Vec4(10f));
         
         icon = new UIIcon();
         icon.style("width", pcw(1.0f))
         .style("height", pch(1.0f))
-        .style("tint", UIColor.GREEN)
-        .style("visible", false);
+        .style("tint", UIColor.green())
+        .style("visible", true);
         icon.texture(iconName);
         addChild(icon);
     }
@@ -51,14 +51,15 @@ public class UIButton extends UIRectangle {
         
         style("transition-duration", 0.3f);
         style("box", UIBoxMode.FIXED);
-        style("color", UIColor.TRANSPARENT);
+        style("color", UIColor.transparent());
         style("border-enabled", true);
-        style("border-color", UIColor.GREEN);
+        style("border-color", UIColor.green());
         style("corner-radius", new Vec4(10f));
         style("justify-content", UIJustifyContent.CENTER);
+        style("align-items", UIAlignItems.CENTER);
         
         text = new UIText(font, t);
-        text.style("color", UIColor.GREEN);
+        text.style("color", UIColor.green());
         addChild(text);
     }
     

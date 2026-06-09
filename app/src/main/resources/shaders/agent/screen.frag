@@ -14,12 +14,25 @@ vec3 colB = vec3(0.0, 0.0, 0.2);
 void main() {
     float pheromone = texture(uDepositTexture, vUV).r;
 
+    float softness = 0;
+    float t;
+    if (softness <= 0.0) {
+        t = pheromone > uOpacityCuttoff ? 1.0 : 0.0;
+    } else {
+        t = smoothstep(
+            uOpacityCuttoff - softness,
+            uOpacityCuttoff + softness,
+            pheromone
+        );
+    }
+
     if (pheromone <= uOpacityCuttoff) {
         FragColor = vec4(colBase, 0.0);
         return;
     }
 
-    FragColor = vec4(mix(colA, colB, pheromone), 1.0);
+    vec3 gradientColor = mix(colA, colB, pheromone);
+    vec3 finalColor = mix(colBase, gradientColor, t);
 
-    //FragColor = vec4(vec3(pheromone*0.0, pheromone*0.5, pheromone*1.0), pheromone);
+    FragColor = vec4(finalColor, 1.0);
 }

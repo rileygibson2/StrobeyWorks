@@ -197,7 +197,6 @@ public class Window {
         GL.setCapabilities(capabilities);
         glViewport(0, 0, framebufferWidth, framebufferHeight);
         
-        
         // FPS calcs
         if (fpsTimer >= 1.0) {
             fps = framesTimer/fpsTimer;
@@ -209,7 +208,6 @@ public class Window {
             fpsTimer = 0.0;
             framesTimer = 0;
         }
-        
         
         if (io!=null) io.update();
         
@@ -264,7 +262,6 @@ public class Window {
     public void cleanup() {
         Logger.info("Cleaning up");
         glfwDestroyWindow(windowID);
-        glfwTerminate();
         GLFWErrorCallback cb = glfwSetErrorCallback(null);
         if (cb != null) cb.free();
     }

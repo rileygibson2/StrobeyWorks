@@ -6,6 +6,7 @@ import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL11.GL_NEAREST;
+import static org.lwjgl.opengl.GL11.GL_ONE;
 import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
 import static org.lwjgl.opengl.GL11.GL_POINTS;
 import static org.lwjgl.opengl.GL11.GL_RED;
@@ -22,6 +23,7 @@ import static org.lwjgl.opengl.GL11.glClear;
 import static org.lwjgl.opengl.GL11.glClearColor;
 import static org.lwjgl.opengl.GL11.glDisable;
 import static org.lwjgl.opengl.GL11.glDrawArrays;
+import static org.lwjgl.opengl.GL11.glDrawBuffer;
 import static org.lwjgl.opengl.GL11.glEnable;
 import static org.lwjgl.opengl.GL11.glGenTextures;
 import static org.lwjgl.opengl.GL11.glTexImage2D;
@@ -53,19 +55,29 @@ import static org.lwjgl.opengl.GL30.glEndTransformFeedback;
 import static org.lwjgl.opengl.GL30.glFramebufferTexture2D;
 import static org.lwjgl.opengl.GL30.glGenFramebuffers;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
-import static org.lwjgl.opengl.GL11.glDrawBuffer;
-import static org.lwjgl.opengl.GL11.GL_ONE;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.function.Consumer;
 
 import strobeyworks.SWMain;
 import strobeyworks.platform.Animation;
 import strobeyworks.platform.IOEvent;
+import strobeyworks.platform.MidiManager;
+import strobeyworks.platform.MidiManager.MidiEvent;
+import strobeyworks.platform.MidiManager.MidiHandle;
+import strobeyworks.platform.MidiManager.MidiHandleType;
+import strobeyworks.platform.MidiManager.MidiType;
+import strobeyworks.platform.MidiManager.MidiHandleType;
+import strobeyworks.platform.MidiSubscriber;
 import strobeyworks.platform.Renderer;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.utils.Bindable;
 import strobeyworks.utils.Utils;
 import strobeyworks.utils.Vec2;
 
-public class AgentRenderer extends Renderer {
+public class AgentRenderer extends Renderer implements MidiSubscriber {
     
     private static AgentRenderer instance;
     
@@ -95,9 +107,13 @@ public class AgentRenderer extends Renderer {
     private Bindable<Float> sensorAngle;
     private Bindable<Float> turnSpeed;
     private Bindable<Float> randomTurnStrength;
+    private Bindable<Float> randomSpeedStrength;
     
     private Bindable<Float> opacityCuttoff;
     
+    private List<ControlConfig<Float>> floatControlConfigs;
+    
+    private HashMap<MidiHandle, Consumer<MidiEvent>> midiHandleMap;
     
     public static AgentRenderer getInstance() {
         if (instance==null) instance = new AgentRenderer();
@@ -105,41 +121,99 @@ public class AgentRenderer extends Renderer {
     }
     
     private AgentRenderer() {
-        diffusion = new Bindable<>();
-        decay = new Bindable<>();
-        speed = new Bindable<>();
-        pheramoneContribution = new Bindable<>();
-        sensorDistance = new Bindable<>();
-        sensorAngle = new Bindable<>();
-        turnSpeed = new Bindable<>();
-        randomTurnStrength = new Bindable<>();
-        opacityCuttoff = new Bindable<>();
+        floatControlConfigs = new ArrayList<>();
+        buildControlConfigs();
         loadDefaults();
+        
+        midiHandleMap = new HashMap<>();
+        loadDefaultMidiMap();
+    }
+    
+    private void buildControlConfigs() {
+        diffusion = addFloatControl("Diffusion", 0f, 1.5f, 2, 0.01f, 0.1f);
+        decay = addFloatControl("Decay", 0f, 10f, 2, 1f, 4f);
+        speed = addFloatControl("Speed", 0f, 1f, 2, 0.01f, 0.05f);
+        sensorAngle = addFloatControl("Sensor Angle", 0f, 3f, 2, 0.1f, 0.6f);
+        sensorDistance = addFloatControl("Sensor Distance", 0f, 0.5f, 2, 0.01f, 0.01f);
+        turnSpeed = addFloatControl("Turn Speed", 0.2f, 20f, 2, 1f, 2f);
+        randomTurnStrength = addFloatControl("Random Turn", 0f, 20f, 2, 0.01f, 0f);
+        randomSpeedStrength = addFloatControl("Random Speed", 0f, 2f, 2, 0.01f, 0f);
+        opacityCuttoff = addFloatControl("Opacity Cuttoff", 0f, 1f, 2, 0.01f, 0f);
+        pheramoneContribution = addFloatControl("Contribution", 0f, 1f, 2, 0.01f, 1f);
+    }
+    
+    private Bindable<Float> addFloatControl(
+        String name,
+        float min,
+        float max,
+        int precision,
+        float increment,
+        float defaultValue
+    ) {
+        Bindable<Float> binding = Bindable.of(defaultValue);
+        floatControlConfigs.add(new ControlConfig<Float>(name, binding, min, max, precision, increment, defaultValue));
+        return binding;
+    }
+
+    public List<ControlConfig<Float>> getFloatControlConfigs() {
+        return floatControlConfigs;
+    }
+
+    public ControlConfig<Float> getFloatControlConfig(Bindable<Float> b) {
+        for (ControlConfig<Float> c : floatControlConfigs) {
+            if (c.binding()==b) return c;
+        }
+        return null;
     }
     
     public void loadDefaults() {
-        diffusion.setValue(0.1f);
-        decay.setValue(4f);
-        speed.setValue(0.05f);
-        pheramoneContribution.setValue(1.0f);
-        sensorDistance.setValue(0.01f);
-        sensorAngle.setValue(0.6f);
-        turnSpeed.setValue(2f);
-        randomTurnStrength.setValue(0f);
-        opacityCuttoff.setValue(0.1f);
+        for (ControlConfig<Float> c : floatControlConfigs) {
+            c.binding().setValue(c.defaultValue());
+        }
+    }
+    
+    public void loadDefaultMidiMap() {
+        MidiManager m = MidiManager.getInstance();
+
+        midiHandleMap.put(m.getHandle(MidiHandleType.FADER, 1), e -> tempFloat(diffusion, e));
+        midiHandleMap.put(m.getHandle(MidiHandleType.FADER, 2), e -> tempFloat(decay, e));
+        midiHandleMap.put(m.getHandle(MidiHandleType.FADER, 3), e -> tempFloat(sensorAngle, e));
+        midiHandleMap.put(m.getHandle(MidiHandleType.FADER, 4), e -> tempFloat(turnSpeed, e));
+        midiHandleMap.put(m.getHandle(MidiHandleType.FADER, 5), e -> tempFloat(pheramoneContribution, e));
+
+        midiHandleMap.put(m.getHandle(MidiHandleType.BUTTON, 11), e -> flashFloat(speed, e));
+
+        m.subscribe(this, m.getHandle(MidiHandleType.FADER, 1));
+        m.subscribe(this, m.getHandle(MidiHandleType.FADER, 2));
+        m.subscribe(this, m.getHandle(MidiHandleType.FADER, 3));
+        m.subscribe(this, m.getHandle(MidiHandleType.FADER, 4));
+        m.subscribe(this, m.getHandle(MidiHandleType.FADER, 5));
+
+        m.subscribe(this, m.getHandle(MidiHandleType.BUTTON, 11));
     }
 
-    public void randomize() {
-        diffusion.setValue(Utils.randomBetween(0.1f, 
-            1f));
-        decay.setValue(Utils.randomBetween(2f, 8f));
-        speed.setValue(Utils.randomBetween(0.001f, 0.2f));
-        pheramoneContribution.setValue(Utils.randomBetween(0.1f, 1f));
-        sensorDistance.setValue(Utils.randomBetween(0.01f, 1f));
-        sensorAngle.setValue(Utils.randomBetween(0.01f, 2f));
-        turnSpeed.setValue(Utils.randomBetween(0.01f, 5f));
-        randomTurnStrength.setValue(Utils.randomBetween(0f, 4f));
-        opacityCuttoff.setValue(Utils.randomBetween(0.01f, 1f));
+    private void tempFloat(Bindable<Float> b, MidiEvent e) {
+        ControlConfig<Float> c = getFloatControlConfig(b);
+        if (c==null) return;
+        c.binding().setValue(Utils.lerpFloat(c.min(), c.max(), e.value()));
+    }
+
+    private void flashFloat(Bindable<Float> b, MidiEvent e) {
+        ControlConfig<Float> c = getFloatControlConfig(b);
+        if (c==null) return;
+
+        float v;
+        if (e.noteType()==MidiType.NOTE_ON) v = c.max();
+        else v = c.defaultValue();
+
+        c.binding().setValue(v);
+    }
+    
+    @Override
+    public void receiveMidiEvent(MidiEvent event) {
+        Consumer<MidiEvent> c = midiHandleMap.get(event.handle());
+        if (c==null) return;
+        c.accept(event);
     }
     
     @Override
@@ -153,6 +227,20 @@ public class AgentRenderer extends Renderer {
     
     @Override
     public void removeAnimation(Animation a) {}
+
+    public void randomize() {
+        diffusion.setValue(Utils.randomBetween(0.1f, 1f));
+        decay.setValue(Utils.randomBetween(2f, 8f));
+        speed.setValue(Utils.randomBetween(0.001f, 0.1f));
+        
+        sensorDistance.setValue(Utils.randomBetween(0.01f, 0.15f));
+        sensorAngle.setValue(Utils.randomBetween(0.01f, 2f));
+        turnSpeed.setValue(Utils.randomBetween(1f, 15f));
+        randomTurnStrength.setValue(Utils.randomBetween(0f, 4f));
+        randomSpeedStrength.setValue(Utils.randomBetween(0f, 1f));
+        
+        pheramoneContribution.setValue(Utils.randomBetween(0.1f, 1f));
+    }
     
     @Override
     public void initialise() {
@@ -179,26 +267,26 @@ public class AgentRenderer extends Renderer {
         float[] agents = new float[numAgents * 3];
         
         // Positioning
-        thinCirclePositon(agents);
-
+        halfScreenCirclePosition(agents);
+        
         //Heading
         randomHeading(agents);
         
         return agents;
     }
-
+    
     private void thinCirclePositon(float[] agents) {
         double angleStep = (Math.PI*2)/numAgents;
         
         for (int i=0; i<numAgents; i++) {
             double angle = i*angleStep;
             float r = Utils.randomBetween(0.195f, 0.2f);
-
+            
             agents[i*3] = (float) (0.5+r*Math.cos(angle));
             agents[i*3+1] = (float) (0.5+r*Math.sin(angle));
         }
     }
-
+    
     private void halfScreenCirclePosition(float[] agents) {
         double angleStep = (Math.PI*2)/numAgents;
         
@@ -210,17 +298,24 @@ public class AgentRenderer extends Renderer {
             agents[i*3+1] = (float) (0.5+r*Math.sin(angle));
         }
     }
-
+    
     private void halfScreenSquarePosition(float[] agents) {
         for (int i=0; i<numAgents; i++) {
             agents[i*3] = Utils.randomBetween(0.2f, 0.7f);
             agents[i*3+1] = Utils.randomBetween(0.2f, 0.7f);
         }
     }
-
-    private void circleHeading(float[] agents) {
+    
+    private void fullScreenPosition(float[] agents) {
+        for (int i=0; i<numAgents; i++) {
+            agents[i*3] = Utils.randomBetween(0f, 1f);
+            agents[i*3+1] = Utils.randomBetween(0f, 1f);
+        }
+    }
+    
+    private void circleOutwardsHeading(float[] agents) {
         double angleStep = (Math.PI*2)/numAgents;
-
+        
         for (int i=0; i<numAgents; i++) {
             double angle = i*angleStep;
             float h = (float) ((angle+Math.PI));
@@ -228,14 +323,25 @@ public class AgentRenderer extends Renderer {
             agents[i*3+2] = h;
         }
     }
-
+    
+    private void centerInwardsHeading(float[] agents) {
+        for (int i = 0; i < numAgents; i++) {
+            float x = agents[i * 3];
+            float y = agents[i * 3 + 1];
+            
+            float dx = 0.5f - x;
+            float dy = 0.5f - y;
+            
+            agents[i * 3 + 2] = (float) Math.atan2(dy, dx);
+        }
+    }
+    
     private void randomHeading(float[] agents) {
         for (int i=0; i<numAgents; i++) {
             float h = Utils.randomBetween(0f, (float) (Math.PI * 2.0));
             agents[i*3+2] = h;
         }
     }
-
     
     
     private void initialiseAgentBuffers(float[] agents) {
@@ -355,6 +461,7 @@ public class AgentRenderer extends Renderer {
         sM.setUniformFloat("uSensorAngle", sensorAngle.getValue());
         sM.setUniformFloat("uTurnSpeed", turnSpeed.getValue());
         sM.setUniformFloat("uRandomTurnStrength", randomTurnStrength.getValue());
+        sM.setUniformFloat("uRandomSpeedStrength", randomSpeedStrength.getValue());
         
         glBindVertexArray(agentVAORead);
         
@@ -497,9 +604,13 @@ public class AgentRenderer extends Renderer {
     public Bindable<Float> getTurnSpeed() {
         return this.turnSpeed;
     }
-
+    
     public Bindable<Float> getRandomTurnStrength() {
         return this.randomTurnStrength;
+    }
+    
+    public Bindable<Float> getRandomSpeedStrength() {
+        return this.randomSpeedStrength;
     }
     
     public Bindable<Float> getOpacityCuttoff() {

@@ -41,9 +41,9 @@ public class UIField<T> extends UIValueControl<T, String> {
         
         style("align-items", UIAlignItems.CENTER);
         style("border-enabled", true);
-        style("border-color", UIColor.GREEN);
+        style("border-color", UIColor.green());
         style("padding-left",px(10));
-        style("color", UIColor.TRANSPARENT);
+        style("color", UIColor.transparent());
         style("corner-radius", new Vec4(10f));
         
         wrapper = new UIRectangle();
@@ -57,12 +57,12 @@ public class UIField<T> extends UIValueControl<T, String> {
         .style("position", UIPositionMode.ABSOLUTE)
         .style("offset-left", pcw(0.1f))
         .style("offset-top", pch(0.1f))
-        .style("color", UIColor.GREEN)
+        .style("color", UIColor.green())
         .style("corner-radius", new Vec4(10f))
         .style("visible", false);
         
         textElem = new UIText(font);
-        textElem.style("color", UIColor.GREEN);
+        textElem.style("color", UIColor.green());
         
         addChild(wrapper);
         wrapper.addChild(textElem);
@@ -151,7 +151,7 @@ public class UIField<T> extends UIValueControl<T, String> {
         if (!success) {
             if (!invalidInput) cachedColor = textElem.getColor(); // Protect against multiple failed attempts in a row
             invalidInput = true;
-            textElem.style("color", UIColor.RED);
+            textElem.style("color", UIColor.red());
         }
         
         cursorPos = getLocalValue().length();

@@ -19,27 +19,61 @@ public class UIColor {
 
     private UIColor() {}
 
-    public static final UIColor TRANSPARENT = UIColor.rgba(0f, 0f, 0f, 0f).makeImmutable();
-    public static final UIColor BLACK = UIColor.rgb(0f, 0f, 0f).makeImmutable();
-    public static final UIColor WHITE = UIColor.rgb(1f, 1f, 1f).makeImmutable();
+    private static final UIColor TRANSPARENT = UIColor.rgba(0f, 0f, 0f, 0f).makeImmutable();
+    private static final UIColor BLACK = UIColor.rgb(0f, 0f, 0f).makeImmutable();
+    private static final UIColor WHITE = UIColor.rgb(1f, 1f, 1f).makeImmutable();
     
-    public static final UIColor GRAY_008 = UIColor.rgb(0.08f, 0.08f, 0.08f).makeImmutable();
-    public static final UIColor GRAY_01 = UIColor.rgb(0.1f, 0.1f, 0.1f).makeImmutable();
-    public static final UIColor GRAY_02 = UIColor.rgb(0.2f, 0.2f, 0.2f).makeImmutable();
-    public static final UIColor GRAY_03 = UIColor.rgb(0.3f, 0.3f, 0.3f).makeImmutable();
-    public static final UIColor GRAY_04 = UIColor.rgb(0.4f, 0.4f, 0.4f).makeImmutable();
-    public static final UIColor GRAY_05 = UIColor.rgb(0.5f, 0.5f, 0.5f).makeImmutable();
+    private static final UIColor GRAY_008 = UIColor.rgb(0.08f, 0.08f, 0.08f).makeImmutable();
+    private static final UIColor GRAY_01 = UIColor.rgb(0.1f, 0.1f, 0.1f).makeImmutable();
+    private static final UIColor GRAY_02 = UIColor.rgb(0.2f, 0.2f, 0.2f).makeImmutable();
+    private static final UIColor GRAY_03 = UIColor.rgb(0.3f, 0.3f, 0.3f).makeImmutable();
+    private static final UIColor GRAY_04 = UIColor.rgb(0.4f, 0.4f, 0.4f).makeImmutable();
+    private static final UIColor GRAY_05 = UIColor.rgb(0.5f, 0.5f, 0.5f).makeImmutable();
     
     
-    public static final UIColor RED = UIColor.rgb(1f, 0f, 0f).makeImmutable();
-    public static final UIColor GREEN = UIColor.rgb(0f, 1f, 0f).makeImmutable();
-    public static final UIColor LIGHT_GREEN = UIColor.rgb(0f, 1f, 0.2f).makeImmutable();
-    public static final UIColor CYAN = UIColor.rgb(0f, 1f, 1f).makeImmutable();
-    public static final UIColor LAV = UIColor.rgb(0f, 0.5f, 1f).makeImmutable();
-    public static final UIColor BLUE = UIColor.rgb(0f, 0f, 1f).makeImmutable();
-    public static final UIColor PURPLE = UIColor.rgb(0.5f, 0f, 1f).makeImmutable();
+    private static final UIColor RED = UIColor.rgb(1f, 0f, 0f).makeImmutable();
+    private static final UIColor GREEN = UIColor.rgb(0f, 1f, 0f).makeImmutable();
+    private static final UIColor LIGHT_GREEN = UIColor.rgb(0f, 1f, 0.2f).makeImmutable();
+    private static final UIColor CYAN = UIColor.rgb(0f, 1f, 1f).makeImmutable();
+    private static final UIColor LAV = UIColor.rgb(0f, 0.5f, 1f).makeImmutable();
+    private static final UIColor BLUE = UIColor.rgb(0f, 0f, 1f).makeImmutable();
+    private static final UIColor PURPLE = UIColor.rgb(0.5f, 0f, 1f).makeImmutable();
 
-    public static final UIColor BG_GREEN = UIColor.rgb(0f, 0.2f, 0.08f).makeImmutable();
+    private static final UIColor BG_GREEN = UIColor.rgb(0f, 0.2f, 0.08f).makeImmutable();
+
+    public static UIColor transparent() {return TRANSPARENT.clone();}
+
+    public static UIColor black() {return BLACK.clone();}
+
+    public static UIColor white() {return WHITE.clone();}
+
+    public static UIColor gray008() {return GRAY_008.clone();}
+
+    public static UIColor gray01() {return GRAY_01.clone();}
+
+    public static UIColor gray02() {return GRAY_02.clone();}
+
+    public static UIColor gray03() {return GRAY_03.clone();}
+
+    public static UIColor gray04() {return GRAY_04.clone();}
+
+    public static UIColor gray05() {return GRAY_05.clone();}
+
+    public static UIColor red() {return RED.clone();}
+
+    public static UIColor green() {return GREEN.clone();}
+
+    public static UIColor lightGreen() {return LIGHT_GREEN.clone();}
+
+    public static UIColor cyan() {return CYAN.clone();}
+
+    public static UIColor lav() {return LAV.clone();}
+
+    public static UIColor blue() {return BLUE.clone();}
+
+    public static UIColor purple() {return PURPLE.clone();}
+
+    public static UIColor bgGreen() {return BG_GREEN.clone();}
 
     public static UIColor rgb(float red, float green, float blue) {
         UIColor col = new UIColor();
@@ -169,4 +203,9 @@ public class UIColor {
     public float getBrightness() {return brightness;}
 
     public float getAlpha() {return alpha;}
+    
+    @Override
+    public UIColor clone() {
+        return UIColor.rgba(red, green, blue, alpha);
+    }
 }

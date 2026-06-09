@@ -13,6 +13,7 @@ import strobeyworks.ui.primitives.UIElement.UIFlowDirection;
 import strobeyworks.ui.primitives.UIElement.UIJustifyContent;
 import strobeyworks.ui.primitives.UIElement.UIOverflowMode;
 import strobeyworks.ui.primitives.UIElement.UIPositionMode;
+import strobeyworks.ui.primitives.UIIcon.UIIconFitMode;
 import strobeyworks.utils.Vec4;
 
 public final class StyleProps {
@@ -153,6 +154,9 @@ public final class StyleProps {
         
         public static final UIStyleProperty<UIColor> ICON_TINT = 
         register(new UIStyleProperty<>("icon-tint", UIColor.class));
+
+        public static final UIStyleProperty<UIIconFitMode> ICON_FIT_MODE = 
+        register(new UIStyleProperty<>("icon-fit-mode", UIIconFitMode.class));
         
         //Transform
         public static final UIStyleProperty<Float> TRANSFORM_SCALEX = 

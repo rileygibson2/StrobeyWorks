@@ -26,26 +26,26 @@ public class UICheckBox extends UIValueControl<Boolean, Boolean> {
         style("flow-direction", UIFlowDirection.ROW);
         style("align-items", UIAlignItems.CENTER);
         style("border-enabled", true);
-        style("border-color", UIColor.GREEN);
-        style("color", UIColor.TRANSPARENT);
+        style("border-color", UIColor.green());
+        style("color", UIColor.transparent());
         style("corner-radius", new Vec4(10f));
         
         // Inner
         if (circular) {
-            style("border-color", UIColor.TRANSPARENT);
+            style("border-color", UIColor.transparent());
             
             UICircle c = new UICircle();
             c.style("width", ppw(1f))
             .style("height", pph(1f))
-            .style("border-color", UIColor.GREEN)
-            .style("color", UIColor.TRANSPARENT)
+            .style("border-color", UIColor.green())
+            .style("color", UIColor.transparent())
             .style("border-enabled", true)
             .style("position", UIPositionMode.ABSOLUTE);
             
             inner = new UICircle();
             inner.style("width", ppw(0.8f))
             .style("height", pph(0.8f))
-            .style("color", UIColor.GREEN)
+            .style("color", UIColor.green())
             .style("position", UIPositionMode.ABSOLUTE)
             .style("offset-left", ppw(0.1f))
             .style("offset-top", pph(0.1f));
@@ -57,7 +57,7 @@ public class UICheckBox extends UIValueControl<Boolean, Boolean> {
             inner = new UIRectangle();
             inner.style("width", ppw(0.8f))
             .style("height", pph(0.8f))
-            .style("color", UIColor.GREEN)
+            .style("color", UIColor.green())
             .style("corner-radius", new Vec4(10f))
             .style("position", UIPositionMode.ABSOLUTE)
             .style("offset-left", ppw(0.1f))

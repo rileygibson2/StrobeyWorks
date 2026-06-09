@@ -6,15 +6,18 @@ import static strobeyworks.ui.core.UILength.pbh;
 
 import strobeyworks.logger.Logger;
 import strobeyworks.platform.IOEvent;
+import strobeyworks.platform.ShaderManager;
 import strobeyworks.ui.core.UIColor;
+import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.ui.primitives.UICircle;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Bindable;
+import strobeyworks.utils.BindableObserver;
 import strobeyworks.utils.Utils;
 import strobeyworks.utils.Vec3;
 import strobeyworks.utils.Vec4;
 
-public class UIColorPicker extends UIRectangle {
+public class UIColorPicker extends UIRectangle implements BindableObserver<UIColor> {
     
     private Bindable<UIColor> boundColor;
     
@@ -30,26 +33,26 @@ public class UIColorPicker extends UIRectangle {
         
         style("transition-duration", 0.3f);
         style("box", UIBoxMode.FIXED);
-        style("color", UIColor.TRANSPARENT);
+        style("color", UIColor.transparent());
         style("border-enabled", true);
-        style("border-color", UIColor.GREEN);
+        style("border-color", UIColor.green());
         style("corner-radius", new Vec4(10f));
         
-        boundColor = Bindable.of(UIColor.WHITE);
+        boundColor = Bindable.of(UIColor.white());
         setHueSat();
         
         cursor = new UICircle();
-        cursor.style("width", px(10))
-        .style("height", px(10))
+        cursor.style("width", px(20))
+        .style("height", px(20))
         .style("position", UIPositionMode.ABSOLUTE)
         .style("justify-content", UIJustifyContent.CENTER)
         .style("align-items", UIAlignItems.CENTER)
-        .style("color", UIColor.WHITE);
+        .style("color", UIColor.white());
 
         inner = new UICircle();
-        inner.style("width", px(8))
-        .style("height", px(8))
-        .style("color", UIColor.WHITE);
+        inner.style("width", px(12))
+        .style("height", px(12))
+        .style("color", UIColor.white());
         
         addChild(cursor);
         cursor.addChild(inner);
@@ -62,10 +65,18 @@ public class UIColorPicker extends UIRectangle {
     }
     
     public UIColorPicker bindColor(Bindable<UIColor> color) {
-        this.boundColor = color;
+        if (boundColor!=null) boundColor.unbind(this);
+
+        boundColor = color;
+        color.bind(this);
         setHueSat();
         if (isInitialised()) repositionCursor();
         return this;
+    }
+
+    @Override
+    public void bindableValueChanged(Bindable<UIColor> v) {
+        repositionCursor();
     }
 
     private void setHueSat() {
@@ -130,5 +141,10 @@ public class UIColorPicker extends UIRectangle {
             
             default: return;
         }
+    }
+
+    @Override
+    public void render(UIRenderer renderer, ShaderManager sM) {
+        renderer.renderColorPicker(sM, this);
     }
 }

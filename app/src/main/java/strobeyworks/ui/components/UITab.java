@@ -47,10 +47,10 @@ public class UITab extends UIRectangle {
         .style("flow-direction", UIFlowDirection.ROW)
         .style("flow-wrap", false)
         .style("align-items", UIAlignItems.CENTER)
-        .style("color", UIColor.GRAY_008)
+        .style("color", UIColor.gray008())
         .style("corner-radius", new Vec4(10f))
         .style("border-enabled", true)
-        .style("border-color", UIColor.GREEN)
+        .style("border-color", UIColor.green())
         .style("border-thickness", px(1))
         .style("z-index", 1);
         
@@ -59,10 +59,10 @@ public class UITab extends UIRectangle {
         follower.style("width", ppw(1f))
         .style("height", pph(1f))
         .style("position", UIPositionMode.ABSOLUTE)
-        .style("color", UIColor.TRANSPARENT.setAlpha(0.3f))
+        .style("color", UIColor.transparent().setAlpha(0.3f))
         .style("corner-radius", new Vec4(12f))
         .style("border-enabled", true)
-        .style("border-color", UIColor.GREEN)
+        .style("border-color", UIColor.green())
         .style("border-thickness", px(1))
         .style("transition-duration", 0.2f);
 
@@ -72,9 +72,9 @@ public class UITab extends UIRectangle {
         .style("height", pbh(0.9f))
         .style("position", UIPositionMode.ABSOLUTE)
         .style("offset-top", pbh(0.1f))
-        .style("color", UIColor.GRAY_008)
+        .style("color", UIColor.gray008())
         .style("corner-radius", new Vec4(0f, 0f, 20f, 20f))
-        .style("border-color", UIColor.GREEN)
+        .style("border-color", UIColor.green())
         .style("border-thickness", px(1))
         .style("border-top", false)
         .style("border-enabled", true);
@@ -92,7 +92,7 @@ public class UITab extends UIRectangle {
         .style("height", pbh(0.9f));
         
         tab.style("corner-radius", new Vec4(10f))
-        .style("color", UIColor.TRANSPARENT)
+        .style("color", UIColor.transparent())
         .style("border-enabled", false)
         .style("transition-duration", 0.2f)
         .style("align-items", UIAlignItems.CENTER)
@@ -105,10 +105,10 @@ public class UITab extends UIRectangle {
         icon.style("width", ppw(0.8f))
         .style("height", pph(0.8f))
         .style("margin-left", ppw(0.1f))
-        .style("tint", UIColor.GREEN);
+        .style("tint", UIColor.green());
         
         UIText text = new UIText(font, title);
-        text.style("color", UIColor.GREEN)
+        text.style("color", UIColor.green())
         .style("margin-left", px(10))
         .style("opacity", 0f);
         

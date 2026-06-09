@@ -34,7 +34,7 @@ public class UIScrollBar extends UIRectangle {
         
         style("position", UIPositionMode.ABSOLUTE_FIXED);
         style("corner-radius", new Vec4(10f));
-        style("color", UIColor.GREEN);
+        style("color", UIColor.green());
         style("transition-duration", 0.2f);
         style("opacity", 0.5f);
         
