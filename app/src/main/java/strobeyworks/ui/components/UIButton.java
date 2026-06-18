@@ -66,7 +66,7 @@ public class UIButton extends UIRectangle {
     @Override
     protected void applyStyleProperty(UIStyleProperty<?> property, Object value) {
         if (icon!=null) {
-            if (property==StyleProps.ICON_TINT) icon.style(property, value);
+            if (property==StyleProps.BUTTON_ICON_TINT) icon.style(StyleProps.TINT, value);
             if (property==StyleProps.TRANSFORM_SCALEX) icon.style(property, value);
             if (property==StyleProps.TRANSFORM_SCALEY) icon.style(property, value);
         }
@@ -77,7 +77,7 @@ public class UIButton extends UIRectangle {
     public UIStyle captureStyle() {
         UIStyle style = super.captureStyle();
         
-        if (icon!=null) style.set(StyleProps.ICON_TINT, icon.getTint());
+        if (icon!=null) style.set(StyleProps.BUTTON_ICON_TINT, icon.getTint());
         return style;
     }
     

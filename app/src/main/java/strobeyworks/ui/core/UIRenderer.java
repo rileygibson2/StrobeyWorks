@@ -51,14 +51,13 @@ import strobeyworks.platform.Renderer;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.platform.Transition;
 import strobeyworks.ui.components.UIColorPicker;
-import strobeyworks.ui.components.UITab;
 import strobeyworks.ui.components.input.UICheckBox;
 import strobeyworks.ui.components.input.UISlider;
-import strobeyworks.ui.components.input.UIValueAdaptor;
-import strobeyworks.ui.components.input.field.UIFieldRule;
+import strobeyworks.ui.components.input.UIValueMapper;
 import strobeyworks.ui.components.input.field.UIFloatField;
-import strobeyworks.ui.components.input.field.UIFloatFieldRule;
+import strobeyworks.ui.components.input.field.UIFloatFieldMapper;
 import strobeyworks.ui.components.popups.UIPopup;
+import strobeyworks.ui.concepts.UITab;
 import strobeyworks.ui.logicpages.UIAgentPage;
 import strobeyworks.ui.primitives.UIElement;
 import strobeyworks.ui.primitives.UIElement.UIAlignContent;
@@ -116,12 +115,6 @@ public class UIRenderer extends Renderer {
     }
     
     private void loadUIResources() {
-        UIFontManager.loadFont("RobotoMono-Medium.ttf", 30f);
-        UIFontManager.loadFont("RobotoMono-Medium.ttf", 25f);
-        UIFontManager.loadFont("RobotoMono-Medium.ttf", 20f);
-        UIFontManager.loadFont("RobotoMono-Medium.ttf", 15f);
-        UIFontManager.loadFont("RobotoMono-Medium.ttf", 10f);
-        
         UITextureManager.loadTexture("up_arrow.png");
         UITextureManager.loadTexture("down_arrow.png");
         UITextureManager.loadTexture("cube.png");
@@ -184,83 +177,6 @@ public class UIRenderer extends Renderer {
             new BooleanControlConfig("Post Ridge", r.getPostRidge()),
             new BooleanControlConfig("Octave Turbulence", r.getOctaveTurbulence())
         };
-        
-        UIFont titleFont = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f);
-        UIFont fieldFont = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f);
-        
-        UIRectangle line = new UIRectangle();
-        line.style("width", pcw(1f))
-        .style("box", UIBoxMode.FLEX)
-        //.style("height", pch(0.08f))
-        .style("margin-top", px(10))
-        .style("max-width", pcw(1f))
-        .style("align-items", UIAlignItems.CENTER)
-        //.style("color", col(UIColors.RED))
-        .style("flow-wrap", true);
-        pane.addChild(line);
-        
-        for (BooleanControlConfig config : cbControls) {
-            UIText title = new UIText(titleFont, config.name());
-            title.style("margin-left", px(10))
-            .style("color", UIColor.green());
-            
-            UICheckBox cB = new UICheckBox(px(40), px(40), true);
-            cB.style("margin-left", px(10));
-            cB.bindTo(config.binding());
-            
-            line.addChild(title);
-            line.addChild(cB);
-            
-        }
-        
-        for (FloatControlConfig config : sliderControls) {
-            line = new UIRectangle();
-            line.style("width", pcw(1f))
-            .style("height", pch(0.08f))
-            //.style("color", col(UIColors.RED))
-            .style("margin-top", px(10))
-            .style("align-items", UIAlignItems.CENTER);
-            
-            UIRectangle right = new UIRectangle();
-            right.style("width", ppw(0.8f))
-            .style("height", pph(1f))
-            .style("position", UIPositionMode.ABSOLUTE)
-            .style("offset-left", ppw(0.2f))
-            .style("color", UIColor.transparent())
-            .style("margin-top", px(10))
-            .style("align-items", UIAlignItems.CENTER);
-            
-            UIText title = new UIText(titleFont, config.name());
-            title.style("margin-left", px(10))
-            .style("color", UIColor.green());
-            
-            UIFloatFieldRule inputRule = UIFieldRule.defaultFloat();
-            inputRule.maxCharacters(3)
-            .maxPrecision(config.precision())
-            .inputMinMax(config.min(), config.max());
-            
-            UIFloatField field = new UIFloatField(fieldFont, inputRule);
-            field.useButtons(config.butIncrement());
-            field.style("width", ppw(0.2f))
-            .style("height", pph(1f))
-            .style("margin-left", ppw(0.05f));
-            
-            UISlider slider = new UISlider(
-                ppw(0.65f),
-                pph(1f),
-                UIValueAdaptor.floatRange(config.min(), config.max())
-            );
-            slider.style("margin-left", ppw(0.1f));
-            
-            field.bindTo(config.binding());
-            slider.bindTo(config.binding);
-            
-            line.addChild(title);
-            line.addChild(right);
-            right.addChild(slider);
-            right.addChild(field);
-            pane.addChild(line);
-        }
     }
     
     public void buildAgentTab() {
@@ -432,13 +348,19 @@ public class UIRenderer extends Renderer {
             hit = rootElement.getDeepestElementAt(event.getMouseX(), event.getMouseY());
             if (hit == null) return;
             
-            UIElement scrollTarget = hit.findAncestorMatching(e ->
+            UIElement scrollReceiver = hit.findAncestorMatching(UIElement::isScrollable);
+            if (scrollReceiver != null) {
+                scrollReceiver.handleIOEvent(event);
+                return;
+            }
+            
+            UIElement overflowScrollTarget = hit.findAncestorMatching(e ->
                 e.getOverflowY() == UIOverflowMode.SCROLL ||
                 e.getOverflowX() == UIOverflowMode.SCROLL
             );
             
-            if (scrollTarget!=null) {
-                scrollTarget.scrollY(scrollTarget.getScrollY() - event.getScrollY() * 0.05f);
+            if (overflowScrollTarget!=null) {
+                overflowScrollTarget.scrollY(overflowScrollTarget.getScrollY() - event.getScrollY() * 0.05f);
             }
             
             return;

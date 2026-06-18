@@ -12,7 +12,8 @@ import strobeyworks.logger.Logger;
 import strobeyworks.platform.Animation;
 import strobeyworks.platform.Animation.AnimationForm;
 import strobeyworks.platform.IOEvent;
-import strobeyworks.ui.components.input.UIValueControl;
+import strobeyworks.ui.components.input.UIBindableInput;
+import strobeyworks.ui.components.input.UIValueMapper;
 import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.core.UIRenderer;
@@ -20,31 +21,32 @@ import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
 import strobeyworks.utils.Vec4;
 
-public class UIField<T> extends UIValueControl<T, String> {
+public class UIField<T> extends UIBindableInput<T, String> {
     
-    private UIFieldRule<T> inputRule;
+    private String regex;
+    private int maxCharacters;
 
     protected UIRectangle wrapper;
     private UIText textElem;
-    private UIRectangle cursor;
-    private Animation flash;
+    protected UIRectangle cursor;
+    protected Animation flash;
     
     private int cursorPos;
     private UIColor cachedColor;
     private boolean invalidInput;
     
-    public UIField(UIFont font, UIFieldRule<T> inputRule) {
-        super(inputRule);
-        this.inputRule = inputRule;
+    public UIField(UIFont font, UIValueMapper<T, String> mapper) {
+        super(mapper);
+        regex = "\"(?s).\"";
+        maxCharacters = Integer.MAX_VALUE;
         
         focussable(true);
         
         style("align-items", UIAlignItems.CENTER);
-        style("border-enabled", true);
-        style("border-color", UIColor.green());
+        style("border-enabled", false);
         style("padding-left",px(10));
-        style("color", UIColor.transparent());
-        style("corner-radius", new Vec4(10f));
+        style("color", UIColor.rgb(0.3f));
+        style("corner-radius", new Vec4(2f));
         
         wrapper = new UIRectangle();
         wrapper.style("width", pcw(1f))
@@ -57,12 +59,12 @@ public class UIField<T> extends UIValueControl<T, String> {
         .style("position", UIPositionMode.ABSOLUTE)
         .style("offset-left", pcw(0.1f))
         .style("offset-top", pch(0.1f))
-        .style("color", UIColor.green())
+        .style("color", UIColor.rgb(0.8f))
         .style("corner-radius", new Vec4(10f))
         .style("visible", false);
         
         textElem = new UIText(font);
-        textElem.style("color", UIColor.green());
+        textElem.style("color", UIColor.rgb(0.8f));
         
         addChild(wrapper);
         wrapper.addChild(textElem);
@@ -187,7 +189,7 @@ public class UIField<T> extends UIValueControl<T, String> {
         String right = localValue.substring(cursorPos);
         String nS = left+c+right;
         
-        if (!inputRule.inputFilter(nS)) return;
+        if (!inputFilter(nS)) return;
         
         setLocalValue(nS);
         cursorPos++;
@@ -198,6 +200,27 @@ public class UIField<T> extends UIValueControl<T, String> {
         float x = textElem.getFont().measureTextWidth(getLocalValue().substring(0, cursorPos));
         cursor.style("offset-left", px(x+wrapper.resolve(wrapper.getPaddingLeft())));
     }
-    
-    
+
+    protected UIField<T> setRegex(String regex) {
+        this.regex = regex;
+        return this;
+    }
+
+    public UIField<T> setMaxCharacters(int maxCharacters) {
+        this.maxCharacters = maxCharacters;
+        return this;
+    }
+
+    private boolean inputFilter(String s) {
+        if (s.length()>maxCharacters) return false;
+        
+        for (int i=0; i<s.length(); i++) {
+            if (!acceptsChar(s.charAt(i))) return false;
+        }
+        return true;
+    }
+
+    private boolean acceptsChar(char c) {
+        return String.valueOf(c).matches(regex);
+    }
 }

@@ -14,18 +14,17 @@ import strobeyworks.ui.style.UIStyle;
 import strobeyworks.utils.Utils;
 import strobeyworks.utils.Vec4;
 
-public class UISlider extends UIValueControl<Float, Float> {    
+public class UISlider extends UIBindableInput<Float, Float> {    
     
-    private UICircle knob;
+    private UIRectangle knob;
     private UIRectangle followingRect;
     private float bounds = 0.99f;
     
-    public UISlider(UILength width, UILength height, UIValueAdaptor<Float, Float> adaptor) {
+    public UISlider(UIValueMapper<Float, Float> adaptor) {
         super(adaptor);
         
-        style("width", width);
-        style("height", height);
         wantsPointer(true);
+        scrollable(true);
         
         style("box", UIBoxMode.FIXED);
         style("flow-direction", UIFlowDirection.ROW);
@@ -35,55 +34,31 @@ public class UISlider extends UIValueControl<Float, Float> {
         style("padding-top", px(0));
         style("padding-bottom", px(0));
         style("align-items", UIAlignItems.CENTER);
+        style("border-enabled", false);
+        style("color", UIColor.rgb(0.1f));
         
-        style("border-enabled", true);
-        style("border-color", UIColor.green());
-        style("color", UIColor.gray008());
-        style("corner-radius", new Vec4(20f));
-        
-        UIStyle style = new UIStyle();
-        style.set(StyleProps.TRANSFORM_SCALEX, 1.2f)
-        .set(StyleProps.TRANSFORM_SCALEY, 1.2f);
-        
-        knob = new UICircle();
-        knob.style("width", pph(1f))
+        knob = new UIRectangle();
+        knob.style("width", px(3))
         .style("height", pph(1f))
         .style("position", UIPositionMode.ABSOLUTE)
-        .style("offset-left", pph(0.05f));
-        
-        knob.style("border-color", UIColor.green())
-        .style("color", UIColor.gray008())
-        .style("oval", false)
-        .style("border-enabled", true)
-        .hoverStyle(style)
+        .style("offset-left", pph(0.05f))
+        .style("border-color", UIColor.green())
+        .style("color", UIColor.rgb(0.8f))
+        .style("border-enabled", false)
         .style("transition-duration", 0.2f)
         .style(StyleProps.TRANSFORM_SCALEX, 1.0f)
         .style(StyleProps.TRANSFORM_SCALEY, 1.0f)
         .hoverable(true);
         
-        UICircle knobInner = new UICircle();
-        knobInner.style("width", ppw(0.8f))
-        .style("height", pph(0.8f))
-        .style("position", UIPositionMode.ABSOLUTE)
-        .style("offset-top", ppw(0.1f))
-        .style("offset-left", pph(0.1f));
-        
-        knobInner.style("border-color", UIColor.green())
-        .style("color", UIColor.gray008())
-        .style("oval", false)
-        .style("border-enabled", true);
-        
         followingRect = new UIRectangle();
         followingRect.style("width", ppw(0f))
         .style("height", pph(1f))
-        .style("position", UIPositionMode.ABSOLUTE);
-        
-        followingRect.style("color", UIColor.green())
-        .style("corner-radius", new Vec4(100f, 0f, 0f, 20f));
+        .style("position", UIPositionMode.ABSOLUTE)
+        .style("color", UIColor.rgb(0.4f))
+        .style("corner-radius", new Vec4(2f));
         
         addChild(followingRect);
         addChild(knob);
-        knob.addChild(knobInner);
     }
     
     @Override
@@ -106,7 +81,7 @@ public class UISlider extends UIValueControl<Float, Float> {
         followingRect.style("width", px(rV));
         
         float a = Utils.smoothFalloffBefore(0.05f, value);
-        followingRect.style("color", UIColor.green().setAlpha(a));
+        followingRect.style("opacity", a);
     }
     
     private void setValueFromMouse(float mouseX) {
@@ -132,6 +107,12 @@ public class UISlider extends UIValueControl<Float, Float> {
         switch (event.getEventType()) {
             case DRAG :
             setValueFromMouse(event.getMouseX());
+            break;
+            
+            case SCROLL:
+            float delta = -event.getScrollY() * 0.02f;
+            setLocalValue(Math.max(0f, Math.min(getLocalValue() + delta, 1f)));
+            commitLocalValue();
             break;
             
             default: return;

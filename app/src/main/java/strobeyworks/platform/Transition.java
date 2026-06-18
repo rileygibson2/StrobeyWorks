@@ -27,32 +27,30 @@ public class Transition {
     
     private float startTime;
     private float progress;
-    
+
+    public Transition(float duration) {
+        this(duration, 0f, null, null);
+    }
+
+    public Transition(float duration, float delay) {
+        this(duration, delay, null, null);
+    }
+
     public Transition(float duration, TransitionUpdateCallback updateAction) {
-        this.duration = duration;
-        this.delay = 0f;
-        this.updateAction = updateAction;
-        this.interrupted = false;
-        this.completed = false;
-        
-        this.startTime = SWMain.getTotalTime();
-        this.progress = 0f;
+        this(duration, 0f, null, updateAction);
+    }
+
+    public Transition(float duration, String tag) {
+        this(duration, 0f, tag, null);
     }
 
     public Transition(float duration, float delay, TransitionUpdateCallback updateAction) {
-        this.duration = duration;
-        this.delay = delay;
-        this.updateAction = updateAction;
-        this.interrupted = false;
-        this.completed = false;
-        
-        this.startTime = SWMain.getTotalTime();
-        this.progress = 0f;
+        this(duration,  delay, null, updateAction);
     }
 
-    public Transition(float duration, String tag, TransitionUpdateCallback updateAction) {
+    public Transition(float duration, float delay, String tag, TransitionUpdateCallback updateAction) {
         this.duration = duration;
-        this.delay = 0f;
+        this.delay = delay;
         this.updateAction = updateAction;
         this.tag = tag;
         this.interrupted = false;

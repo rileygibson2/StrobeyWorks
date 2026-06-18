@@ -12,11 +12,11 @@ import strobeyworks.ui.components.UIButton;
 import strobeyworks.ui.components.UIColorPicker;
 import strobeyworks.ui.components.UIGradientSlider;
 import strobeyworks.ui.components.input.UISlider;
-import strobeyworks.ui.components.input.UIValueAdaptor;
-import strobeyworks.ui.components.input.field.UIFieldRule;
+import strobeyworks.ui.components.input.UIValueMapper;
 import strobeyworks.ui.components.input.field.UIFloatField;
-import strobeyworks.ui.components.input.field.UIFloatFieldRule;
+import strobeyworks.ui.components.input.field.UIFloatFieldMapper;
 import strobeyworks.ui.components.popups.UIContentPopup;
+import strobeyworks.ui.concepts.UIValueLine;
 import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.core.UIFontManager;
@@ -46,7 +46,6 @@ public class UIAgentPage extends UIRectangle {
         style("overflow-y", UIOverflowMode.SCROLL);
         
         AgentRenderer r = AgentRenderer.getInstance();
-        UIFont titleFont = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f);
         UIFont fieldFont = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f);
         
         UIRectangle line = new UIRectangle();
@@ -90,51 +89,10 @@ public class UIAgentPage extends UIRectangle {
         addChild(line);
         
         for (ControlConfig<Float> config : r.getFloatControlConfigs()) {
-            line = new UIRectangle();
+            line = new UIValueLine(config);
             line.style("width", pcw(1f))
-            .style("height", pch(0.08f))
-            //.style("color", col(UIColors.RED))
-            .style("margin-top", px(10))
-            .style("align-items", UIAlignItems.CENTER);
-            
-            UIRectangle right = new UIRectangle();
-            right.style("width", ppw(0.8f))
-            .style("height", pph(1f))
-            .style("position", UIPositionMode.ABSOLUTE)
-            .style("offset-left", ppw(0.2f))
-            .style("color", UIColor.transparent())
-            .style("margin-top", px(10))
-            .style("align-items", UIAlignItems.CENTER);
-            
-            UIText title = new UIText(titleFont, config.name());
-            title.style("margin-left", px(10))
-            .style("color", UIColor.green());
-            
-            UIFloatFieldRule inputRule = UIFieldRule.defaultFloat();
-            inputRule.maxCharacters(3)
-            .maxPrecision(config.precision())
-            .inputMinMax(config.min(), config.max());
-            
-            UIFloatField field = new UIFloatField(fieldFont, inputRule);
-            field.useButtons(config.increment());
-            field.style("width", ppw(0.2f))
-            .style("height", pph(1f))
-            .style("margin-left", ppw(0.05f));
-            
-            UISlider slider = new UISlider(
-                ppw(0.65f),
-                pph(1f),
-                UIValueAdaptor.floatRange(config.min(), config.max())
-            );
-            slider.style("margin-left", ppw(0.1f));
-            
-            field.bindTo(config.binding());
-            slider.bindTo(config.binding());
-            
-            line.addChild(title);
-            line.addChild(right);
-            right.addChild(slider);
-            right.addChild(field);
+            .style("height", pch(0.1f))
+            .style("margin-top", px(1));
             addChild(line);
         }
     }

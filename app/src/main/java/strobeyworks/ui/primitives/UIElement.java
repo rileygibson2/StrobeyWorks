@@ -390,6 +390,7 @@ public abstract class UIElement {
     private boolean wantsPointer;
     private boolean hoverable;
     private boolean clickable;
+    private boolean scrollable;
     
     // Callbacks
     private UIBasicCallback onInitialise;
@@ -462,6 +463,7 @@ public abstract class UIElement {
         this.wantsPointer = false;
         this.hoverable = false;
         this.clickable = false;
+        this.scrollable = false;
 
         this.debugEnabled = false;
         
@@ -642,7 +644,7 @@ public abstract class UIElement {
     
     public void transitionToStyle(UIStyle target, String tag) {
         if (transitionDuration==0f) applyStyle(target);
-        else transitionToStyle(target, new Transition(transitionDuration, tag, null));
+        else transitionToStyle(target, new Transition(transitionDuration, tag));
     }
     
     // -----------------------------------------------------------------------------
@@ -668,6 +670,11 @@ public abstract class UIElement {
         this.clickable = clickable;
         return this;
     }
+
+    public UIElement scrollable(boolean scrollable) {
+        this.scrollable = scrollable;
+        return this;
+    }
     
     public boolean isFocussable() {
         return this.focussable;
@@ -683,6 +690,10 @@ public abstract class UIElement {
     
     public boolean isClickable() {
         return this.clickable;
+    }
+
+    public boolean isScrollable() {
+        return this.scrollable;
     }
     
     public UIElement onClicked(UIEventCallback callback) {
@@ -785,6 +796,14 @@ public abstract class UIElement {
         markLayoutDirty();
         markSubtreeDirty();
     }
+
+    public void addChildAtIndex(int i, UIElement e) {
+        children.add(i, e);
+        e.setParent(this);
+        
+        markLayoutDirty();
+        markSubtreeDirty();
+    }
     
     public void removeChild(UIElement e) {
         children.remove(e);
@@ -801,6 +820,15 @@ public abstract class UIElement {
         markLayoutDirty();
         markSubtreeDirty();
     }
+
+    public void removeContentChildren() {
+        List<UIElement> copy = new ArrayList<>(children);
+        
+        for (UIElement c : copy) {
+            if (c == horizontalBar || c == verticalBar) continue;
+            removeChild(c);
+        }
+    }
     
     public int getChildCount() {
         return children.size();
@@ -816,6 +844,17 @@ public abstract class UIElement {
             elems.addAll(e.getAllChildren());
         }
         
+        return elems;
+    }
+
+    public List<UIElement> getImmediateContentChildren() {
+        List<UIElement> elems = new ArrayList<>();
+        List<UIElement> sortedChildren = new ArrayList<>(children);
+        sortedChildren.sort(Comparator.comparingInt(UIElement::getZIndex));
+        
+        for (UIElement e : sortedChildren) elems.add(e);
+        if (horizontalBar!=null) elems.remove(horizontalBar);
+        if (verticalBar!=null) elems.remove(verticalBar);
         return elems;
     }
     
@@ -1756,6 +1795,7 @@ public abstract class UIElement {
     
     public UIElement scrollX(float scrollX) {
         this.scrollX = Math.max(0f, Math.min(scrollX, 1f));
+        if (verticalBar != null) verticalBar.showTemporarily();
         
         markLayoutDirty();
         return this;
@@ -1763,6 +1803,7 @@ public abstract class UIElement {
     
     public UIElement scrollY(float scrollY) {
         this.scrollY = Math.max(0f, Math.min(scrollY, 1f));
+        if (verticalBar != null) verticalBar.showTemporarily();
         
         markLayoutDirty();
         return this;

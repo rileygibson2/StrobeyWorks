@@ -36,7 +36,8 @@ public class UIScrollBar extends UIRectangle {
         style("corner-radius", new Vec4(10f));
         style("color", UIColor.green());
         style("transition-duration", 0.2f);
-        style("opacity", 0.5f);
+        style("opacity", 0f);
+        style("z-index", 10000000);
         
         if (axis==ScrollAxis.HORIZONTAL) {
             style("height", px(10));
@@ -54,7 +55,7 @@ public class UIScrollBar extends UIRectangle {
         s.set(StyleProps.OPACITY, 1f);
         hoverStyle(s);
     }
-
+    
     @Override
     public void initialise() {
         getParent().updateScrollBars();
@@ -120,12 +121,25 @@ public class UIScrollBar extends UIRectangle {
     
     @Override
     public void lostHover(IOEvent event) {
-        fadeOut = new Transition(1f, 2f, null);
+        fadeOut = new Transition(0.2f);
+        
         UIStyle s = new UIStyle();
         s.set(StyleProps.OPACITY, 0f);
-
         transitionToStyle(s, fadeOut);
-        super.lostHover(event);
+    }
+    
+    public void showTemporarily() {
+        if (fadeOut != null) fadeOut.interrupt();
+        
+        UIStyle show = new UIStyle();
+        show.set(StyleProps.OPACITY, 1f);
+        transitionToStyle(show, new Transition(0.1f));
+        
+        fadeOut = new Transition(0.2f, 0.5f);
+        
+        UIStyle hide = new UIStyle();
+        hide.set(StyleProps.OPACITY, 0f);
+        transitionToStyle(hide, fadeOut);
     }
     
     @Override

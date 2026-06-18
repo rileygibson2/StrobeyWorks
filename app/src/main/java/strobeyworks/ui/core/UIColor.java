@@ -85,6 +85,16 @@ public class UIColor {
         return col;
     }
 
+    public static UIColor rgb(float all) {
+        UIColor col = new UIColor();
+        col.red = all;
+        col.green = all;
+        col.blue = all;
+        col.alpha = 1f;
+        col.calculateHSB();
+        return col;
+    }
+
     public static UIColor rgba(float red, float green, float blue, float alpha) {
         UIColor col = new UIColor();
         col.red = red;
@@ -203,6 +213,17 @@ public class UIColor {
     public float getBrightness() {return brightness;}
 
     public float getAlpha() {return alpha;}
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof UIColor)) return false;
+        UIColor oC = (UIColor) o;
+
+        return oC.getRed()==red&&
+        oC.getGreen()==green&&
+        oC.getBlue()==blue&&
+        oC.getAlpha()==alpha;
+    }
     
     @Override
     public UIColor clone() {

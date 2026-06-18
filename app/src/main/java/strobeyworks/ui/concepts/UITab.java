@@ -1,4 +1,4 @@
-package strobeyworks.ui.components;
+package strobeyworks.ui.concepts;
 
 import static strobeyworks.ui.core.UILength.pbh;
 import static strobeyworks.ui.core.UILength.pbw;
@@ -168,5 +168,8 @@ public class UITab extends UIRectangle {
         content.removeAllChildren();
         UIElement tabRoot = tabRoots.get(i);
         if (tabRoot!=null) content.addChild(tabRoot);
+
+
+        if (tabRoot instanceof UITabbable) ((UITabbable)tabRoot).tabbedTo();
     }
 }

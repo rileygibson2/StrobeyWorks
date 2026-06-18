@@ -1,11 +1,9 @@
 package strobeyworks.ui.components.input.field;
 
+import strobeyworks.ui.components.input.UIValueMapper;
 import strobeyworks.utils.Utils;
 
-public class UIFloatFieldRule implements UIFieldRule<Float>  {
-    
-    // Input rules
-    private int maxCharacters;
+public class UIFloatFieldMapper implements UIValueMapper<Float, String>  {
     
     // Validation rules
     private int maxPrecision;
@@ -14,8 +12,7 @@ public class UIFloatFieldRule implements UIFieldRule<Float>  {
     private float mappedMin;
     private float mappedMax;
     
-    protected UIFloatFieldRule() {
-        this.maxCharacters = Integer.MAX_VALUE;
+    public UIFloatFieldMapper() {
         this.maxPrecision = Integer.MAX_VALUE;
         this.inputMin = 0f;
         this.inputMax = 1f;
@@ -23,32 +20,27 @@ public class UIFloatFieldRule implements UIFieldRule<Float>  {
         this.mappedMax = 1f;
     }
     
-    public UIFloatFieldRule maxCharacters(int maxCharacters) {
-        this.maxCharacters = maxCharacters;
-        return this;
-    }
-    
-    public UIFloatFieldRule maxPrecision(int maxPrecision) {
-        this.maxPrecision = maxPrecision;
-        return this;
-    }
-    
-    public UIFloatFieldRule inputMinMax(float inputMin, float inputMax) {
+    public UIFloatFieldMapper inputMinMax(float inputMin, float inputMax) {
         this.inputMin = inputMin;
         this.inputMax = inputMax;
         mappedMinMax(inputMin, inputMax); // In case not set
         return this;
     }
     
-    public UIFloatFieldRule mappedMinMax(float mappedMin, float mappedMax) {
+    public UIFloatFieldMapper mappedMinMax(float mappedMin, float mappedMax) {
         this.mappedMin = mappedMin;
         this.mappedMax = mappedMax;
         return this;
     }
+
+    public UIFloatFieldMapper maxPrecision(int maxPrecision) {
+        this.maxPrecision = maxPrecision;
+        return this;
+    }
     
     @Override
-    public String adaptExternalToLocal(Float externalValue) {
-        if (externalValue==null) return "null";
+    public UIMapResult<String> mapExternalToLocal(Float externalValue) {
+        if (externalValue==null) return UIMapResult.failure();
         
         float f = mappedToLocal(externalValue);
         f = Math.max(inputMin, Math.min(inputMax, f));
@@ -57,20 +49,20 @@ public class UIFloatFieldRule implements UIFieldRule<Float>  {
         
         // If a whole number, don't show dp
         if (Utils.isWhole(f)) s = s.substring(0, s.indexOf("."));
-        return s;
+        return UIMapResult.success(s);
     }
     
     @Override
-    public Float adaptLocalToExternal(String localValue) {
+    public UIMapResult<Float> mapLocalToExternal(String localValue) {
         try {
             float f = Float.parseFloat(localValue);
             f = Math.max(inputMin, Math.min(inputMax, f));
             f = Utils.roundToDp(f, maxPrecision);
             f = localToMapped(f);
-            return f;
+            return UIMapResult.success(f);
         }
         catch (NumberFormatException e) {
-            return null;
+            return UIMapResult.failure();
         }
     }
     
@@ -82,20 +74,5 @@ public class UIFloatFieldRule implements UIFieldRule<Float>  {
     private float localToMapped(float value) {
         float v = (value-inputMin)/(inputMax-inputMin);
         return mappedMin+v*(mappedMax-mappedMin);
-    }
-    
-    @Override
-    public boolean inputFilter(String s) {
-        if (s.length()>maxCharacters) return false;
-        
-        for (int i=0; i<s.length(); i++) {
-            if (!acceptsChar(s.charAt(i))) return false;
-        }
-        return true;
-    }
-    
-    @Override
-    public boolean acceptsChar(char c) {
-        return String.valueOf(c).matches("[0-9.]");
     }
 }

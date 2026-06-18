@@ -151,14 +151,11 @@ public final class StyleProps {
         
         public static final UIStyleProperty<UIFont> FONT = 
         register(new UIStyleProperty<>("font", UIFont.class));
-        
-        public static final UIStyleProperty<UIColor> ICON_TINT = 
-        register(new UIStyleProperty<>("icon-tint", UIColor.class));
 
         public static final UIStyleProperty<UIIconFitMode> ICON_FIT_MODE = 
         register(new UIStyleProperty<>("icon-fit-mode", UIIconFitMode.class));
         
-        //Transform
+        // Transform
         public static final UIStyleProperty<Float> TRANSFORM_SCALEX = 
         register(new UIStyleProperty<>("transform-scale-x", Float.class));
         
@@ -168,6 +165,14 @@ public final class StyleProps {
         // Transition
         public static final UIStyleProperty<Float> TRANSITION_DURATION = 
         register(new UIStyleProperty<>("transition-duration", Float.class));
+
+        // Component Forwarding Properties
+
+        public static final UIStyleProperty<UIColor> BUTTON_ICON_TINT = 
+        register(new UIStyleProperty<>("button-icon-tint", UIColor.class));
+
+        public static final UIStyleProperty<UIColor> FIELD_ICON_TINT = 
+        register(new UIStyleProperty<>("field-icon-tint", UIColor.class));
         
         private static <T> UIStyleProperty<T> register(UIStyleProperty<T> property) {
                 PROPERTIES.put(property.getName(), property);

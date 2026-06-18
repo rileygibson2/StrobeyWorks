@@ -5,21 +5,18 @@ import static strobeyworks.ui.core.UILength.ppw;
 
 import strobeyworks.platform.IOEvent;
 import strobeyworks.ui.core.UIColor;
-import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.primitives.UICircle;
 import strobeyworks.ui.primitives.UIElement;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Vec4;
 
-public class UICheckBox extends UIValueControl<Boolean, Boolean> {
+public class UICheckBox extends UIBindableInput<Boolean, Boolean> {
     
     private UIElement inner;
     
-    public UICheckBox(UILength width, UILength height, boolean circular) {
-        super(UIValueAdaptor.BOOLEAN_IDENTITY);
+    public UICheckBox(boolean circular) {
+        super(UIValueMapper.BOOLEAN_IDENTITY);
         
-        style("width", width);
-        style("height", height);
         clickable(true);
         
         style("box", UIBoxMode.FIXED);

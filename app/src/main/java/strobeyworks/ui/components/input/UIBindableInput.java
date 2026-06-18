@@ -1,6 +1,7 @@
 package strobeyworks.ui.components.input;
 
 import strobeyworks.logger.Logger;
+import strobeyworks.ui.components.input.UIValueMapper.UIMapResult;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.BindableValueObserver;
@@ -13,24 +14,24 @@ import strobeyworks.utils.BindableValueObserver;
 * 
 * Under this system, subclasses may define UI behaviour surronding a local value and then, at some point, attempt
 * to commit that local value to an external value if one is bound.
-* This commitment process invokes the use of a UIValueAdaptor instance which provides somme value validation and
+* This commitment process invokes the use of a UIValuemapper instance which provides somme value validation and
 * remapping as well as handles the actual conversion from L to E.
 * 
-* When an external value is updated, this UIValueAdaptor also handles the conversion from the external type E to the
+* When an external value is updated, this UIValuemapper also handles the conversion from the external type E to the
 * local type L.
 * 
 * Alternativly subclasses may not use an externally bound value at all and in that case this class provides the same
 * validation and remapping for a locally committed value.
 */
-public abstract class UIValueControl<E, L> extends UIRectangle implements BindableValueObserver<E> {
+public abstract class UIBindableInput<E, L> extends UIRectangle implements BindableValueObserver<E> {
     
-    private UIValueAdaptor<E, L> adaptor;
+    private UIValueMapper<E, L> mapper;
     private BindableValue<E> binding;
     private L localValue;
     
-    public UIValueControl(UIValueAdaptor<E, L> adaptor) {
+    public UIBindableInput(UIValueMapper<E, L> mapper) {
         super();  
-        this.adaptor = adaptor;
+        this.mapper = mapper;
     }
     
     protected abstract void implementLocalValueOnUI();
@@ -40,24 +41,31 @@ public abstract class UIValueControl<E, L> extends UIRectangle implements Bindab
     @Override
     public void initialise() {
         super.initialise();
-        if (hasBinding()) setLocalValue(adaptor.adaptExternalToLocal(binding.getValue()));
+        
+        if (hasBinding()) {
+            UIMapResult<L> result = mapper.mapExternalToLocal(binding.getValue());
+            if (result.success()) setLocalValue(result.value());
+            setLocalValue(result.value());
+        }
         else if (!hasLocalValue()) setLocalValue(getDefaultLocalValue());
         else implementLocalValueOnUI();
     }
     
     public boolean commitLocalValue() {
-        E validated = adaptor.adaptLocalToExternal(localValue);
-        if (validated==null) return false;
+        UIMapResult<E> result = mapper.mapLocalToExternal(localValue);
+        if (!result.success()) return false;
         
-        if (hasBinding()) binding.setValue(validated); // This will set local value again on call back
-        else setLocalValue(adaptor.adaptExternalToLocal(validated));
+        if (hasBinding()) binding.setValue(result.value()); // This will set local value again on call back
+        else setLocalValue(mapper.mapExternalToLocal(result.value()).value());
         return true;
     }
-
-    public boolean commitValue(E value) {
-        L local = adaptor.adaptExternalToLocal(value);
-        setLocalValue(local);
-        return commitLocalValue();
+    
+    public void commitValue(E value) {
+        UIMapResult<L> result = mapper.mapExternalToLocal(value);
+        if (!result.success()) return;
+        
+        setLocalValue(result.value());
+        commitLocalValue();
     }
     
     public L getLocalValue() {
@@ -65,7 +73,7 @@ public abstract class UIValueControl<E, L> extends UIRectangle implements Bindab
     }
     
     protected E previewExternalValue() {
-        return adaptor.adaptLocalToExternal(localValue);
+        return mapper.mapLocalToExternal(localValue).value();
     }
     
     public void setLocalValue(L value) {
@@ -74,12 +82,15 @@ public abstract class UIValueControl<E, L> extends UIRectangle implements Bindab
     }
     
     public E getLocalValueAsExternal() {
-        return adaptor.adaptLocalToExternal(localValue);
+        return mapper.mapLocalToExternal(localValue).value();
     }
     
     @Override
     public void bindableValueChanged(BindableValue<E> v) {
-        setLocalValue(adaptor.adaptExternalToLocal(v.getValue()));
+        UIMapResult<L> result = mapper.mapExternalToLocal(v.getValue());
+        if (!result.success()) return;
+        
+        setLocalValue(result.value());
     }
     
     public void bindTo(BindableValue<E> binding) {
@@ -89,7 +100,7 @@ public abstract class UIValueControl<E, L> extends UIRectangle implements Bindab
         
         if (this.binding!=null) {
             this.binding.bind(this);
-            if (isInitialised()) setLocalValue(adaptor.adaptExternalToLocal(this.binding.getValue()));
+            if (isInitialised()) bindableValueChanged(binding);;
         }
     }
     
