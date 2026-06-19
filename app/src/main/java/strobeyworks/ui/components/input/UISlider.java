@@ -35,15 +35,15 @@ public class UISlider extends UIBindableInput<Float, Float> {
         style("padding-bottom", px(0));
         style("align-items", UIAlignItems.CENTER);
         style("border-enabled", false);
-        style("color", UIColor.rgb(0.1f));
+        style("color", UIColor.rgb(0.13f));
         
         knob = new UIRectangle();
-        knob.style("width", px(3))
+        knob.style("width", px(2))
         .style("height", pph(1f))
         .style("position", UIPositionMode.ABSOLUTE)
         .style("offset-left", pph(0.05f))
         .style("border-color", UIColor.green())
-        .style("color", UIColor.rgb(0.8f))
+        .style("color", UIColor.rgb(0.7f))
         .style("border-enabled", false)
         .style("transition-duration", 0.2f)
         .style(StyleProps.TRANSFORM_SCALEX, 1.0f)

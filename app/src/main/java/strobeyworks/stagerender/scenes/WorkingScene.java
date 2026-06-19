@@ -1,14 +1,14 @@
 package strobeyworks.stagerender.scenes;
 
 import strobeyworks.SWMain;
-import strobeyworks.object.Mesh;
-import strobeyworks.object.Mesh.MeshType;
 import strobeyworks.platform.Animation;
 import strobeyworks.stagerender.ObjLoader;
 import strobeyworks.stagerender.lightsources.DirectionalLight;
 import strobeyworks.stagerender.lightsources.LightSource;
 import strobeyworks.stagerender.lightsources.SpotLight;
-import strobeyworks.object.SceneObject;
+import strobeyworks.stagerender.object.Mesh;
+import strobeyworks.stagerender.object.SceneObject;
+import strobeyworks.stagerender.object.Mesh.MeshType;
 import strobeyworks.utils.Vec2;
 import strobeyworks.utils.Vec3;
 

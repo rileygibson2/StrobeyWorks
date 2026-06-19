@@ -5,12 +5,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import strobeyworks.object.Mesh;
-import strobeyworks.object.SceneObject;
 import strobeyworks.platform.Animation;
 import strobeyworks.stagerender.lightsources.DirectionalLight;
 import strobeyworks.stagerender.lightsources.LightSource;
 import strobeyworks.stagerender.lightsources.SpotLight;
+import strobeyworks.stagerender.object.Mesh;
+import strobeyworks.stagerender.object.SceneObject;
 
 public abstract class Scene {
     protected Set<Mesh> meshes;

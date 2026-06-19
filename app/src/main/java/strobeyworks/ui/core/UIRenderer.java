@@ -26,10 +26,10 @@ import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 import static strobeyworks.ui.core.UILength.pbh;
 import static strobeyworks.ui.core.UILength.pbw;
-import static strobeyworks.ui.core.UILength.pch;
-import static strobeyworks.ui.core.UILength.pcw;
 import static strobeyworks.ui.core.UILength.pph;
 import static strobeyworks.ui.core.UILength.ppw;
+import static strobeyworks.ui.core.UILength.pcw;
+import static strobeyworks.ui.core.UILength.pch;
 import static strobeyworks.ui.core.UILength.px;
 import static strobeyworks.ui.core.UILength.sh;
 import static strobeyworks.ui.core.UILength.sw;
@@ -43,25 +43,19 @@ import java.util.Set;
 
 import org.joml.Matrix4f;
 
-import strobeyworks.SWMain;
-import strobeyworks.noiserender.NoiseRenderer;
+import strobeyworks.nodes.RenderNode;
 import strobeyworks.platform.Animation;
 import strobeyworks.platform.IOEvent;
-import strobeyworks.platform.Renderer;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.platform.Transition;
+import strobeyworks.platform.WindowRenderer;
+import strobeyworks.rendernodes.PerlinNode;
 import strobeyworks.ui.components.UIColorPicker;
-import strobeyworks.ui.components.input.UICheckBox;
-import strobeyworks.ui.components.input.UISlider;
-import strobeyworks.ui.components.input.UIValueMapper;
-import strobeyworks.ui.components.input.field.UIFloatField;
-import strobeyworks.ui.components.input.field.UIFloatFieldMapper;
 import strobeyworks.ui.components.popups.UIPopup;
 import strobeyworks.ui.concepts.UITab;
-import strobeyworks.ui.logicpages.UIAgentPage;
+import strobeyworks.ui.logicpages.UIInspectorPane;
 import strobeyworks.ui.primitives.UIElement;
 import strobeyworks.ui.primitives.UIElement.UIAlignContent;
-import strobeyworks.ui.primitives.UIElement.UIAlignItems;
 import strobeyworks.ui.primitives.UIElement.UIBoxMode;
 import strobeyworks.ui.primitives.UIElement.UIFlowDirection;
 import strobeyworks.ui.primitives.UIElement.UIOverflowMode;
@@ -72,7 +66,7 @@ import strobeyworks.ui.primitives.UIText;
 import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.Vec4;
 
-public class UIRenderer extends Renderer {
+public class UIRenderer extends WindowRenderer {
     
     private static UIRenderer instance;
     
@@ -83,9 +77,7 @@ public class UIRenderer extends Renderer {
     private int colorGradientProgram;
     
     private Matrix4f projectionMatrix;
-    
     private int quadVAO;
-    
     private int textVAO;
     private int textVBO;
     
@@ -98,10 +90,10 @@ public class UIRenderer extends Renderer {
     protected Set<Animation> animations;
     protected Map<UIElement, Set<Transition>> transitions;
     
-    private UITab mainTab;
-    
     private UIPopup fullScreenPopup;
     private UIRectangle fullScreenPopupBG;
+
+    private RenderNode selectedNode;
     
     public static UIRenderer getInstance() {
         if (instance==null) instance = new UIRenderer();
@@ -124,64 +116,18 @@ public class UIRenderer extends Renderer {
     }
     
     private void buildBase() {
-        mainTab = new UITab(pbw(1f), pbh(1f), UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f));
-        addToRoot(mainTab);
-    }
-    
-    public void buildNoiseTab() {
-        UIRectangle pane = new UIRectangle();
-        pane.style("width", ppw(1f))
-        .style("height", pph(1f))
-        .style("padding-left", px(5))
-        .style("padding-right", px(5))
-        .style("padding-top", px(5))
-        .style("padding-bottom", px(5))
-        .style("align-content", UIAlignContent.CENTER)
-        .style("flow-direction", UIFlowDirection.COLUMN)
-        .style("color", UIColor.transparent())
-        .style("overflow-y", UIOverflowMode.SCROLL);
-        
-        mainTab.addTab("OBJECTS", "cube", pane);
-        
-        NoiseRenderer r = NoiseRenderer.getInstance();
-        
-        record FloatControlConfig(
-            String name,
-            BindableValue<Float> binding,
-            float min,
-            float max,
-            int precision,
-            float butIncrement
-        ) {}
-        
-        record BooleanControlConfig(
-            String name,
-            BindableValue<Boolean> binding
-        ) {}
-        
-        FloatControlConfig[] sliderControls = {
-            new FloatControlConfig("Speed", r.getSpeed(), 0f, 5f, 1, 0.1f),
-            new FloatControlConfig("Scale", r.getGridSize(), 2f, 50f, 0, 1f),
-            new FloatControlConfig("Octaves", r.getOctaves(), 1f, 10f, 0, 1f),
-            new FloatControlConfig("Gamma", r.getGamma(), 0.1f, 20f, 1, 0.1f),
-            new FloatControlConfig("Gain", r.getGain(), 1f, 200f, 1, 1f),
-            new FloatControlConfig("Warp Strength", r.getWarpStrength(), 0f, 10f, 1, 0.1f),
-            new FloatControlConfig("Warp Scale", r.getWarpScale(), 0.1f, 5f, 2, 0.1f),
-            new FloatControlConfig("Ridge Scale", r.getRidgePow(), 1f, 10f, 0, 1f),
-            new FloatControlConfig("Turbulence Scale", r.getTurbulencePow(), 0.25f, 8f, 1, 0.1f)
-        };
-        
-        BooleanControlConfig[] cbControls = {
-            new BooleanControlConfig("Warp", r.getWarp()),
-            new BooleanControlConfig("Octave Ridge", r.getOctaveRidge()),
-            new BooleanControlConfig("Post Ridge", r.getPostRidge()),
-            new BooleanControlConfig("Octave Turbulence", r.getOctaveTurbulence())
-        };
-    }
-    
-    public void buildAgentTab() {
-        UIAgentPage page = new UIAgentPage();
-        addMainTab("AGENTS", "cube", page);
+        UIRectangle base = UIRectangle.defaultRect(sw(1f), sh(1f));
+        base.style("border-enabled", true)
+        .style("border-thickness", px(2))
+        .style("border-color", UIColor.rgb(1f))
+        .style("corner-radius", new Vec4(10f));
+
+        UIInspectorPane inspectorPane = new UIInspectorPane();
+        inspectorPane.style("width", pcw(1f))
+        .style("height", pch(1f));
+
+        base.addChild(inspectorPane);
+        addToRoot(base);
     }
     
     public void addToRoot(UIElement e) {
@@ -206,6 +152,14 @@ public class UIRenderer extends Renderer {
         }
         else transitions.put(e, new HashSet<>());
         transitions.get(e).add(t);
+    }
+
+    public void setSelectedNode(RenderNode node) {
+        this.selectedNode = node;
+    }
+
+    public RenderNode getSelectedNode() {
+        return selectedNode;
     }
     
     public void createFullScreenPopup(UIPopup popup) {
@@ -232,10 +186,6 @@ public class UIRenderer extends Renderer {
         rootElement.addChild(fullScreenPopup);
     }
     
-    public void addMainTab(String name, String icon, UIElement content) {
-        mainTab.addTab(name, icon, content);
-    }
-    
     @Override
     public void handleWindowResize() {
         buildProjectionMatrix();
@@ -255,7 +205,7 @@ public class UIRenderer extends Renderer {
         rootElement.markLayoutDirty();
         rootElement.markSubtreeDirty();
         
-        ShaderManager sM = SWMain.getShaderManager();
+        ShaderManager sM = ShaderManager.getInstance();
         
         shapeProgram = sM.createProgram("ui/ui_shapes.vert", "ui/ui_shapes.frag");
         textProgram = sM.createProgram("ui/ui_text.vert", "ui/ui_text.frag");
@@ -297,9 +247,6 @@ public class UIRenderer extends Renderer {
         
         loadUIResources();
         buildBase();
-        buildAgentTab();
-        
-        mainTab.setTab(0);
     }
     
     @Override
@@ -462,7 +409,7 @@ public class UIRenderer extends Renderer {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glDisable(GL_DEPTH_TEST);
         
-        ShaderManager sM = SWMain.getShaderManager();
+        ShaderManager sM = ShaderManager.getInstance();
         
         // Draw objects
         for (UIElement e : visibleUIElements) e.render(this, sM);

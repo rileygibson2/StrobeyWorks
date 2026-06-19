@@ -1,6 +1,7 @@
 package strobeyworks.utils;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 public class BindableValue<T> {
@@ -18,6 +19,8 @@ public class BindableValue<T> {
     }
 
     public void setValue(T value) {
+        if (Objects.equals(this.value, value)) return; // Loop guard
+
         this.value = value;
         for (BindableValueObserver<T> o : observers) o.bindableValueChanged(this);
     }

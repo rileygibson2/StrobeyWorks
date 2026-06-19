@@ -6,8 +6,8 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import strobeyworks.object.Mesh;
-import strobeyworks.object.Mesh.MeshType;
+import strobeyworks.stagerender.object.Mesh;
+import strobeyworks.stagerender.object.Mesh.MeshType;
 
 public class ObjLoader {
     

@@ -11,12 +11,12 @@ import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import strobeyworks.platform.IO;
-import strobeyworks.platform.Renderer;
+import strobeyworks.platform.WindowRenderer;
 import strobeyworks.utils.Vec3;
 
 public class Camera {
     
-    private Renderer renderer;
+    private WindowRenderer renderer;
     private Vec3 position;
     private float yaw;
     private float pitch;
@@ -25,7 +25,7 @@ public class Camera {
     private Matrix4f viewMatrix;
     private Matrix4f projectionMatrix;
     
-    public Camera(Renderer renderer) {
+    public Camera(WindowRenderer renderer) {
         this.renderer = renderer;
         position = new Vec3(0, 0, 0);
         pitch = 0f;

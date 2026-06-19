@@ -1,8 +1,7 @@
-package strobeyworks.noiserender;
+package strobeyworks.rendernodes;
 
 import static org.lwjgl.opengl.GL11.GL_BLEND;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
-import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL11.GL_NEAREST;
@@ -21,6 +20,7 @@ import static org.lwjgl.opengl.GL11.glBindTexture;
 import static org.lwjgl.opengl.GL11.glBlendFunc;
 import static org.lwjgl.opengl.GL11.glClear;
 import static org.lwjgl.opengl.GL11.glClearColor;
+import static org.lwjgl.opengl.GL11.glDeleteTextures;
 import static org.lwjgl.opengl.GL11.glDisable;
 import static org.lwjgl.opengl.GL11.glDrawArrays;
 import static org.lwjgl.opengl.GL11.glDrawBuffer;
@@ -37,6 +37,7 @@ import static org.lwjgl.opengl.GL15.GL_DYNAMIC_COPY;
 import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
 import static org.lwjgl.opengl.GL15.glBindBuffer;
 import static org.lwjgl.opengl.GL15.glBufferData;
+import static org.lwjgl.opengl.GL15.glDeleteBuffers;
 import static org.lwjgl.opengl.GL15.glGenBuffers;
 import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
 import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
@@ -51,6 +52,8 @@ import static org.lwjgl.opengl.GL30.glBindBufferBase;
 import static org.lwjgl.opengl.GL30.glBindFramebuffer;
 import static org.lwjgl.opengl.GL30.glBindVertexArray;
 import static org.lwjgl.opengl.GL30.glCheckFramebufferStatus;
+import static org.lwjgl.opengl.GL30.glDeleteFramebuffers;
+import static org.lwjgl.opengl.GL30.glDeleteVertexArrays;
 import static org.lwjgl.opengl.GL30.glEndTransformFeedback;
 import static org.lwjgl.opengl.GL30.glFramebufferTexture2D;
 import static org.lwjgl.opengl.GL30.glGenFramebuffers;
@@ -58,19 +61,17 @@ import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.function.Consumer;
 
 import strobeyworks.SWMain;
-import strobeyworks.platform.Animation;
-import strobeyworks.platform.IOEvent;
+import strobeyworks.nodes.RenderNode;
 import strobeyworks.platform.MidiManager;
 import strobeyworks.platform.MidiManager.MidiEvent;
 import strobeyworks.platform.MidiManager.MidiHandle;
 import strobeyworks.platform.MidiManager.MidiHandleType;
-import strobeyworks.platform.MidiManager.MidiType;
+import strobeyworks.rendernodes.InspectorItem.InspectorControl;
+import strobeyworks.rendernodes.InspectorItem.InspectorGroup;
 import strobeyworks.platform.MidiSubscriber;
-import strobeyworks.platform.Renderer;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.utils.BindableList;
 import strobeyworks.utils.BindableListObserver;
@@ -80,27 +81,28 @@ import strobeyworks.utils.Utils;
 import strobeyworks.utils.Vec2;
 import strobeyworks.utils.Vec3;
 
-public class AgentRenderer extends Renderer implements MidiSubscriber, BindableListObserver {
+public class AgentNode extends RenderNode implements MidiSubscriber, BindableValueObserver<Float>, BindableListObserver {
     
-    private static AgentRenderer instance;
-    
-    private int agentProgram;
-    private int depositProgram;
-    private int screenProgram;
-    private int diffuseProgram;
+    private int agentPassProgram;
+    private int depositPassProgram;
+    private int diffusePassProgram;
+    private int finalPassProgram;
     
     private int agentVBOWrite;
     private int agentVBORead;
     private int agentVAOWrite;
     private int agentVAORead;
+    private int fullQuadVAO;
     
     private int[] depositTextures = new int[2];
     private int[] depositFBOs = new int[2];
     private int depositReadIndex = 0;
     
-    private int screenVAO;
-    
     private int numAgents = 1000000;
+    
+    private BindableValue<Float> width;
+    private BindableValue<Float> height;
+    
     private BindableValue<Float> diffusion;
     private BindableValue<Float> decay;
     private BindableValue<Float> speed;
@@ -117,18 +119,16 @@ public class AgentRenderer extends Renderer implements MidiSubscriber, BindableL
     private BindableList<Vec3> stopColors;
     private BindableList<Float> stopPositions;
     
-    private List<ControlConfig<Float>> floatControlConfigs;
     private HashMap<MidiHandle, Consumer<MidiEvent>> midiHandleMap;
     
-    public static AgentRenderer getInstance() {
-        if (instance==null) instance = new AgentRenderer();
-        return instance;
-    }
+    private boolean syncingOutputSizeControls;
+    private Integer pendingOutputWidth;
+    private Integer pendingOutputHeight;
     
-    private AgentRenderer() {
-        floatControlConfigs = new ArrayList<>();
-        buildControlConfigs();
-        loadDefaults();
+    public AgentNode() {
+        setupControls();
+        
+        //loadDefaults();
         
         stopColors = new BindableList<>();
         stopPositions = new BindableList<>();
@@ -145,20 +145,39 @@ public class AgentRenderer extends Renderer implements MidiSubscriber, BindableL
         loadDefaultMidiMap();
     }
     
-    private void buildControlConfigs() {
-        diffusion = addFloatControl("Diffusion", 0f, 1.5f, 2, 0.01f, 0.1f);
-        decay = addFloatControl("Decay", 0f, 10f, 2, 1f, 4f);
-        speed = addFloatControl("Speed", 0f, 1f, 2, 0.01f, 0.05f);
-        sensorAngle = addFloatControl("Sensor Angle", 0f, 3f, 2, 0.1f, 0.6f);
-        sensorDistance = addFloatControl("Sensor Distance", 0f, 0.5f, 2, 0.01f, 0.01f);
-        turnSpeed = addFloatControl("Turn Speed", 0.2f, 20f, 2, 1f, 2f);
-        randomTurnStrength = addFloatControl("Random Turn", 0f, 20f, 2, 0.01f, 0f);
-        randomSpeedStrength = addFloatControl("Random Speed", 0f, 2f, 2, 0.01f, 0f);
-        opacityCuttoff = addFloatControl("Opacity Cuttoff", 0f, 1f, 2, 0.01f, 0f);
-        pheramoneContribution = addFloatControl("Contribution", 0f, 1f, 2, 0.01f, 1f);
+    @Override
+    protected void setupControls() {
+        InspectorGroup g;
+        
+        g = new InspectorGroup("Output Size", new ArrayList<>());
+        width = addFloatControl(g, "Width", 1f, 10000, 0, 1f, 1500);
+        height = addFloatControl(g, "Height", 1f, 10000, 0, 1f, 900);
+        addInspectorItem(g);
+        width.bind(this);
+        height.bind(this);
+        
+        g = new InspectorGroup("Turning", new ArrayList<>());
+        sensorAngle = addFloatControl(g, "Sensor Angle", 0f, 3f, 2, 0.1f, 0.6f);
+        sensorDistance = addFloatControl(g, "Sensor Distance", 0f, 0.5f, 2, 0.01f, 0.01f);
+        turnSpeed = addFloatControl(g, "Turn Speed", 0.2f, 20f, 2, 1f, 2f);
+        speed = addFloatControl(g, "Speed", 0f, 0.5f, 2, 0.01f, 0.05f);
+        addInspectorItem(g);
+        
+        g = new InspectorGroup("Opacity", new ArrayList<>());
+        diffusion = addFloatControl(g, "Diffusion", 0f, 1.5f, 2, 0.01f, 0.1f);
+        decay = addFloatControl(g, "Decay", 0f, 10f, 2, 1f, 4f);
+        opacityCuttoff = addFloatControl(g, "Cuttoff", 0f, 1f, 2, 0.01f, 0f);
+        pheramoneContribution = addFloatControl(g, "Contribution", 0f, 1f, 2, 0.01f, 1f);
+        addInspectorItem(g);
+        
+        g = new InspectorGroup("Random", new ArrayList<>());
+        randomTurnStrength = addFloatControl(g, "Random Turn", 0f, 20f, 2, 0.01f, 0f);
+        randomSpeedStrength = addFloatControl(g, "Random Speed", 0f, 2f, 2, 0.01f, 0f);
+        addInspectorItem(g);
     }
     
     private BindableValue<Float> addFloatControl(
+        InspectorGroup g,
         String name,
         float min,
         float max,
@@ -167,25 +186,9 @@ public class AgentRenderer extends Renderer implements MidiSubscriber, BindableL
         float defaultValue
     ) {
         BindableValue<Float> binding = BindableValue.of(defaultValue);
-        floatControlConfigs.add(new ControlConfig<Float>(name, binding, min, max, precision, increment, defaultValue));
+        ControlConfig<Float> cc = new ControlConfig<Float>(name, binding, min, max, precision, increment, defaultValue);
+        g.items().add(new InspectorControl(cc));
         return binding;
-    }
-    
-    public List<ControlConfig<Float>> getFloatControlConfigs() {
-        return floatControlConfigs;
-    }
-    
-    public ControlConfig<Float> getFloatControlConfig(BindableValue<Float> b) {
-        for (ControlConfig<Float> c : floatControlConfigs) {
-            if (c.binding()==b) return c;
-        }
-        return null;
-    }
-    
-    public void loadDefaults() {
-        for (ControlConfig<Float> c : floatControlConfigs) {
-            c.binding().setValue(c.defaultValue());
-        }
     }
     
     public void loadDefaultMidiMap() {
@@ -209,20 +212,20 @@ public class AgentRenderer extends Renderer implements MidiSubscriber, BindableL
     }
     
     private void tempFloat(BindableValue<Float> b, MidiEvent e) {
-        ControlConfig<Float> c = getFloatControlConfig(b);
+        /*ControlConfig<Float> c = getFloatControlConfig(b);
         if (c==null) return;
-        c.binding().setValue(Utils.lerpFloat(c.min(), c.max(), e.value()));
+        c.binding().setValue(Utils.lerpFloat(c.min(), c.max(), e.value()));*/
     }
     
     private void flashFloat(BindableValue<Float> b, MidiEvent e) {
-        ControlConfig<Float> c = getFloatControlConfig(b);
+        /*ControlConfig<Float> c = getFloatControlConfig(b);
         if (c==null) return;
         
         float v;
         if (e.noteType()==MidiType.NOTE_ON) v = c.max();
         else v = c.defaultValue();
         
-        c.binding().setValue(v);
+        c.binding().setValue(v);*/
     }
     
     @Override
@@ -233,16 +236,23 @@ public class AgentRenderer extends Renderer implements MidiSubscriber, BindableL
     }
     
     @Override
-    public void receiveIOEvent(IOEvent event) {}
-    
-    @Override
-    public void handleWindowResize() {}
-    
-    @Override
-    public void addAnimation(Animation a) {}
-    
-    @Override
-    public void removeAnimation(Animation a) {}
+    public void bindableValueChanged(BindableValue<Float> v) {
+        if (syncingOutputSizeControls) return;
+        
+        int newWidth = getOutputWidth();
+        int newHeight = getOutputHeight();
+        
+        if (v == width) {
+            newWidth = width.getValue().intValue();
+        }
+        
+        if (v == height) {
+            newHeight = height.getValue().intValue();
+        }
+        
+        pendingOutputWidth = newWidth;
+        pendingOutputHeight = newHeight;
+    }
     
     @Override
     public void bindableListChanged(BindableList<?> v) {
@@ -264,19 +274,20 @@ public class AgentRenderer extends Renderer implements MidiSubscriber, BindableL
     }
     
     @Override
-    public void initialise() {
-        ShaderManager sM = SWMain.getShaderManager();
+    public void initialise(int outputWidth, int outputHeight) {
+        super.initialise(outputWidth, outputHeight);
+        ShaderManager sM = ShaderManager.getInstance();
         
         float[] agents = initialiseAgents();
         initialiseAgentBuffers(agents);
         initialiseDepositTextures();
-        initialiseScreenQuad();
+        initialiseFullQuad();
         
         // Shaders init
-        agentProgram = sM.createFeedbackProgram("agent/agent.vert", "oAgent");
-        depositProgram = sM.createProgram("agent/deposit.vert", "agent/deposit.frag");
-        diffuseProgram = sM.createProgram("agent/screen.vert", "agent/diffuse.frag");
-        screenProgram = sM.createProgram("agent/screen.vert", "agent/screen.frag");
+        agentPassProgram = sM.createFeedbackProgram("agent/agent_pass.vert", "oAgent");
+        depositPassProgram = sM.createProgram("agent/deposit_pass.vert", "agent/deposit_pass.frag");
+        diffusePassProgram = sM.createProgram("agent/final_pass.vert", "agent/diffuse_pass.frag");
+        finalPassProgram = sM.createProgram("agent/final_pass.vert", "agent/final_pass.frag");
         
         sM.bindVAO(0);
         sM.bindVBO(0);
@@ -387,17 +398,14 @@ public class AgentRenderer extends Renderer implements MidiSubscriber, BindableL
         glEnableVertexAttribArray(0);
     }
     
-    private void initialiseDepositTextures() {
-        int width = getParentWindow().getFramebufferWidth();
-        int height = getParentWindow().getFramebufferHeight();
-        
+    private void initialiseDepositTextures() {        
         for (int i = 0; i < 2; i++) {
             depositTextures[i] = glGenTextures();
             glBindTexture(GL_TEXTURE_2D, depositTextures[i]);
             
             glTexImage2D(
                 GL_TEXTURE_2D, 0, GL_R32F,
-                width, height, 0,
+                getOutputWidth(), getOutputHeight(), 0,
                 GL_RED, GL_FLOAT, 0
             );
             
@@ -432,12 +440,12 @@ public class AgentRenderer extends Renderer implements MidiSubscriber, BindableL
         glBindTexture(GL_TEXTURE_2D, 0);
     }
     
-    private void initialiseScreenQuad() {
-        screenVAO = glGenVertexArrays();
-        int screenVBO = glGenBuffers();
+    private void initialiseFullQuad() {
+        fullQuadVAO = glGenVertexArrays();
+        int fullQuadVBO = glGenBuffers();
         
-        glBindVertexArray(screenVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, screenVBO);
+        glBindVertexArray(fullQuadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, fullQuadVBO);
         
         glBufferData(GL_ARRAY_BUFFER, ShaderManager.QUAD_VERTICES, GL_STATIC_DRAW);
         
@@ -449,26 +457,74 @@ public class AgentRenderer extends Renderer implements MidiSubscriber, BindableL
     }
     
     @Override
-    public void update() {}
+    protected void handleOutputResize() {
+        // Resize deposit textures
+        for (int i = 0; i < 2; i++) {
+            glBindTexture(GL_TEXTURE_2D, depositTextures[i]);
+            
+            glTexImage2D(
+                GL_TEXTURE_2D,
+                0,
+                GL_R32F,
+                getOutputWidth(),
+                getOutputHeight(),
+                0,
+                GL_RED,
+                GL_FLOAT,
+                0
+            );
+            
+            glBindFramebuffer(GL_FRAMEBUFFER, depositFBOs[i]);
+            
+            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+                throw new RuntimeException("Deposit framebuffer is incomplete after resize");
+            }
+            
+            glClearColor(0f, 0f, 0f, 1f);
+            glClear(GL_COLOR_BUFFER_BIT);
+        }
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        
+        depositReadIndex = 0;
+        
+        // Update controls
+        syncingOutputSizeControls = true;
+        try {
+            width.setValue((float) getOutputWidth());
+            height.setValue((float) getOutputHeight());
+        } finally {
+            syncingOutputSizeControls = false;
+        }
+    }
+    
+    @Override
+    public void update() {
+        if (pendingOutputWidth==null||pendingOutputHeight==null) return;
+        
+        resizeOutput(pendingOutputWidth, pendingOutputHeight);
+        
+        pendingOutputWidth = null;
+        pendingOutputHeight = null;
+    }
     
     @Override
     public void render() {
+        ShaderManager sM = ShaderManager.getInstance();
+        
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
-        glClearColor(0f, 0f, 0f, 1f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        agentUpdatePass();
-        diffusePass();
-        agentDepositPass();
-        screenRenderPass();
+        agentUpdatePass(sM);
+        diffusePass(sM);
+        agentDepositPass(sM);
+        finalRenderPass(sM);
     }
     
-    private void agentUpdatePass() {
-        ShaderManager sM = SWMain.getShaderManager();
-        sM.useProgram(agentProgram);
-        sM.setCurrentProgram(agentProgram);
+    private void agentUpdatePass(ShaderManager sM) {
+        sM.useProgram(agentPassProgram);
+        sM.setCurrentProgram(agentPassProgram);
         
         sM.setUniformFloat("uDeltaTime", SWMain.getDeltaTime());
         sM.setUniformFloat("uSpeed", speed.getValue());
@@ -516,52 +572,46 @@ public class AgentRenderer extends Renderer implements MidiSubscriber, BindableL
         sM.useProgram(0);
     }
     
-    private void diffusePass() {
-        ShaderManager sM = SWMain.getShaderManager();
-        
+    private void diffusePass(ShaderManager sM) {
         int writeIndex = 1 - depositReadIndex;
-        int width = getParentWindow().getFramebufferWidth();
-        int height = getParentWindow().getFramebufferHeight();
         
         glBindFramebuffer(GL_FRAMEBUFFER, depositFBOs[writeIndex]);
-        glViewport(0, 0, width, height);
+        glViewport(0, 0, getOutputWidth(), getOutputHeight());
         glDisable(GL_BLEND);
         
-        sM.useProgram(diffuseProgram);
-        sM.setCurrentProgram(diffuseProgram);
+        sM.useProgram(diffusePassProgram);
+        sM.setCurrentProgram(diffusePassProgram);
         
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, depositTextures[depositReadIndex]);
         
         sM.setUniformInt("uDepositTexture", 0);
-        sM.setUniformVec2("uTexelSize", new Vec2(1f/width, 1f/height));
+        sM.setUniformVec2("uTexelSize", new Vec2(1f/getOutputWidth(), 1f/getOutputHeight()));
         sM.setUniformFloat("uDeltaTime", SWMain.getDeltaTime());
         sM.setUniformFloat("uDiffusion", diffusion.getValue());
         sM.setUniformFloat("uDecay", decay.getValue());
         
-        glBindVertexArray(screenVAO);
+        glBindVertexArray(fullQuadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         
         depositReadIndex = writeIndex;
     }
     
-    private void agentDepositPass() {
-        ShaderManager sM = SWMain.getShaderManager();
-        
+    private void agentDepositPass(ShaderManager sM) {
         glBindFramebuffer(GL_FRAMEBUFFER, depositFBOs[depositReadIndex]);
         glViewport(
             0,
             0,
-            getParentWindow().getFramebufferWidth(),
-            getParentWindow().getFramebufferHeight()
+            getOutputWidth(),
+            getOutputHeight()
         );
         
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_ONE, GL_ONE);
         
-        sM.useProgram(depositProgram);
-        sM.setCurrentProgram(depositProgram);
+        sM.useProgram(depositPassProgram);
+        sM.setCurrentProgram(depositPassProgram);
         
         sM.setUniformFloat("uPheramoneContribution", pheramoneContribution.getValue());
         glBindVertexArray(agentVAORead);
@@ -571,22 +621,17 @@ public class AgentRenderer extends Renderer implements MidiSubscriber, BindableL
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
     
-    private void screenRenderPass() {
-        ShaderManager sM = SWMain.getShaderManager();
+    private void finalRenderPass(ShaderManager sM) {
+        getRenderTarget().bind();
         
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glViewport(
-            0,
-            0,
-            getParentWindow().getFramebufferWidth(),
-            getParentWindow().getFramebufferHeight()
-        );
+        glDisable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
         
         glClearColor(0f, 0f, 0f, 1f);
         glClear(GL_COLOR_BUFFER_BIT);
         
-        sM.useProgram(screenProgram);
-        sM.setCurrentProgram(screenProgram);
+        sM.useProgram(finalPassProgram);
+        sM.setCurrentProgram(finalPassProgram);
         
         sM.setUniformFloat("uOpacityCuttoff", opacityCuttoff.getValue());
         
@@ -611,12 +656,32 @@ public class AgentRenderer extends Renderer implements MidiSubscriber, BindableL
         glBindTexture(GL_TEXTURE_2D, depositTextures[depositReadIndex]);
         sM.setUniformInt("uDepositTexture", 0);
         
-        glBindVertexArray(screenVAO);
+        glBindVertexArray(fullQuadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         
         glBindVertexArray(0);
         glBindTexture(GL_TEXTURE_2D, 0);
         sM.useProgram(0);
+    }
+    
+    @Override
+    protected void handleCleanup() {
+        // Cleanup deposit textures
+        for (int i=0; i<2; i++) {
+            if (depositFBOs[i]!=0) {
+                glDeleteFramebuffers(depositFBOs[i]);
+                depositFBOs[i] = 0;
+            }
+            if (depositTextures[i] != 0) {
+                glDeleteTextures(depositTextures[i]);
+                depositTextures[i] = 0;
+            }
+        }
+        
+        glDeleteVertexArrays(agentVAORead);
+        glDeleteVertexArrays(agentVAOWrite);
+        glDeleteBuffers(agentVBORead);
+        glDeleteBuffers(agentVBOWrite);
     }
     
     public BindableValue<Float> getDiffusion() {

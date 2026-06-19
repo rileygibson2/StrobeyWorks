@@ -57,6 +57,8 @@ import strobeyworks.utils.Vec4;
 
 public class ShaderManager {
     
+    private static ShaderManager instance;
+
     private int currentProgram;
     
     public int SCREEN_VAO;
@@ -69,8 +71,13 @@ public class ShaderManager {
         -0.5f,  0.5f, 0.0f,
         -0.5f, -0.5f, 0.0f
     };
+
+    public static ShaderManager getInstance() {
+        if (instance==null) instance = new ShaderManager();
+        return instance;
+    }
     
-    public ShaderManager() {
+    private ShaderManager() {
         clearCurrentProgram();
     }
     

@@ -1,4 +1,4 @@
-package strobeyworks.object;
+package strobeyworks.stagerender.object;
 
 import org.joml.Matrix4f;
 

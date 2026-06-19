@@ -27,25 +27,25 @@ import java.util.List;
 import org.joml.Matrix4f;
 
 import strobeyworks.SWMain;
-import strobeyworks.object.Mesh;
-import strobeyworks.object.Mesh.MeshType;
-import strobeyworks.object.SceneObject;
 import strobeyworks.platform.Animation;
 import strobeyworks.platform.IOEvent;
-import strobeyworks.platform.Renderer;
+import strobeyworks.platform.WindowRenderer;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.stagerender.lightsources.DirectionalLight;
 import strobeyworks.stagerender.lightsources.LightSource;
 import strobeyworks.stagerender.lightsources.SpotLight;
+import strobeyworks.stagerender.object.Mesh;
+import strobeyworks.stagerender.object.SceneObject;
+import strobeyworks.stagerender.object.Mesh.MeshType;
 import strobeyworks.stagerender.scenes.Scene;
 import strobeyworks.stagerender.scenes.WorkingScene;
 import strobeyworks.utils.MeshStatics;
 import strobeyworks.utils.Vec3;
 
-public class SceneRenderer extends Renderer {
+public class SceneRenderer extends WindowRenderer {
     
     private static SceneRenderer instance;
-
+    
     private int gridProgram;
     private int objectProgram;
     private int shadowProgram;
@@ -62,7 +62,7 @@ public class SceneRenderer extends Renderer {
     private static final int MAX_SPOT_SHADOWS = 8;
     private static final int MAX_DIRECTIONAL_LIGHTS = 8;
     private static final int MAX_SPOT_LIGHTS = 8;
-
+    
     public static SceneRenderer getInstance() {
         if (instance==null) instance = new SceneRenderer();
         return instance;
@@ -73,16 +73,16 @@ public class SceneRenderer extends Renderer {
         scene = new WorkingScene();
         indicatorSphere = ObjLoader.loadMesh("sphere.obj", false, MeshType.SMOOTH_SHADED);
     }
-
+    
     @Override
     public void receiveIOEvent(IOEvent event) {}
-
+    
     @Override
     public void handleWindowResize() {}
-
+    
     @Override
     public void addAnimation(Animation a) {}
-
+    
     @Override
     public void removeAnimation(Animation a) {}
     
@@ -90,11 +90,11 @@ public class SceneRenderer extends Renderer {
     public void initialise() {
         camera.initialise();
         scene.initialise();
-
+        
         camera.setPosition(new Vec3(0.4f, 5.9f, 6.8f));
         camera.setOrientation(-93f, -32f, 66f);
-
-        ShaderManager sM = SWMain.getShaderManager();
+        
+        ShaderManager sM = ShaderManager.getInstance();
         
         //Grid init
         gridProgram = sM.createProgram("grid.vert", "grid.frag");
@@ -121,7 +121,7 @@ public class SceneRenderer extends Renderer {
         
         sM.useProgram(0);
     }
-
+    
     @Override
     public void update() {
         String s = String.format("(%.1f, %.1f, %.1f) | Yaw %.1f | Pitch %.1f | FOV %.1f",
@@ -132,7 +132,7 @@ public class SceneRenderer extends Renderer {
         camera.getPitch(),
         camera.getFov());
         getParentWindow().setTitleData(s);
-
+        
         camera.update(SWMain.getDeltaTime());
         scene.update();
     }
@@ -148,7 +148,7 @@ public class SceneRenderer extends Renderer {
     }
     
     private void indicatorPass() {
-        ShaderManager sM = SWMain.getShaderManager();
+        ShaderManager sM = ShaderManager.getInstance();
         
         // Object rendering
         sM.useProgram(indicatorProgram);
@@ -173,7 +173,7 @@ public class SceneRenderer extends Renderer {
     }
     
     private void shadowPass() {
-        ShaderManager sM = SWMain.getShaderManager();
+        ShaderManager sM = ShaderManager.getInstance();
         
         //Directional shadow
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
@@ -231,7 +231,7 @@ public class SceneRenderer extends Renderer {
     }
     
     private void renderPass() {
-        ShaderManager sM = SWMain.getShaderManager();
+        ShaderManager sM = ShaderManager.getInstance();
         
         // Object rendering
         sM.useProgram(objectProgram);
@@ -325,6 +325,6 @@ public class SceneRenderer extends Renderer {
         sM.bindVAO(0);
         sM.useProgram(0);
     }
-
+    
     public Scene getScene() {return this.scene;}
 }

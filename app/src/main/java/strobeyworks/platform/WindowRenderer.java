@@ -1,10 +1,8 @@
 package strobeyworks.platform;
 
-public abstract class Renderer implements IOSubscriber {
+public abstract class WindowRenderer implements IOSubscriber {
     
     private Window parentWindow;
-
-    protected Renderer() {}
 
     public abstract void initialise();
     
@@ -16,6 +14,11 @@ public abstract class Renderer implements IOSubscriber {
     public abstract void addAnimation(Animation a);
     public abstract void removeAnimation(Animation a);
 
-    public void setParentWindow(Window parentWindow) {this.parentWindow = parentWindow;}
-    public Window getParentWindow() {return this.parentWindow;}
+    public void setParentWindow(Window parentWindow) {
+        this.parentWindow = parentWindow;
+    }
+
+    public Window getParentWindow() {
+        return this.parentWindow;
+    }
 }

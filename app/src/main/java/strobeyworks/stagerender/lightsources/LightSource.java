@@ -29,8 +29,8 @@ import static org.lwjgl.opengl.GL30.glGenFramebuffers;
 import org.joml.Matrix4f;
 
 import strobeyworks.SWMain;
-import strobeyworks.object.SceneObject;
 import strobeyworks.stagerender.SceneRenderer;
+import strobeyworks.stagerender.object.SceneObject;
 import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.Vec3;
 
@@ -58,7 +58,7 @@ public abstract class LightSource {
         this.shadowFBO = 0;
         this.shadowDepthTexture = 0;
 
-        this.indicator = new SceneObject(((SceneRenderer) SWMain.getRenderWindow().getRenderer()).indicatorSphere);
+        //this.indicator = new SceneObject(((SceneRenderer) SWMain.getRenderWindow().getRenderer()).indicatorSphere);
     }
     
     public LightSource(Vec3 color, float intensity) {
@@ -71,7 +71,7 @@ public abstract class LightSource {
         this.shadowFBO = 0;
         this.shadowDepthTexture = 0;
 
-        this.indicator = new SceneObject(((SceneRenderer) SWMain.getRenderWindow().getRenderer()).indicatorSphere);
+        //this.indicator = new SceneObject(((SceneRenderer) SWMain.getRenderWindow().getRenderer()).indicatorSphere);
     }
 
     protected abstract void calculateLightSpaceMatrix();

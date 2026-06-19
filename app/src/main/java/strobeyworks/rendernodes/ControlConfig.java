@@ -1,4 +1,4 @@
-package strobeyworks.noiserender;
+package strobeyworks.rendernodes;
 
 import strobeyworks.utils.BindableValue;
 

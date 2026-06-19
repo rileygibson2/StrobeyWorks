@@ -3,24 +3,32 @@ package strobeyworks;
 import static org.lwjgl.glfw.GLFW.glfwPollEvents;
 import static org.lwjgl.glfw.GLFW.glfwTerminate;
 
-import javax.swing.Timer;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 import strobeyworks.logger.Logger;
-import strobeyworks.noiserender.AgentRenderer;
-import strobeyworks.noiserender.NoiseRenderer;
+import strobeyworks.nodes.RenderNode;
+import strobeyworks.nodes.RenderTarget;
 import strobeyworks.platform.MidiManager;
+import strobeyworks.platform.OutputRenderer;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.platform.Window;
+import strobeyworks.rendernodes.AgentNode;
 import strobeyworks.ui.core.UIRenderer;
 
 public class SWMain {
     
     private static SWMain instance;
     
-    private static Window renderWindow;
+    private static Window outputWindow;
     private static Window uiWindow;
-    private static ShaderManager shaderManager;
-    private static MidiManager midiManager;
+    private static OutputRenderer outputRenderer;
+    
+    private MidiManager midiManager;
+    
+    private Set<RenderNode> renderNodes;
+    private RenderNode finalNode;
     
     private static long lastTime;
     private static float deltaTime;
@@ -35,28 +43,61 @@ public class SWMain {
     
     private SWMain() {}
     
-    public static ShaderManager getShaderManager() {return shaderManager;}
-    
-    public static Window getRenderWindow() {return renderWindow;}
+    public static Window getOutputWindow() {return outputWindow;}
     
     public static Window getUIWindow() {return uiWindow;}
     
     private void setup() {
         Logger.info("Setting up");
-        shaderManager = new ShaderManager();
         
-        //renderWindow = new Window(SceneRenderer.getInstance(), 1500, 900, "Render");
-        renderWindow = new Window(AgentRenderer.getInstance(), 1500, 900, "Agent Render");
+        // Managers
+        ShaderManager.getInstance();
+        midiManager = MidiManager.getInstance();
+        midiManager.open("MIDICRAFT ENC");
+        
+        // Windows
+        outputRenderer = new OutputRenderer();
+        outputWindow = new Window(outputRenderer, 1500, 900, "Output");
         
         uiWindow = new Window(UIRenderer.getInstance(), 500, 500, "UI");
         uiWindow.stayFocussed();
         uiWindow.setScreenPos(0.8f, 0.5f);
         
-        renderWindow.initialise();
-        uiWindow.initialise();
         
-        midiManager = MidiManager.getInstance();
-        midiManager.open("MIDICRAFT ENC");
+        // Render pipeline initialise
+        outputWindow.initialise();
+        outputWindow.makeContextCurrent();
+
+        // Nodes
+        renderNodes = new HashSet<>();
+        loadRenderNodes();
+        
+        for (RenderNode node : renderNodes) {
+            node.initialise(outputWindow.getFramebufferWidth(), outputWindow.getFramebufferHeight());
+        }
+
+        // UI initialise
+        uiWindow.initialise();
+    }
+    
+    private void loadRenderNodes() {
+        AgentNode n = new AgentNode();
+        RenderTarget t = RenderTarget.texture(200, 200);
+        n.setRenderTarget(t);
+
+        renderNodes.add(n);
+        
+        UIRenderer.getInstance().setSelectedNode(n);
+        finalNode = n;
+        outputRenderer.setSource(n.getRenderTarget());
+    }
+    
+    public void resizeOutputPipeline(int width, int height) {
+        outputWindow.makeContextCurrent();
+        
+        for (RenderNode node : renderNodes) {
+            node.resizeOutput(width, height);
+        }
     }
     
     private void start() {
@@ -67,38 +108,57 @@ public class SWMain {
         
         Logger.info("Starting main loop");
         while (running) {
+            // Exit condition
+            if (!outputWindow.windowAlive()||!uiWindow.windowAlive()) {
+                running = false;
+                break;
+            }
+            
+            // Times
             long now = System.nanoTime();
             deltaTime = Math.min((now - lastTime) * 1e-9f, 0.05f);
             lastTime = now;
             totalTime += deltaTime;
             totalFrameCount++;
             
+            // Updates
             glfwPollEvents();
-
             midiManager.update();
             
-            // Exit condition
-            if (!renderWindow.windowAlive()||!uiWindow.windowAlive()) running = false;
-            else {
-                renderWindow.iterate();
-                uiWindow.iterate();
+            // Nodes
+            outputWindow.makeContextCurrent();
+            
+            for (RenderNode node : renderNodes) {
+                node.update();
+                node.render();
             }
+            
+            // Windows
+            outputWindow.iterate();
+            uiWindow.iterate();
         }
         Logger.info("Exiting main loop");
         shutdown();
     }
     
     private void shutdown() {
+        // Managers
         MidiManager.getInstance().cleanup();
-        if (renderWindow!=null) renderWindow.cleanup();
+        
+        // Output targets
+        outputWindow.makeContextCurrent();
+        for (RenderNode node : renderNodes) node.cleanup();
+        
+        // Windows
+        if (outputWindow!=null) outputWindow.cleanup();
         if (uiWindow!=null) uiWindow.cleanup();
         glfwTerminate();
-        
         
         Logger.info("Shutting down");
         System.exit(0);
     }
-
+    
+    @SuppressWarnings("unused")
     private void logAllOpenThreads() {
         for (Thread t : Thread.getAllStackTraces().keySet()) {
             if (t.isAlive()&&!t.isDaemon()&&!t.getName().equals("main")) {

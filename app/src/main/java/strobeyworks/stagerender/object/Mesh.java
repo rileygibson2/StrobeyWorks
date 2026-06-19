@@ -1,4 +1,4 @@
-package strobeyworks.object;
+package strobeyworks.stagerender.object;
 
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER;
@@ -222,7 +222,7 @@ public class Mesh {
             }
         }
         
-        ShaderManager sM = SWMain.getShaderManager();
+        ShaderManager sM = ShaderManager.getInstance();
         setVAO(glGenVertexArrays());
         setVBO(glGenBuffers());
         sM.bindVAO(vAO);

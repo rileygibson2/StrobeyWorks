@@ -1,4 +1,4 @@
-package strobeyworks.noiserender;
+package strobeyworks.rendernodes;
 
 import static org.lwjgl.opengl.GL11.GL_BLEND;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
@@ -23,17 +23,16 @@ import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 
 import strobeyworks.SWMain;
-import strobeyworks.platform.Animation;
-import strobeyworks.platform.IOEvent;
-import strobeyworks.platform.Renderer;
+import strobeyworks.nodes.RenderNode;
+import strobeyworks.nodes.RenderTarget;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.Utils;
 import strobeyworks.utils.Vec3;
 
-public class NoiseRenderer extends Renderer {
+public class PerlinNode extends RenderNode {
     
-    private static NoiseRenderer instance;
+    private static PerlinNode instance;
     
     private int noiseProgram;
     private int quadVAO;
@@ -60,12 +59,12 @@ public class NoiseRenderer extends Renderer {
     private Vec3 colorLow;
     private Vec3 colorHigh;
     
-    public static NoiseRenderer getInstance() {
-        if (instance==null) instance = new NoiseRenderer();
+    public static PerlinNode getInstance() {
+        if (instance==null) instance = new PerlinNode();
         return instance;
     }
     
-    private NoiseRenderer() {
+    private PerlinNode() {
         this.speed = BindableValue.of(0.5f);
         this.gridSize = BindableValue.of(10f);
         this.octaves = BindableValue.of(1f);
@@ -86,22 +85,15 @@ public class NoiseRenderer extends Renderer {
         this.colorLow = new Vec3(0f, 0f, 0f);
         this.colorHigh = new Vec3(1f, 0f, 0.8f);
     }
+
+    @Override
+    protected void setupControls() {}
     
     @Override
-    public void receiveIOEvent(IOEvent event) {}
-    
-    @Override
-    public void handleWindowResize() {}
-    
-    @Override
-    public void addAnimation(Animation a) {}
-    
-    @Override
-    public void removeAnimation(Animation a) {}
-    
-    @Override
-    public void initialise() {
-        ShaderManager sM = SWMain.getShaderManager();
+    public void initialise(int outputWidth, int outputHeight) {
+        super.initialise(outputWidth, outputHeight);
+        
+        ShaderManager sM = ShaderManager.getInstance();
         
         // Shaders init
         noiseProgram = sM.createProgram("noise/perlinfbm.vert", "noise/perlinfbm.frag");
@@ -136,7 +128,7 @@ public class NoiseRenderer extends Renderer {
     }
     
     private void renderPass() {
-        ShaderManager sM = SWMain.getShaderManager();
+        ShaderManager sM = ShaderManager.getInstance();
         sM.useProgram(noiseProgram);
         sM.setCurrentProgram(noiseProgram);
 
@@ -228,5 +220,17 @@ public class NoiseRenderer extends Renderer {
 
     public BindableValue<Float> getTurbulencePow() {
         return turbulencePow;
+    }
+
+    @Override
+    protected void handleOutputResize() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'handleOutputResize'");
+    }
+
+    @Override
+    protected void handleCleanup() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'handleCleanup'");
     }
 }

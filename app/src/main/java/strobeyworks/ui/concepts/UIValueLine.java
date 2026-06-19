@@ -4,7 +4,7 @@ import static strobeyworks.ui.core.UILength.pch;
 import static strobeyworks.ui.core.UILength.pcw;
 import static strobeyworks.ui.core.UILength.px;
 
-import strobeyworks.noiserender.ControlConfig;
+import strobeyworks.rendernodes.ControlConfig;
 import strobeyworks.ui.components.input.UISlider;
 import strobeyworks.ui.components.input.UIValueMapper;
 import strobeyworks.ui.components.input.field.UIFloatField;
@@ -24,7 +24,7 @@ public class UIValueLine extends UIRectangle {
         UIFont fieldFont = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 18f);
         
         UIRectangle right = new UIRectangle();
-        right.style("width", pcw(0.60f))
+        right.style("width", pcw(0.59f))
         .style("height", pch(1f))
         .style("position", UIPositionMode.ABSOLUTE)
         .style("offset-left", pcw(0.4f))

@@ -77,9 +77,9 @@ public class Window {
     private float screenPosX;
     private float screenPosY;
     
-    private Renderer renderer;
+    private WindowRenderer renderer;
     
-    public Window(Renderer renderer, int width, int height, String title) {
+    public Window(WindowRenderer renderer, int width, int height, String title) {
         this.renderer = renderer;
         this.width = width;
         this.height = height;
@@ -101,6 +101,20 @@ public class Window {
     public void setScreenPos(float screenPosX, float screenPosY) {
         this.screenPosX = screenPosX;
         this.screenPosY = screenPosY;
+    }
+
+    public void setWindowDimensions(int width, int height) {
+        this.width = width;
+        this.height = height;
+    }
+
+    public void focus() {
+        glfwFocusWindow(windowID);
+    }
+    
+    public void makeContextCurrent() {
+        glfwMakeContextCurrent(windowID);
+        GL.setCapabilities(capabilities);
     }
     
     public void initialise() {
@@ -218,22 +232,13 @@ public class Window {
         glfwSwapBuffers(windowID);
     }
     
-    public void focus() {
-        glfwFocusWindow(windowID);
-    }
-    
     public long getWindowID() {
         return windowID;
     }
     
-    public Renderer getRenderer() {return this.renderer;}
+    public WindowRenderer getRenderer() {return this.renderer;}
     
     public IO getIO() {return io;}
-    
-    public void setWindowDimensions(int width, int height) {
-        this.width = width;
-        this.height = height;
-    }
     
     public int getWidth() {return width;}
     

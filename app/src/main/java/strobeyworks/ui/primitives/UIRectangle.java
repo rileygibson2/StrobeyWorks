@@ -10,6 +10,7 @@ import java.util.function.BiConsumer;
 
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.ui.core.UIColor;
+import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
 import strobeyworks.ui.style.UIStyleProperty;
@@ -85,6 +86,13 @@ public class UIRectangle extends UIElement {
         .style("height", pch(1.0f))
         .style("flow-direction", UIFlowDirection.COLUMN);
 
+        return r;
+    }
+
+    public static UIRectangle defaultRect(UILength width, UILength height) {
+        UIRectangle r = new UIRectangle();
+        r.style("width", width)
+        .style("height", height);
         return r;
     }
 }

@@ -2,19 +2,13 @@ package strobeyworks.ui.logicpages;
 
 import static strobeyworks.ui.core.UILength.pch;
 import static strobeyworks.ui.core.UILength.pcw;
-import static strobeyworks.ui.core.UILength.pph;
-import static strobeyworks.ui.core.UILength.ppw;
 import static strobeyworks.ui.core.UILength.px;
 
-import strobeyworks.noiserender.AgentRenderer;
-import strobeyworks.noiserender.ControlConfig;
-import strobeyworks.ui.components.UIButton;
+import strobeyworks.nodes.RenderNode;
+import strobeyworks.rendernodes.ControlConfig;
+import strobeyworks.rendernodes.InspectorItem;
 import strobeyworks.ui.components.UIColorPicker;
 import strobeyworks.ui.components.UIGradientSlider;
-import strobeyworks.ui.components.input.UISlider;
-import strobeyworks.ui.components.input.UIValueMapper;
-import strobeyworks.ui.components.input.field.UIFloatField;
-import strobeyworks.ui.components.input.field.UIFloatFieldMapper;
 import strobeyworks.ui.components.popups.UIContentPopup;
 import strobeyworks.ui.concepts.UIValueLine;
 import strobeyworks.ui.core.UIColor;
@@ -25,17 +19,15 @@ import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
 import strobeyworks.utils.BindableValue;
 
-public class UIAgentPage extends UIRectangle {
+public class UIInspectorPane extends UIRectangle {
     
-    public UIAgentPage() {
+    public UIInspectorPane() {
         build();
     }
     
     private void build() {
         UIRenderer ui = UIRenderer.getInstance();
-        
-        style("width", ppw(1f));
-        style("height", pph(1f));
+
         style("padding-left", px(5));
         style("padding-right", px(5));
         style("padding-top", px(5));
@@ -45,10 +37,10 @@ public class UIAgentPage extends UIRectangle {
         style("color", UIColor.transparent());
         style("overflow-y", UIOverflowMode.SCROLL);
         
-        AgentRenderer r = AgentRenderer.getInstance();
+        RenderNode node = UIRenderer.getInstance().getSelectedNode();
         UIFont fieldFont = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f);
         
-        UIRectangle line = new UIRectangle();
+        /*UIRectangle line = new UIRectangle();
         line.style("width", pcw(1f))
         .style("height", pch(0.08f));
         addChild(line);
@@ -86,15 +78,39 @@ public class UIAgentPage extends UIRectangle {
         .style("align-items", UIAlignItems.CENTER)
         //.style("color", col(UIColors.RED))
         .style("flow-wrap", true);
-        addChild(line);
+        addChild(line);*/
         
-        for (ControlConfig<Float> config : r.getFloatControlConfigs()) {
-            line = new UIValueLine(config);
-            line.style("width", pcw(1f))
-            .style("height", pch(0.1f))
-            .style("margin-top", px(1));
-            addChild(line);
+        for (InspectorItem item : node.getInspectorItems()) traverseInspectorTree(item);
+    }
+    
+    private void traverseInspectorTree(InspectorItem item) {
+        if (item instanceof InspectorItem.InspectorControl control) addControlLine(control.config());
+        
+        if (item instanceof InspectorItem.InspectorGroup group) {
+            addHeadingLine(group.name());
+            for (InspectorItem child : group.items()) traverseInspectorTree(child);
         }
+    }
+    
+    private void addHeadingLine(String name) {
+        UIRectangle line = UIRectangle.defaultRect(pcw(1f), pch(0.1f));
+        line.style("align-items", UIAlignItems.CENTER)
+        .style("color", UIColor.rgb(0.28f));
+        
+        UIText title = new UIText(UIFontManager.getUIFont("RobotoMono-Medium.ttf", 18f), name);
+        title.style("margin-left", px(10))
+        .style("color", UIColor.rgb(0.7f));
+        
+        addChild(line);
+        line.addChild(title);
+    }
+    
+    private void addControlLine(ControlConfig<?> config) {
+        UIValueLine line = new UIValueLine((ControlConfig<Float>) config);
+        line.style("width", pcw(1f))
+        .style("height", pch(0.1f))
+        .style("margin-top", px(1));
+        addChild(line);
     }
     
     private UIContentPopup buildGradientPopup() {
