@@ -92,7 +92,7 @@ public class UIRenderer extends WindowRenderer {
     
     private UIPopup fullScreenPopup;
     private UIRectangle fullScreenPopupBG;
-
+    
     private RenderNode selectedNode;
     
     public static UIRenderer getInstance() {
@@ -117,15 +117,14 @@ public class UIRenderer extends WindowRenderer {
     
     private void buildBase() {
         UIRectangle base = UIRectangle.defaultRect(sw(1f), sh(1f));
-        base.style("border-enabled", true)
-        .style("border-thickness", px(2))
-        .style("border-color", UIColor.rgb(1f))
-        .style("corner-radius", new Vec4(10f));
-
+        base.style("color", UIColor.black());
+        
         UIInspectorPane inspectorPane = new UIInspectorPane();
-        inspectorPane.style("width", pcw(1f))
-        .style("height", pch(1f));
-
+        inspectorPane.style("width", pcw(0.4f))
+        .style("height", pch(1f))
+        .style("position", UIPositionMode.ABSOLUTE)
+        .style("offset-left", pcw(0.6f));
+        
         base.addChild(inspectorPane);
         addToRoot(base);
     }
@@ -153,11 +152,11 @@ public class UIRenderer extends WindowRenderer {
         else transitions.put(e, new HashSet<>());
         transitions.get(e).add(t);
     }
-
+    
     public void setSelectedNode(RenderNode node) {
         this.selectedNode = node;
     }
-
+    
     public RenderNode getSelectedNode() {
         return selectedNode;
     }
@@ -364,15 +363,18 @@ public class UIRenderer extends WindowRenderer {
     
     private void layout() {
         rootElement.layoutCalculate();
-        
-        UIBounds rootBounds = new UIBounds(
+        rootElement.layoutPlace(
             0f,
-            0f,
-            getParentWindow().getWidth(),
-            getParentWindow().getHeight()
+            0f, 
+            new UIBounds(
+                0f,
+                0f,
+                getParentWindow().getWidth(),
+                getParentWindow().getHeight()
+            )
         );
         
-        rootElement.layoutPlace(0f, 0f, rootBounds);
+        rootElement.layoutUpdatedSubtree();
     }
     
     @Override

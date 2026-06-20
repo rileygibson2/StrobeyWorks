@@ -59,7 +59,7 @@ public class SWMain {
         outputRenderer = new OutputRenderer();
         outputWindow = new Window(outputRenderer, 1500, 900, "Output");
         
-        uiWindow = new Window(UIRenderer.getInstance(), 500, 500, "UI");
+        uiWindow = new Window(UIRenderer.getInstance(), 1100, 700, "UI");
         uiWindow.stayFocussed();
         uiWindow.setScreenPos(0.8f, 0.5f);
         

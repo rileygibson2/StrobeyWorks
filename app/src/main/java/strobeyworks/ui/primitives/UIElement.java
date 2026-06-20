@@ -25,6 +25,7 @@ import strobeyworks.ui.core.UIBounds;
 import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.core.UIRenderer;
+import strobeyworks.ui.primitives.UIElement.UIEventCallback;
 import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
 import strobeyworks.ui.style.UIStyleProperty;
@@ -218,7 +219,7 @@ public abstract class UIElement {
         */
         SCROLL
     }
-
+    
     public enum UIRenderType {
         SHAPE,
         TEXT,
@@ -236,80 +237,16 @@ public abstract class UIElement {
     public interface UIBasicCallback {
         void implement();
     }
-
+    
     @FunctionalInterface
     public interface UIGenericCallback<T> {
         void implement(T t);
     }
-
+    
     @FunctionalInterface
     public interface UISuccessCallback {
         void implement(boolean success);
     }
-    
-    // Tree
-    private UIElement parent;
-    private List<UIElement> children;
-    private boolean layoutDirty; // Object layout has changed
-    private boolean subtreeDirty; // Composition of subtree has changed
-    private boolean initialised; // Element has been initialised (also indicator of computed layout values existing)
-    
-    // Authored style properties
-    private UIBoxMode boxMode;
-    private UIFlowDirection flowDirection;
-    private boolean flowWrap;
-    private UIPositionMode positionMode;
-    private UIJustifyContent justifyContent;
-    private UIAlignItems alignItems;
-    private UIAlignContent alignContent;
-    private UIOverflowMode overflowX;
-    private UIOverflowMode overflowY;
-    
-    private UILength width;
-    private UILength height;
-    
-    private UILength paddingLeft;
-    private UILength paddingRight;
-    private UILength paddingTop;
-    private UILength paddingBottom;
-    
-    private UILength marginLeft;
-    private UILength marginRight;
-    private UILength marginTop;
-    private UILength marginBottom;
-    
-    private UILength offsetLeft;
-    private UILength offsetRight;
-    private UILength offsetTop;
-    private UILength offsetBottom;
-    
-    private Boolean borderEnabled;
-    private UILength borderThickness;
-    private boolean borderLeft;
-    private boolean borderRight;
-    private boolean borderTop;
-    private boolean borderBottom;
-    
-    private UILength minWidth;
-    private UILength minHeight;
-    
-    private UILength maxWidth;
-    private UILength maxHeight;
-    
-    private float transformScaleX;
-    private float transformScaleY;
-    
-    private float transitionDuration;
-    
-    private float opacity;
-    private boolean visible;
-    private int zIndex;
-    
-    private float scrollX;
-    private float scrollY;
-
-    // Render
-    private UIRenderType renderType;
     
     // Style appliers
     private static final Map<UIStyleProperty<?>, BiConsumer<UIElement, Object>> APPLIERS = new HashMap<>();
@@ -324,6 +261,7 @@ public abstract class UIElement {
         register(APPLIERS, StyleProps.ALIGN_CONTENT, UIElement::alignContent);
         register(APPLIERS, StyleProps.OVERFLOW_X, UIElement::overflowX);
         register(APPLIERS, StyleProps.OVERFLOW_Y, UIElement::overflowY);
+        register(APPLIERS, StyleProps.GROW, UIElement::grow);
         
         register(APPLIERS, StyleProps.WIDTH, UIElement::width);
         register(APPLIERS, StyleProps.HEIGHT, UIElement::height);
@@ -371,6 +309,71 @@ public abstract class UIElement {
         appliers.put(property, (e, v) -> applier.accept(e, property.getValueType().cast(v)));
     }
     
+    // Tree
+    private UIElement parent;
+    private List<UIElement> children;
+    private boolean layoutDirty; // Object layout has changed
+    private boolean subtreeDirty; // Composition of subtree has changed
+    private boolean initialised; // Element has been initialised (also indicator of computed layout values existing)
+    
+    // Authored style properties
+    private UIBoxMode boxMode;
+    private UIFlowDirection flowDirection;
+    private boolean flowWrap;
+    private UIPositionMode positionMode;
+    private UIJustifyContent justifyContent;
+    private UIAlignItems alignItems;
+    private UIAlignContent alignContent;
+    private UIOverflowMode overflowX;
+    private UIOverflowMode overflowY;
+    private float grow;
+    
+    private UILength width;
+    private UILength height;
+    
+    private UILength paddingLeft;
+    private UILength paddingRight;
+    private UILength paddingTop;
+    private UILength paddingBottom;
+    
+    private UILength marginLeft;
+    private UILength marginRight;
+    private UILength marginTop;
+    private UILength marginBottom;
+    
+    private UILength offsetLeft;
+    private UILength offsetRight;
+    private UILength offsetTop;
+    private UILength offsetBottom;
+    
+    private Boolean borderEnabled;
+    private UILength borderThickness;
+    private boolean borderLeft;
+    private boolean borderRight;
+    private boolean borderTop;
+    private boolean borderBottom;
+    
+    private UILength minWidth;
+    private UILength minHeight;
+    
+    private UILength maxWidth;
+    private UILength maxHeight;
+    
+    private float transformScaleX;
+    private float transformScaleY;
+    
+    private float transitionDuration;
+    
+    private float opacity;
+    private boolean visible;
+    private int zIndex;
+    
+    private float scrollX;
+    private float scrollY;
+    
+    // Render
+    private UIRenderType renderType;
+    
     // Computed values
     private float localX;
     private float localY;
@@ -395,6 +398,8 @@ public abstract class UIElement {
     // Callbacks
     private UIBasicCallback onInitialise;
     private UIEventCallback onClicked;
+    private UIEventCallback onGotPointer;
+    private UIEventCallback onLostPointer;
     private UIEventCallback onGotFocus;
     private UIEventCallback onLostFocus;
     private UIEventCallback onGotHover;
@@ -426,6 +431,7 @@ public abstract class UIElement {
         this.alignContent = UIAlignContent.START;
         this.overflowX = UIOverflowMode.VISIBLE;
         this.overflowY = UIOverflowMode.VISIBLE;
+        this.grow = 0f;
         
         this.paddingLeft = px(0);
         this.paddingRight = px(0);
@@ -464,7 +470,7 @@ public abstract class UIElement {
         this.hoverable = false;
         this.clickable = false;
         this.scrollable = false;
-
+        
         this.debugEnabled = false;
         
         this.authoredStyle = new UIStyle();
@@ -476,7 +482,7 @@ public abstract class UIElement {
     // -----------------------------------------------------------------------------
     // Render
     // -----------------------------------------------------------------------------
-
+    
     public void setRenderUniforms(ShaderManager sM) {
         sM.setUniformFloat("uOpacity", opacity);
         sM.setUniformInt("uHasBorder", borderEnabled ? 1 : 0);
@@ -497,11 +503,11 @@ public abstract class UIElement {
         }
         else sM.setUniformInt("uClipEnabled", 0);
     }
-
+    
     public UIRenderType getRenderType() {
         return UIRenderType.SHAPE;
     }
-
+    
     public void render(UIRenderer renderer, ShaderManager sM) {
         renderer.renderShape(sM, this);
     }
@@ -530,8 +536,26 @@ public abstract class UIElement {
     }
     
     protected void setAuthoredStyleProperty(UIStyleProperty<?> property, Object value) {
+        Object current = authoredStyle.getRaw(property);
+        if (styleValueEquals(current, value)) return;
+        
         applyStyleProperty(property, value);
         authoredStyle.setRaw(property, value);
+    }
+    
+    private boolean styleValueEquals(Object a, Object b) {
+        if (a == b) return true;
+        if (a == null || b == null) return false;
+        
+        if (a instanceof UILength la && b instanceof UILength lb) {
+            return la.unit == lb.unit && Math.abs(la.value - lb.value) < 0.001f;
+        }
+        
+        if (a instanceof Float fa && b instanceof Float fb) {
+            return Math.abs(fa - fb) < 0.001f;
+        }
+        
+        return a.equals(b);
     }
     
     protected void applyStyleProperty(UIStyleProperty<?> property, Object value) {
@@ -670,7 +694,7 @@ public abstract class UIElement {
         this.clickable = clickable;
         return this;
     }
-
+    
     public UIElement scrollable(boolean scrollable) {
         this.scrollable = scrollable;
         return this;
@@ -691,7 +715,7 @@ public abstract class UIElement {
     public boolean isClickable() {
         return this.clickable;
     }
-
+    
     public boolean isScrollable() {
         return this.scrollable;
     }
@@ -708,6 +732,16 @@ public abstract class UIElement {
     
     public UIElement onLostHover(UIEventCallback callback) {
         this.onLostHover = callback;
+        return this;
+    }
+
+    public UIElement onGotPointer(UIEventCallback callback) {
+        this.onGotPointer = callback;
+        return this;
+    }
+    
+    public UIElement onLostPointer(UIEventCallback callback) {
+        this.onLostPointer = callback;
         return this;
     }
     
@@ -729,9 +763,13 @@ public abstract class UIElement {
         if (onLostFocus!=null) onLostFocus.implement(event);
     }
     
-    public void gotPointer(IOEvent event) {}
+    public void gotPointer(IOEvent event) {
+        if (onGotPointer!=null) onGotPointer.implement(event);
+    }
     
-    public void lostPointer(IOEvent event) {}
+    public void lostPointer(IOEvent event) {
+        if (onLostPointer!=null) onLostPointer.implement(event);
+    }
     
     public void gotHover(IOEvent event) {
         if (onGotHover!=null) onGotHover.implement(event);
@@ -759,7 +797,7 @@ public abstract class UIElement {
         
         List<UIElement> sortedChildren = new ArrayList<>(children);
         sortedChildren.sort(Comparator.comparingInt(UIElement::getZIndex));
-
+        
         for (UIElement c : sortedChildren) {
             UIElement result = c.getDeepestElementAt(x, y);
             if (result!=null) hit = result;
@@ -784,7 +822,7 @@ public abstract class UIElement {
         markLayoutDirty();
         markSubtreeDirty();
     }
-
+    
     public boolean hasParent() {
         return this.parent!=null;
     }
@@ -796,7 +834,7 @@ public abstract class UIElement {
         markLayoutDirty();
         markSubtreeDirty();
     }
-
+    
     public void addChildAtIndex(int i, UIElement e) {
         children.add(i, e);
         e.setParent(this);
@@ -812,16 +850,8 @@ public abstract class UIElement {
         markLayoutDirty();
         markSubtreeDirty();
     }
-
-    public void removeAllChildren() {
-        for (UIElement c : children) c.setParent(null);
-        children.clear();
-        
-        markLayoutDirty();
-        markSubtreeDirty();
-    }
-
-    public void removeContentChildren() {
+    
+    public void removeAllContentChildren() {
         List<UIElement> copy = new ArrayList<>(children);
         
         for (UIElement c : copy) {
@@ -846,7 +876,7 @@ public abstract class UIElement {
         
         return elems;
     }
-
+    
     public List<UIElement> getImmediateContentChildren() {
         List<UIElement> elems = new ArrayList<>();
         List<UIElement> sortedChildren = new ArrayList<>(children);
@@ -877,7 +907,7 @@ public abstract class UIElement {
         return children.get(i);
     }
     
-    public int getChildIndex(UIElement e) {
+    public int getIndexOfChild(UIElement e) {
         return children.indexOf(e);
     }
     
@@ -924,6 +954,16 @@ public abstract class UIElement {
         }
         
         for (UIElement child : children) child.initialiseSubtree();
+    }
+    
+    public void layoutUpdated() {}
+    
+    public void layoutUpdatedSubtree() {
+        layoutUpdated();
+        
+        for (UIElement child : children) {
+            child.layoutUpdatedSubtree();
+        }
     }
     
     // -----------------------------------------------------------------------------
@@ -995,39 +1035,51 @@ public abstract class UIElement {
         }
     }
     
-    public void layoutCalculate() {
-        float bL = resolve(borderThickness);
-        float bR = resolve(borderThickness);
-        float bT = resolve(borderThickness);
-        float bB = resolve(borderThickness);
-        
-        if (!borderEnabled) {
-            bL = 0f;
-            bR = 0f;
-            bT = 0f;
-            bB = 0f;
-        }
-        
-        float pL = resolve(paddingLeft);
-        float pR = resolve(paddingRight);
-        float pT = resolve(paddingTop);
-        float pB = resolve(paddingBottom);
-        
-        float contentLeft = bL+pL;
-        float contentTop = bT+pT;
-        float contenttRight = pR+bR;
-        float contentBottom = pB+bB;
-        
-        float cursorX = contentLeft;
-        float cursorY = contentTop;
+    private static class LayoutFlowResult {
+        List<FlowLine> flowLines = new ArrayList<>();
         float maxX = 0f;
         float maxY = 0f;
-        
-        List<FlowLine> flowLines = new ArrayList<>();
-        FlowLine flowLine = new FlowLine();
-        float lineSize = 0f;
+    }
+    
+    private class LayoutData {
+        float bL, bT, bR, bB;
+        float pL, pT, pR, pB;
+        float contentL, contentR, contentT, contentB;
         float availableWidth = -1f;
         float availableHeight = -1f;
+    }
+    
+    private Float assignedLayoutWidth;
+    private Float assignedLayoutHeight;
+    
+    public void layoutCalculate() {
+        
+        // PHASE 1 - SETUP
+        // Resolve useful values and attempt to calculate the size of this element
+        LayoutData d = new LayoutData();
+        
+        if (!borderEnabled) {
+            d.bL = 0f;
+            d.bR = 0f;
+            d.bT = 0f;
+            d.bB = 0f;
+        }
+        else {
+            d.bL = resolve(borderThickness);
+            d.bR = resolve(borderThickness);
+            d.bT = resolve(borderThickness);
+            d.bB = resolve(borderThickness);
+        }
+        
+        d.pL = resolve(paddingLeft);
+        d.pR = resolve(paddingRight);
+        d.pT = resolve(paddingTop);
+        d.pB = resolve(paddingBottom);
+        
+        d.contentL = d.bL+d.pL;
+        d.contentT = d.bT+d.pT;
+        d.contentR = d.pR+d.bR;
+        d.contentB = d.pB+d.bB;
         
         // Root case - set own x and y
         if (parent==null) {
@@ -1037,8 +1089,8 @@ public abstract class UIElement {
         
         // Fixed box - set width, height and wrap limits
         if (boxMode==UIBoxMode.FIXED) {
-            float w = resolve(width);
-            float h = resolve(height);
+            float w = assignedLayoutWidth != null ? assignedLayoutWidth : resolve(width);
+            float h = assignedLayoutHeight != null ? assignedLayoutHeight : resolve(height);
             
             // Text special case
             if (this instanceof UIText) {
@@ -1052,106 +1104,42 @@ public abstract class UIElement {
             localWidth = w;
             localHeight = h;
             
-            availableWidth = Math.max(0f, localWidth-contentLeft-contenttRight);
-            availableHeight = Math.max(0f, localHeight-contentTop-contentBottom);
+            d.availableWidth = Math.max(0f, localWidth-d.contentL-d.contentR);
+            d.availableHeight = Math.max(0f, localHeight-d.contentT-d.contentB);
         }
         
         // Flex box - attempt to set wrap limits
         if (boxMode==UIBoxMode.FLEX) {
-            if (maxWidth!=null) availableWidth = Math.max(0f, resolve(maxWidth)-contentLeft-contenttRight);
-            if (maxHeight!=null) availableHeight = Math.max(0f, resolve(maxHeight)-contentTop-contentBottom);
+            if (maxWidth!=null) d.availableWidth = Math.max(0f, resolve(maxWidth)-d.contentL-d.contentR);
+            if (maxHeight!=null) d.availableHeight = Math.max(0f, resolve(maxHeight)-d.contentT-d.contentB);
         }
         
-        for (UIElement c : children) {
-            c.layoutCalculate();
-            
-            // Resolve local coords
-            float mL = c.resolve(c.getMarginLeft());
-            float mR = c.resolve(c.getMarginRight());
-            float mT = c.resolve(c.getMarginTop());
-            float mB = c.resolve(c.getMarginBottom());
-            
-            float oL = c.resolve(c.getOffsetLeft());
-            float oR = c.resolve(c.getOffsetRight());
-            float oT = c.resolve(c.getOffsetTop());
-            float oB = c.resolve(c.getOffsetBottom());
-            
-            UIPositionMode cPosition = c.getPositionMode();
-            
-            // Position in flow (wrapped and no wrap)
-            if (cPosition==UIPositionMode.FLOW || cPosition==UIPositionMode.FLOW_RELATIVE) {
-                if (flowDirection==UIFlowDirection.ROW) {
-                    if (flowWrap &&
-                        availableWidth!=-1 &&
-                        !flowLine.isEmpty() && // Prevent wrapping of 1st element
-                        cursorX-contentLeft+mL+c.localWidth+mR>availableWidth
-                    ) {
-                        cursorX = contentLeft;
-                        cursorY += lineSize;
-                        lineSize = 0f;
-                        flowLines.add(flowLine);
-                        flowLine = new FlowLine();
-                    }
-                    
-                    c.localX = cursorX+mL;
-                    c.localY = cursorY+mT;
-                    cursorX = c.localX+c.localWidth+mR;
-                    
-                    lineSize = Math.max(
-                        lineSize,
-                        mT+c.localHeight+mB
-                    );
-                }
-                
-                if (flowDirection==UIFlowDirection.COLUMN) {
-                    if (flowWrap &&
-                        availableHeight!=-1 &&
-                        !flowLine.isEmpty() &&
-                        cursorY-contentTop+mT+c.localHeight+mB>availableHeight
-                    ) {
-                        cursorX += lineSize;
-                        cursorY = contentTop;
-                        lineSize = 0f;
-                        flowLines.add(flowLine);
-                        flowLine = new FlowLine();
-                    }
-                    
-                    c.localX = cursorX+mL;
-                    c.localY = cursorY+mT;
-                    cursorY = c.localY+c.localHeight+mB;
-                    
-                    lineSize = Math.max(
-                        lineSize,
-                        mL+c.localWidth+mR
-                    );
-                }
-                flowLine.add(c, mL, mR, mT, mB);
-            }
-            
-            // Absolute positioning
-            if (cPosition==UIPositionMode.ABSOLUTE||cPosition==UIPositionMode.ABSOLUTE_FIXED) {
-                c.localX = bL+oL;
-                c.localY = bT+oT;
-            }
-            
-            // Screen positioning
-            if (cPosition==UIPositionMode.SCREEN) {
-                c.localX = oL;
-                c.localY = oT;
-            }
-            
-            // Re-calculate max values
-            if (cPosition==UIPositionMode.FLOW || cPosition==UIPositionMode.FLOW_RELATIVE) {
-                maxX = Math.max(maxX, c.localX+c.localWidth);
-                maxY = Math.max(maxY, c.localY+c.localHeight);
-            }
-        }
-        if (!flowLine.isEmpty()) flowLines.add(flowLine); // Add last line if nessacary
+        //PHASE 2 - MEASURE CHILDREN WIDTH AND HEIGHT
         
-        // Resize flex boxes now that child sizing is known
+        for (UIElement c : children) c.layoutCalculate();
+        
+        //PHASE 3 - GROW CHILDREN
+        //Now that total non-grow authored space has been calculate, distribute the rest amoung grow.
+        
+        if (!flowWrap && boxMode==UIBoxMode.FIXED) {
+            applyGrowToFlowChildren(d);
+        }
+        
+        // PHASE 4 - POSITION CHILDREN
+        // At this point all children width and height is final so position.
+        
+        LayoutFlowResult flowResult = positionChildren(d);
+        
+        List<FlowLine> flowLines = flowResult.flowLines;
+        float maxX = flowResult.maxX;
+        float maxY = flowResult.maxY;
+        
+        // PHASE 5 - RESIZE BOX
+        // At this point all children sizing and positioning is known so can properly size flex boxes
+        
         if (boxMode == UIBoxMode.FLEX) {
-            localWidth = maxX+pR+bR;
-            localHeight = maxY+pB+bB;
+            localWidth = maxX+d.pR+d.bR;
+            localHeight = maxY+d.pB+d.bB;
             
             if (minWidth!=null) localWidth = Math.max(localWidth, resolve(minWidth));
             if (maxWidth!=null) localWidth = Math.min(localWidth, resolve(maxWidth));
@@ -1160,9 +1148,9 @@ public abstract class UIElement {
             if (maxHeight!=null) localHeight = Math.min(localHeight, resolve(maxHeight));
         }
         
-        // Justify and align
-        float contentWidth = Math.max(0f, localWidth-contentLeft-contenttRight);
-        float contentHeight = Math.max(0f, localHeight-contentTop-contentBottom);
+        // PHASE 6 - JUSTIFY AND ALIGN
+        float contentWidth = Math.max(0f, localWidth-d.contentL-d.contentR);
+        float contentHeight = Math.max(0f, localHeight-d.contentT-d.contentB);
         
         for (FlowLine line : flowLines) {
             float usedWidth = line.usedWidth();
@@ -1171,14 +1159,14 @@ public abstract class UIElement {
             if (justifyContent == UIJustifyContent.CENTER) {
                 switch (flowDirection) {
                     case ROW:
-                    float offset = (contentWidth - usedWidth) * 0.5f - (line.left - contentLeft);
+                    float offset = (contentWidth - usedWidth) * 0.5f - (line.left - d.contentL);
                     for (UIElement c : line.elements) c.localX += offset;
                     line.left += offset;
                     line.right += offset;
                     break;
                     
                     case COLUMN:
-                    offset = (contentHeight - usedHeight) * 0.5f - (line.top - contentTop);
+                    offset = (contentHeight - usedHeight) * 0.5f - (line.top - d.contentT);
                     for (UIElement c : line.elements) c.localY += offset;
                     line.top += offset;
                     line.bottom += offset;
@@ -1189,7 +1177,7 @@ public abstract class UIElement {
             if (alignItems == UIAlignItems.CENTER) {
                 switch (flowDirection) {
                     case ROW:
-                    float lineCrossStart = flowWrap ? line.top : contentTop;
+                    float lineCrossStart = flowWrap ? line.top : d.contentT;
                     float lineCrossSize = flowWrap ? line.usedHeight() : contentHeight;
                     
                     for (UIElement c : line.elements) {
@@ -1204,7 +1192,7 @@ public abstract class UIElement {
                     break;
                     
                     case COLUMN:
-                    lineCrossStart = flowWrap ? line.left : contentLeft;
+                    lineCrossStart = flowWrap ? line.left : d.contentL;
                     lineCrossSize = flowWrap ? line.usedWidth() : contentWidth;
                     
                     for (UIElement c : line.elements) {
@@ -1256,14 +1244,14 @@ public abstract class UIElement {
             
             switch (flowDirection) {
                 case ROW:
-                float offset = (contentHeight - usedHeight) * 0.5f - (blockTop - contentTop);
+                float offset = (contentHeight - usedHeight) * 0.5f - (blockTop - d.contentT);
                 for (FlowLine line : flowLines) {
                     for (UIElement c : line.elements) c.localY += offset;
                 }
                 break;
                 
                 case COLUMN:
-                offset = (contentWidth - usedWidth) * 0.5f - (blockLeft - contentLeft);
+                offset = (contentWidth - usedWidth) * 0.5f - (blockLeft - d.contentL);
                 for (FlowLine  line : flowLines) {
                     for (UIElement c : line.elements) c.localX += offset;
                 }
@@ -1272,7 +1260,7 @@ public abstract class UIElement {
         }
         
         // Calculate final child bounds
-        UIBounds b = new UIBounds(contentLeft, contentTop, contentLeft, contentTop);
+        UIBounds b = new UIBounds(d.contentL, d.contentT, d.contentL, d.contentT);
         
         for (UIElement c : children) {
             if (c.positionMode==UIPositionMode.SCREEN||c.positionMode==UIPositionMode.ABSOLUTE_FIXED) continue;
@@ -1291,6 +1279,140 @@ public abstract class UIElement {
         
         childContentBounds = b;
         updateScrollBars();
+    }
+    
+    private void applyGrowToFlowChildren(LayoutData d) {
+        float contentWidth = Math.max(0f, localWidth - d.contentL - d.contentR);
+        float contentHeight = Math.max(0f, localHeight - d.contentT - d.contentB);
+        
+        float totalGrow = 0f;
+        float usedMain = 0f;
+        
+        // Find used space and count grow
+        for (UIElement c : children) {
+            if (!c.participatesInParentFlow()) continue;
+            
+            float mL = c.resolve(c.getMarginLeft());
+            float mR = c.resolve(c.getMarginRight());
+            float mT = c.resolve(c.getMarginTop());
+            float mB = c.resolve(c.getMarginBottom());
+            
+            totalGrow += c.getGrow();
+            
+            if (flowDirection==UIFlowDirection.COLUMN) usedMain += mT + c.localHeight + mB;
+            else usedMain += mL + c.localWidth + mR;
+        }
+        
+        if (totalGrow <= 0f) return; // No children asked to grow
+        
+        // Calculate remaining available space
+        float availableMain = flowDirection == UIFlowDirection.COLUMN ? contentHeight : contentWidth;
+        float remaining = Math.max(0f, availableMain - usedMain);
+        
+        // Resize children who asked to grow
+        for (UIElement c : children) {
+            if (c.getGrow()<=0f||!c.participatesInParentFlow()) continue;
+            
+            float extra = remaining * (c.getGrow() / totalGrow);
+            
+            if (flowDirection == UIFlowDirection.COLUMN) {
+                float grownHeight = c.localHeight + extra;
+                c.assignedLayoutHeight = grownHeight;
+                c.layoutCalculate(); // Height changed - layout data stale so need to recalculate
+            }
+            else {
+                float grownWidth = c.localWidth + extra;
+                c.assignedLayoutWidth = grownWidth;
+                c.layoutCalculate();
+            }
+        }
+    }
+    
+    private LayoutFlowResult positionChildren(LayoutData d) {
+        LayoutFlowResult result = new LayoutFlowResult();
+        
+        float cursorX = d.contentL;
+        float cursorY = d.contentT;
+        float lineSize = 0f;
+        
+        FlowLine flowLine = new FlowLine();
+        
+        for (UIElement c : children) {
+            float mL = c.resolve(c.getMarginLeft());
+            float mR = c.resolve(c.getMarginRight());
+            float mT = c.resolve(c.getMarginTop());
+            float mB = c.resolve(c.getMarginBottom());
+            
+            float oL = c.resolve(c.getOffsetLeft());
+            float oT = c.resolve(c.getOffsetTop());
+            
+            UIPositionMode cPosition = c.getPositionMode();
+            
+            if (cPosition == UIPositionMode.FLOW || cPosition == UIPositionMode.FLOW_RELATIVE) {
+                if (flowDirection == UIFlowDirection.ROW) {
+                    if (
+                        flowWrap &&
+                        d.availableWidth != -1 &&
+                        !flowLine.isEmpty() && // Stop first item wrapping line
+                        cursorX - d.contentL + mL + c.localWidth + mR > d.availableWidth
+                    ) {
+                        cursorX = d.contentL;
+                        cursorY += lineSize;
+                        lineSize = 0f;
+                        result.flowLines.add(flowLine);
+                        flowLine = new FlowLine();
+                    }
+                    
+                    c.localX = cursorX + mL;
+                    c.localY = cursorY + mT;
+                    cursorX = c.localX + c.localWidth + mR;
+                    
+                    lineSize = Math.max(lineSize, mT + c.localHeight + mB);
+                }
+                
+                if (flowDirection == UIFlowDirection.COLUMN) {
+                    if (
+                        flowWrap &&
+                        d.availableHeight != -1 &&
+                        !flowLine.isEmpty() &&
+                        cursorY - d.contentT + mT + c.localHeight + mB > d.availableHeight
+                    ) {
+                        cursorX += lineSize;
+                        cursorY = d.contentT;
+                        lineSize = 0f;
+                        result.flowLines.add(flowLine);
+                        flowLine = new FlowLine();
+                    }
+                    
+                    c.localX = cursorX + mL;
+                    c.localY = cursorY + mT;
+                    cursorY = c.localY + c.localHeight + mB;
+                    
+                    lineSize = Math.max(lineSize, mL + c.localWidth + mR);
+                }
+                
+                flowLine.add(c, mL, mR, mT, mB);
+                
+                result.maxX = Math.max(result.maxX, c.localX + c.localWidth);
+                result.maxY = Math.max(result.maxY, c.localY + c.localHeight);
+            }
+            
+            if (cPosition == UIPositionMode.ABSOLUTE || cPosition == UIPositionMode.ABSOLUTE_FIXED) {
+                c.localX = d.bL + oL;
+                c.localY = d.bT + oT;
+            }
+            
+            if (cPosition == UIPositionMode.SCREEN) {
+                c.localX = oL;
+                c.localY = oT;
+            }
+        }
+        
+        if (!flowLine.isEmpty()) {
+            result.flowLines.add(flowLine);
+        }
+        
+        return result;
     }
     
     public void layoutPlace(float screenX, float screenY, UIBounds inheritedClip) {
@@ -1412,12 +1534,8 @@ public abstract class UIElement {
     }
     
     private void throwResolveException(int e) {
-        if (e==1) {
-            Logger.throwRuntimeException("Cannot use parental units on element with no parent");
-        }
-        if (e==2) {
-            Logger.throwRuntimeException("Cannot use parental units on element with parent in box mode flex");
-        }
+        if (e==1) Logger.throwRuntimeException("Cannot use parental units on element with no parent");
+        if (e==2) Logger.throwRuntimeException("Cannot use parental units on element with parent in box mode flex");
     }
     
     public UIElement freeze(String n) {
@@ -1611,6 +1729,12 @@ public abstract class UIElement {
             }
         }
         
+        markLayoutDirty();
+        return this;
+    }
+    
+    private UIElement grow(float grow) {
+        this.grow = Math.max(0f, grow);
         markLayoutDirty();
         return this;
     }
@@ -1827,6 +1951,10 @@ public abstract class UIElement {
     
     public UIPositionMode getPositionMode() {return this.positionMode;}
     
+    public boolean participatesInParentFlow() {
+        return positionMode==UIPositionMode.FLOW||positionMode==UIPositionMode.FLOW_RELATIVE;
+    }
+    
     public UIJustifyContent getJustifyContent() {return this.justifyContent;}
     
     public UIAlignItems getAlignItems() {return this.alignItems;}
@@ -1836,6 +1964,8 @@ public abstract class UIElement {
     public UIOverflowMode getOverflowX() {return this.overflowX;}
     
     public UIOverflowMode getOverflowY() {return this.overflowY;}
+    
+    public float getGrow() {return this.grow;}
     
     
     public UIElement getParent() {return this.parent;}
@@ -1901,9 +2031,9 @@ public abstract class UIElement {
     public boolean isVisible() {return this.visible;}
     
     public int getZIndex() {return this.zIndex;}
-
+    
     public float getScrollX() {return this.scrollX;}
-
+    
     public float getScrollY() {return this.scrollY;}
     
     public UIBounds getChildContentBounds() {return this.childContentBounds;}

@@ -71,6 +71,10 @@ import strobeyworks.platform.MidiManager.MidiHandle;
 import strobeyworks.platform.MidiManager.MidiHandleType;
 import strobeyworks.rendernodes.InspectorItem.InspectorControl;
 import strobeyworks.rendernodes.InspectorItem.InspectorGroup;
+import strobeyworks.rendernodes.configs.ActionControlConfig;
+import strobeyworks.rendernodes.configs.BooleanControlConfig;
+import strobeyworks.rendernodes.configs.ControlConfig;
+import strobeyworks.rendernodes.configs.FloatControlConfig;
 import strobeyworks.platform.MidiSubscriber;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.utils.BindableList;
@@ -119,6 +123,8 @@ public class AgentNode extends RenderNode implements MidiSubscriber, BindableVal
     private BindableList<Vec3> stopColors;
     private BindableList<Float> stopPositions;
     
+    private BindableValue<Boolean> togg;
+    
     private HashMap<MidiHandle, Consumer<MidiEvent>> midiHandleMap;
     
     private boolean syncingOutputSizeControls;
@@ -152,12 +158,15 @@ public class AgentNode extends RenderNode implements MidiSubscriber, BindableVal
         g = new InspectorGroup("Output Size", new ArrayList<>());
         width = addFloatControl(g, "Width", 1f, 10000, 0, 1f, 1500);
         height = addFloatControl(g, "Height", 1f, 10000, 0, 1f, 900);
+        togg = addBooleanControl(g, "Toggle me", true);
+        g.items().add(new InspectorControl(new ActionControlConfig("Resize to window", "Run", this::resizeToOutputWindow)));
+        
         addInspectorItem(g);
         width.bind(this);
         height.bind(this);
         
         g = new InspectorGroup("Turning", new ArrayList<>());
-        sensorAngle = addFloatControl(g, "Sensor Angle", 0f, 3f, 2, 0.1f, 0.6f);
+        sensorAngle = addFloatControl(g, "Sensor Angle", 0.02f, 3f, 3, 0.1f, 0.6f);
         sensorDistance = addFloatControl(g, "Sensor Distance", 0f, 0.5f, 2, 0.01f, 0.01f);
         turnSpeed = addFloatControl(g, "Turn Speed", 0.2f, 20f, 2, 1f, 2f);
         speed = addFloatControl(g, "Speed", 0f, 0.5f, 2, 0.01f, 0.05f);
@@ -186,8 +195,17 @@ public class AgentNode extends RenderNode implements MidiSubscriber, BindableVal
         float defaultValue
     ) {
         BindableValue<Float> binding = BindableValue.of(defaultValue);
-        ControlConfig<Float> cc = new ControlConfig<Float>(name, binding, min, max, precision, increment, defaultValue);
-        g.items().add(new InspectorControl(cc));
+        g.items().add(new InspectorControl(new FloatControlConfig(name, binding, min, max, precision, increment, defaultValue)));
+        return binding;
+    }
+    
+    private BindableValue<Boolean> addBooleanControl(
+        InspectorGroup g,
+        String name,
+        boolean defaultValue
+    ) {
+        BindableValue<Boolean> binding = BindableValue.of(defaultValue);
+        g.items().add(new InspectorControl(new BooleanControlConfig(name, binding, defaultValue)));
         return binding;
     }
     
@@ -271,6 +289,11 @@ public class AgentNode extends RenderNode implements MidiSubscriber, BindableVal
         randomSpeedStrength.setValue(Utils.randomBetween(0f, 1f));
         
         pheramoneContribution.setValue(Utils.randomBetween(0.1f, 1f));
+    }
+    
+    public void resizeToOutputWindow() {
+        pendingOutputWidth = SWMain.getOutputWindow().getFramebufferWidth();
+        pendingOutputHeight = SWMain.getOutputWindow().getFramebufferHeight();
     }
     
     @Override

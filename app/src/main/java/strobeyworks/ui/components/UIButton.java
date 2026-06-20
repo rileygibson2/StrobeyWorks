@@ -31,7 +31,7 @@ public class UIButton extends UIRectangle {
         
         style("transition-duration", 0.3f);
         style("box", UIBoxMode.FIXED);
-        style("color", UIColor.transparent());
+        style("color", UIColor.rgb(0.3f));
         style("border-enabled", true);
         style("border-color", UIColor.green());
         style("corner-radius", new Vec4(10f));
@@ -49,17 +49,13 @@ public class UIButton extends UIRectangle {
         clickable(true);
         hoverable(true);
         
-        style("transition-duration", 0.3f);
-        style("box", UIBoxMode.FIXED);
-        style("color", UIColor.transparent());
-        style("border-enabled", true);
-        style("border-color", UIColor.green());
-        style("corner-radius", new Vec4(10f));
+        style("color", UIColor.rgb(0.3f));
+        style("corner-radius", new Vec4(5f));
         style("justify-content", UIJustifyContent.CENTER);
         style("align-items", UIAlignItems.CENTER);
         
         text = new UIText(font, t);
-        text.style("color", UIColor.green());
+        text.style("color", UIColor.rgb(0.7f));
         addChild(text);
     }
     

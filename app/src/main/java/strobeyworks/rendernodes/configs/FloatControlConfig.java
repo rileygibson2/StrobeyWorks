@@ -1,13 +1,13 @@
-package strobeyworks.rendernodes;
+package strobeyworks.rendernodes.configs;
 
 import strobeyworks.utils.BindableValue;
 
-public record ControlConfig<T> (
+public record FloatControlConfig (
     String name,
-    BindableValue<T> binding,
+    BindableValue<Float> binding,
     float min,
     float max,
     int precision,
     float increment,
     float defaultValue
-) {}
+) implements ControlConfig {}

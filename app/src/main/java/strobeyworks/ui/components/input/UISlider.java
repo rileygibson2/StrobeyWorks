@@ -35,7 +35,7 @@ public class UISlider extends UIBindableInput<Float, Float> {
         style("padding-bottom", px(0));
         style("align-items", UIAlignItems.CENTER);
         style("border-enabled", false);
-        style("color", UIColor.rgb(0.13f));
+        style("color", UIColor.rgb(0.14f));
         
         knob = new UIRectangle();
         knob.style("width", px(2))
@@ -43,7 +43,7 @@ public class UISlider extends UIBindableInput<Float, Float> {
         .style("position", UIPositionMode.ABSOLUTE)
         .style("offset-left", pph(0.05f))
         .style("border-color", UIColor.green())
-        .style("color", UIColor.rgb(0.7f))
+        .style("color", UIColor.rgb(0.6f))
         .style("border-enabled", false)
         .style("transition-duration", 0.2f)
         .style(StyleProps.TRANSFORM_SCALEX, 1.0f)
@@ -70,8 +70,8 @@ public class UISlider extends UIBindableInput<Float, Float> {
     protected void implementLocalValueOnUI() {
         float value = getLocalValue();
         float offset = (1-bounds)*0.5f;
-        float parentW = resolve(getWidth());
-        float knobW = knob.resolve(knob.getWidth());
+        float parentW = getLocalWidth();
+        float knobW = knob.getLocalWidth();
         float fullTravel = parentW-knobW;
         
         float cV = offset * fullTravel + value * (fullTravel * bounds);

@@ -2,11 +2,13 @@ package strobeyworks.nodes;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import strobeyworks.rendernodes.InspectorItem;
 
 public abstract class RenderNode {
     
+    private final String id;
     private RenderTarget renderTarget;
 
     private int outputWidth;
@@ -15,6 +17,8 @@ public abstract class RenderNode {
     private List<InspectorItem> inspectorItems;
 
     public RenderNode() {
+        this.id = UUID.randomUUID().toString();
+
         this.outputWidth = -1;
         this.outputHeight = -1;
 
@@ -76,6 +80,10 @@ public abstract class RenderNode {
 
     public int getOutputHeight() {
         return outputHeight;
+    }
+
+    public String getID() {
+        return this.id;
     }
 
     // Cleanup

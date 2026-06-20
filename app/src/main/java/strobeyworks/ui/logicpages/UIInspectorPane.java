@@ -5,21 +5,33 @@ import static strobeyworks.ui.core.UILength.pcw;
 import static strobeyworks.ui.core.UILength.px;
 
 import strobeyworks.nodes.RenderNode;
-import strobeyworks.rendernodes.ControlConfig;
 import strobeyworks.rendernodes.InspectorItem;
+import strobeyworks.rendernodes.configs.ActionControlConfig;
+import strobeyworks.rendernodes.configs.BooleanControlConfig;
+import strobeyworks.rendernodes.configs.ControlConfig;
+import strobeyworks.rendernodes.configs.FloatControlConfig;
+import strobeyworks.rendernodes.configs.StringControlConfig;
 import strobeyworks.ui.components.UIColorPicker;
 import strobeyworks.ui.components.UIGradientSlider;
 import strobeyworks.ui.components.popups.UIContentPopup;
-import strobeyworks.ui.concepts.UIValueLine;
+import strobeyworks.ui.concepts.UIActionControlRow;
+import strobeyworks.ui.concepts.UIBoringDataRow;
+import strobeyworks.ui.concepts.UIFloatControlRow;
+import strobeyworks.ui.concepts.UIStringControlRow;
+import strobeyworks.ui.concepts.UITab;
+import strobeyworks.ui.concepts.UIToggleControlRow;
 import strobeyworks.ui.core.UIColor;
-import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.core.UIFontManager;
 import strobeyworks.ui.core.UIRenderer;
+import strobeyworks.ui.primitives.UIElement;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
 import strobeyworks.utils.BindableValue;
 
 public class UIInspectorPane extends UIRectangle {
+    
+    private RenderNode node;
+    private UITab mainTab;
     
     public UIInspectorPane() {
         build();
@@ -27,77 +39,36 @@ public class UIInspectorPane extends UIRectangle {
     
     private void build() {
         UIRenderer ui = UIRenderer.getInstance();
-
-        style("padding-left", px(5));
-        style("padding-right", px(5));
-        style("padding-top", px(5));
-        style("padding-bottom", px(5));
+        
+        style("padding-left", px(2));
+        style("padding-right", px(2));
+        style("padding-top", px(1));
+        style("padding-bottom", px(1));
         style("align-content", UIAlignContent.CENTER);
         style("flow-direction", UIFlowDirection.COLUMN);
-        style("color", UIColor.transparent());
-        style("overflow-y", UIOverflowMode.SCROLL);
+        style("color", UIColor.rgb(0.15f));
         
-        RenderNode node = UIRenderer.getInstance().getSelectedNode();
-        UIFont fieldFont = UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f);
+        node = UIRenderer.getInstance().getSelectedNode();
         
-        /*UIRectangle line = new UIRectangle();
-        line.style("width", pcw(1f))
-        .style("height", pch(0.08f));
-        addChild(line);
+        addTitleLine("node1");
+        addMainTab();
         
-        UIButton but = new UIButton(fieldFont, "Popup");
-        but.style("width", pcw(0.2f))
-        .style("height", pch(1.0f))
-        .onClicked(e -> {
-            ui.createFullScreenPopup(buildGradientPopup());
-        });
-        line.addChild(but);
-        
-        but = new UIButton(fieldFont, "Restore");
-        but.style("width", pcw(0.2f))
-        .style("height", pch(1.0f))
-        .onClicked(e -> {
-            r.loadDefaults();
-        });
-        line.addChild(but);
-        
-        but = new UIButton(fieldFont, "Randomize");
-        but.style("width", pcw(0.2f))
-        .style("height", pch(1.0f))
-        .onClicked(e -> {
-            r.randomize();
-        });
-        line.addChild(but);
-        
-        line = new UIRectangle();
-        line.style("width", pcw(1f))
-        .style("box", UIBoxMode.FLEX)
-        //.style("height", pch(0.08f))
-        .style("margin-top", px(10))
-        .style("max-width", pcw(1f))
-        .style("align-items", UIAlignItems.CENTER)
-        //.style("color", col(UIColors.RED))
-        .style("flow-wrap", true);
-        addChild(line);*/
-        
-        for (InspectorItem item : node.getInspectorItems()) traverseInspectorTree(item);
+        buildControlsTab();
+        buildPropertiesTab();
     }
     
-    private void traverseInspectorTree(InspectorItem item) {
-        if (item instanceof InspectorItem.InspectorControl control) addControlLine(control.config());
-        
-        if (item instanceof InspectorItem.InspectorGroup group) {
-            addHeadingLine(group.name());
-            for (InspectorItem child : group.items()) traverseInspectorTree(child);
-        }
+    @Override
+    public void initialise() {
+        super.initialise();
+        mainTab.setTab(0);
     }
     
-    private void addHeadingLine(String name) {
-        UIRectangle line = UIRectangle.defaultRect(pcw(1f), pch(0.1f));
+    private void addTitleLine(String name) {
+        UIRectangle line = UIRectangle.defaultRect(pcw(1f), px(40));
         line.style("align-items", UIAlignItems.CENTER)
-        .style("color", UIColor.rgb(0.28f));
+        .style("color", UIColor.rgb(0.12f));
         
-        UIText title = new UIText(UIFontManager.getUIFont("RobotoMono-Medium.ttf", 18f), name);
+        UIText title = new UIText(UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f), name);
         title.style("margin-left", px(10))
         .style("color", UIColor.rgb(0.7f));
         
@@ -105,12 +76,76 @@ public class UIInspectorPane extends UIRectangle {
         line.addChild(title);
     }
     
-    private void addControlLine(ControlConfig<?> config) {
-        UIValueLine line = new UIValueLine((ControlConfig<Float>) config);
+    private void addMainTab() {
+        mainTab = new UITab(UIFontManager.getUIFont("RobotoMono-Medium.ttf", 18f));
+        mainTab.style("width", pcw(1.0f))
+        .style("height", px(0))
+        .style("grow", 1f);
+        
+        addChild(mainTab);
+    }
+    
+    private void buildControlsTab() {
+        UIRectangle pane = UIRectangle.fullContentCollumn();
+        pane.style("overflow-y", UIOverflowMode.SCROLL);
+        for (InspectorItem item : node.getInspectorItems()) traverseInspectorTree(pane, item);
+        mainTab.addTab("Controls", pane);
+    }
+    
+    private void buildPropertiesTab() {
+        UIRectangle pane = UIRectangle.fullContentCollumn();
+        pane.style("overflow-y", UIOverflowMode.SCROLL);
+        mainTab.addTab("Properties", pane);
+        
+        addHeadingLine(pane, "Identity");
+        addControlRow(pane, new StringControlConfig("Node name", null, ""));
+        addBoringDataLine(pane, "Node ID", node.getID().substring(0, 25));
+    }
+    
+    private void traverseInspectorTree(UIRectangle pane, InspectorItem item) {
+        if (item instanceof InspectorItem.InspectorControl control) addControlRow(pane, control.config());
+        
+        if (item instanceof InspectorItem.InspectorGroup group) {
+            addHeadingLine(pane, group.name());
+            for (InspectorItem child : group.items()) traverseInspectorTree(pane, child);
+        }
+    }
+    
+    private void addHeadingLine(UIRectangle pane, String name) {
+        UIRectangle line = UIRectangle.defaultRect(pcw(1f), px(40));
+        line.style("margin-top", px(2))
+        .style("align-items", UIAlignItems.CENTER)
+        .style("color", UIColor.rgb(0.23f));
+        
+        UIText title = new UIText(UIFontManager.getUIFont("RobotoMono-Medium.ttf", 18f), name);
+        title.style("margin-left", px(10))
+        .style("color", UIColor.rgb(0.7f));
+        
+        pane.addChild(line);
+        line.addChild(title);
+    }
+
+    private void addBoringDataLine(UIRectangle pane, String name, String value) {
+        UIElement line = new UIBoringDataRow(name, value);
+
         line.style("width", pcw(1f))
-        .style("height", pch(0.1f))
-        .style("margin-top", px(1));
-        addChild(line);
+        .style("height", px(40))
+        .style("margin-top", px(2));
+        pane.addChild(line);
+    }
+    
+    private void addControlRow(UIRectangle pane, ControlConfig config) {
+        UIElement row = null;
+        if (config instanceof FloatControlConfig c) row = new UIFloatControlRow(c);
+        else if (config instanceof BooleanControlConfig c) row = new UIToggleControlRow(c);
+        else if (config instanceof StringControlConfig c) row = new UIStringControlRow(c);
+        else if (config instanceof ActionControlConfig c) row = new UIActionControlRow(c);
+        if (row==null) return;
+
+        row.style("width", pcw(1f))
+        .style("height", px(40))
+        .style("margin-top", px(2));
+        pane.addChild(row);
     }
     
     private UIContentPopup buildGradientPopup() {

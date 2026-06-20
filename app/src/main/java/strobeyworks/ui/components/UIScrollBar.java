@@ -34,20 +34,20 @@ public class UIScrollBar extends UIRectangle {
         
         style("position", UIPositionMode.ABSOLUTE_FIXED);
         style("corner-radius", new Vec4(10f));
-        style("color", UIColor.green());
+        style("color", UIColor.rgb(0.7f));
         style("transition-duration", 0.2f);
         style("opacity", 0f);
         style("z-index", 10000000);
         
         if (axis==ScrollAxis.HORIZONTAL) {
-            style("height", px(10));
+            style("height", px(5));
             style("width", ppw(1f));
             style("offset-top", pph(0.9f));
         }
         
         if (axis==ScrollAxis.VERTICAL) {
             style("height", pph(1f));
-            style("width", px(10));
+            style("width", px(5));
             style("offset-left", ppw(0.9f));
         }
         

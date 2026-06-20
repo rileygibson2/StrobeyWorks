@@ -85,7 +85,14 @@ public class UIRectangle extends UIElement {
         r.style("width", pcw(1.0f))
         .style("height", pch(1.0f))
         .style("flow-direction", UIFlowDirection.COLUMN);
+        return r;
+    }
 
+    public static UIRectangle fullContentRow() {
+        UIRectangle r = new UIRectangle();
+        r.style("width", pcw(1.0f))
+        .style("height", pch(1.0f))
+        .style("flow-direction", UIFlowDirection.ROW);
         return r;
     }
 

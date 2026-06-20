@@ -5,6 +5,7 @@ in vec2 vUV;
 
 uniform sampler2D uFontAtlas;
 uniform vec4 uColor;
+uniform float uOpacity;
 
 uniform int uDebugEnabled;
 uniform vec4 uDebugColor;
@@ -46,7 +47,7 @@ void main() {
     applyClip();
     
     float glyphAlpha = texture(uFontAtlas, vUV).r;
-    vec4 textColor = vec4(uColor.rgb, uColor.a * glyphAlpha);
+    vec4 textColor = vec4(uColor.rgb, uColor.a * glyphAlpha * uOpacity);
 
     if (uDebugEnabled == 1) {
         fragColor = alphaOver(textColor, uDebugColor);

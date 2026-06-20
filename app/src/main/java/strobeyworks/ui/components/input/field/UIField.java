@@ -25,7 +25,7 @@ public class UIField<T> extends UIBindableInput<T, String> {
     
     private String regex;
     private int maxCharacters;
-
+    
     protected UIRectangle wrapper;
     private UIText textElem;
     protected UIRectangle cursor;
@@ -47,12 +47,13 @@ public class UIField<T> extends UIBindableInput<T, String> {
         style("padding-left",px(10));
         style("color", UIColor.rgb(0.3f));
         style("corner-radius", new Vec4(2f));
+        style("overflow-x", UIOverflowMode.HIDDEN);
         
         wrapper = new UIRectangle();
         wrapper.style("width", pcw(1f))
         .style("height", pch(1f))
         .style("align-items", UIAlignItems.CENTER);
-
+        
         cursor = new UIRectangle();
         cursor.style("width", px(2))
         .style("height", pch(0.9f))
@@ -64,7 +65,7 @@ public class UIField<T> extends UIBindableInput<T, String> {
         .style("visible", false);
         
         textElem = new UIText(font);
-        textElem.style("color", UIColor.rgb(0.8f));
+        textElem.style("color", UIColor.rgb(0.7f));
         
         addChild(wrapper);
         wrapper.addChild(textElem);
@@ -82,12 +83,7 @@ public class UIField<T> extends UIBindableInput<T, String> {
     
     @Override
     public void initialise() {
-        // Set cursor height
-        float tH = textElem.getResolvedTextHeight();
-        float r = wrapper.getScreenHeight();
-        cursor.style("height", px(tH));
-        cursor.style("offset-top", px((int) ((r-tH)*0.5)));
-
+        repositionCursorY();
         super.initialise();
     }
     
@@ -101,16 +97,16 @@ public class UIField<T> extends UIBindableInput<T, String> {
         String localValue = getLocalValue();
         textElem.setText(localValue);
         cursorPos = Math.min(cursorPos, localValue.length()); // Incase external update of value changed length of text
-        repositionCursor();
+        repositionCursorX();
     }
     
     @Override
     public void gotFocus(IOEvent event) {
         float internalX = event.getMouseX()-textElem.getScreenX();
-        Logger.debug(getLocalValue());
         cursorPos = textElem.getFont().getCursorIndexAt(getLocalValue(), internalX);
         
-        repositionCursor();
+        repositionCursorY();
+        repositionCursorX();
         UIRenderer.getInstance().addAnimation(flash);
     }
     
@@ -138,11 +134,11 @@ public class UIField<T> extends UIBindableInput<T, String> {
     private void handleKeyDown(int keyCode) {
         if (keyCode == GLFW_KEY_LEFT) {
             cursorPos = Math.max(cursorPos-1, 0);
-            repositionCursor();
+            repositionCursorX();
         }
         else if (keyCode == GLFW_KEY_RIGHT) {
             cursorPos = Math.min(cursorPos+1, getLocalValue().length());
-            repositionCursor();
+            repositionCursorX();
         }
         else if (keyCode == GLFW_KEY_BACKSPACE) handleBackSpace();
         else if (keyCode == GLFW_KEY_ENTER) handleCommit();
@@ -157,7 +153,7 @@ public class UIField<T> extends UIBindableInput<T, String> {
         }
         
         cursorPos = getLocalValue().length();
-        repositionCursor();
+        repositionCursorX();
     }
     
     private void handleBackSpace() {
@@ -174,7 +170,7 @@ public class UIField<T> extends UIBindableInput<T, String> {
         
         cursorPos = Math.max(cursorPos-1, 0);
         setLocalValue(left+right);
-        repositionCursor();
+        repositionCursorX();
     }
     
     private void handleCharTyped(char c) {
@@ -193,24 +189,32 @@ public class UIField<T> extends UIBindableInput<T, String> {
         
         setLocalValue(nS);
         cursorPos++;
-        repositionCursor();
+        repositionCursorX();
     }
     
-    private void repositionCursor() {
+    private void repositionCursorX() {
         float x = textElem.getFont().measureTextWidth(getLocalValue().substring(0, cursorPos));
         cursor.style("offset-left", px(x+wrapper.resolve(wrapper.getPaddingLeft())));
     }
-
+    
+    private void repositionCursorY() {
+        float tH = textElem.getResolvedTextHeight();
+        float r = wrapper.getScreenHeight();
+        
+        cursor.style("height", px(tH));
+        cursor.style("offset-top", px((r - tH) * 0.5f));
+    }
+    
     protected UIField<T> setRegex(String regex) {
         this.regex = regex;
         return this;
     }
-
+    
     public UIField<T> setMaxCharacters(int maxCharacters) {
         this.maxCharacters = maxCharacters;
         return this;
     }
-
+    
     private boolean inputFilter(String s) {
         if (s.length()>maxCharacters) return false;
         
@@ -219,7 +223,7 @@ public class UIField<T> extends UIBindableInput<T, String> {
         }
         return true;
     }
-
+    
     private boolean acceptsChar(char c) {
         return String.valueOf(c).matches(regex);
     }

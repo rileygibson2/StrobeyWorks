@@ -49,6 +49,9 @@ public final class StyleProps {
         public static final UIStyleProperty<UIOverflowMode> OVERFLOW_Y = 
         register(new UIStyleProperty<>("overflow-y", UIOverflowMode.class));
 
+        public static final UIStyleProperty<Float> GROW = 
+        register(new UIStyleProperty<>("grow", Float.class));
+
 
         public static final UIStyleProperty<UILength> WIDTH = 
         register(new UIStyleProperty<>("width", UILength.class));
