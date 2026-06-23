@@ -4,8 +4,12 @@ import static strobeyworks.ui.core.UILength.pch;
 import static strobeyworks.ui.core.UILength.pcw;
 import static strobeyworks.ui.core.UILength.px;
 
+import strobeyworks.logger.Logger;
 import strobeyworks.nodes.RenderNode;
 import strobeyworks.rendernodes.InspectorItem;
+import strobeyworks.rendernodes.InspectorItem.InspectorControl;
+import strobeyworks.rendernodes.InspectorItem.InspectorGroup;
+import strobeyworks.rendernodes.InspectorItem.InspectorTab;
 import strobeyworks.rendernodes.configs.ActionControlConfig;
 import strobeyworks.rendernodes.configs.BooleanControlConfig;
 import strobeyworks.rendernodes.configs.ControlConfig;
@@ -24,6 +28,7 @@ import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIFontManager;
 import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.ui.primitives.UIElement;
+import strobeyworks.ui.primitives.UIRectFactory;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
 import strobeyworks.utils.BindableValue;
@@ -50,10 +55,11 @@ public class UIInspectorPane extends UIRectangle {
         
         node = UIRenderer.getInstance().getSelectedNode();
         
-        addTitleLine("node1");
+        addTitleLine();
         addMainTab();
         
-        buildControlsTab();
+        for (InspectorItem item : node.getInspectorItems()) traverseInspectorTree(null, item);
+        
         buildPropertiesTab();
     }
     
@@ -63,17 +69,26 @@ public class UIInspectorPane extends UIRectangle {
         mainTab.setTab(0);
     }
     
-    private void addTitleLine(String name) {
-        UIRectangle line = UIRectangle.defaultRect(pcw(1f), px(40));
+    private void addTitleLine() {
+        UIRectangle line = UIRectFactory.sized(pcw(1f), px(35));
         line.style("align-items", UIAlignItems.CENTER)
-        .style("color", UIColor.rgb(0.12f));
+        .style("color", UIColor.rgb(0.12f))
+        .style("padding-left", px(10))
+        .style("padding-right", px(10));
         
-        UIText title = new UIText(UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f), name);
-        title.style("margin-left", px(10))
-        .style("color", UIColor.rgb(0.7f));
+        UIText title = new UIText(UIFontManager.getUIFont("RobotoMono-Medium.ttf", 20f), node.getCustomName());
+        title.style("color", UIColor.rgb(0.7f))
+        .style("margin-top", px(5));
+        
+        UIText type = new UIText(UIFontManager.getUIFont("RobotoMono-Medium.ttf", 15f), node.getNodeTypeName());
+        type.style("margin-left", px(10))
+        .style("margin-top", px(5))
+        .style("color", UIColor.rgb(0.5f));
         
         addChild(line);
         line.addChild(title);
+        line.addChild(UIRectFactory.rowGrow());
+        line.addChild(type);
     }
     
     private void addMainTab() {
@@ -85,15 +100,8 @@ public class UIInspectorPane extends UIRectangle {
         addChild(mainTab);
     }
     
-    private void buildControlsTab() {
-        UIRectangle pane = UIRectangle.fullContentCollumn();
-        pane.style("overflow-y", UIOverflowMode.SCROLL);
-        for (InspectorItem item : node.getInspectorItems()) traverseInspectorTree(pane, item);
-        mainTab.addTab("Controls", pane);
-    }
-    
     private void buildPropertiesTab() {
-        UIRectangle pane = UIRectangle.fullContentCollumn();
+        UIRectangle pane = UIRectFactory.fullContentCollumn();
         pane.style("overflow-y", UIOverflowMode.SCROLL);
         mainTab.addTab("Properties", pane);
         
@@ -103,16 +111,28 @@ public class UIInspectorPane extends UIRectangle {
     }
     
     private void traverseInspectorTree(UIRectangle pane, InspectorItem item) {
-        if (item instanceof InspectorItem.InspectorControl control) addControlRow(pane, control.config());
+        if (item instanceof InspectorTab tab) {
+            pane = UIRectFactory.fullContentCollumn();
+            pane.style("overflow-y", UIOverflowMode.SCROLL);
+            
+            mainTab.addTab(tab.name(), pane);
+            for (InspectorItem child : tab.items()) traverseInspectorTree(pane, child);
+        }
         
-        if (item instanceof InspectorItem.InspectorGroup group) {
+        if (item instanceof InspectorGroup group) {
+            if (pane==null) Logger.throwRuntimeException("No inspector tab to add inspector group to");
             addHeadingLine(pane, group.name());
             for (InspectorItem child : group.items()) traverseInspectorTree(pane, child);
+        }
+        
+        if (item instanceof InspectorControl control) {
+            if (pane==null) Logger.throwRuntimeException("No tab to add inspector control to");
+            addControlRow(pane, control.config());
         }
     }
     
     private void addHeadingLine(UIRectangle pane, String name) {
-        UIRectangle line = UIRectangle.defaultRect(pcw(1f), px(40));
+        UIRectangle line = UIRectFactory.sized(pcw(1f), px(40));
         line.style("margin-top", px(2))
         .style("align-items", UIAlignItems.CENTER)
         .style("color", UIColor.rgb(0.23f));
@@ -124,10 +144,10 @@ public class UIInspectorPane extends UIRectangle {
         pane.addChild(line);
         line.addChild(title);
     }
-
+    
     private void addBoringDataLine(UIRectangle pane, String name, String value) {
         UIElement line = new UIBoringDataRow(name, value);
-
+        
         line.style("width", pcw(1f))
         .style("height", px(40))
         .style("margin-top", px(2));
@@ -141,7 +161,7 @@ public class UIInspectorPane extends UIRectangle {
         else if (config instanceof StringControlConfig c) row = new UIStringControlRow(c);
         else if (config instanceof ActionControlConfig c) row = new UIActionControlRow(c);
         if (row==null) return;
-
+        
         row.style("width", pcw(1f))
         .style("height", px(40))
         .style("margin-top", px(2));
@@ -151,7 +171,7 @@ public class UIInspectorPane extends UIRectangle {
     private UIContentPopup buildGradientPopup() {
         UIContentPopup popup = new UIContentPopup("-- Gradient --");
         
-        UIRectangle pane = UIRectangle.fullContentCollumn();
+        UIRectangle pane = UIRectFactory.fullContentCollumn();
         
         UIColorPicker colPick = new UIColorPicker();
         colPick.style("width", pcw(1f))

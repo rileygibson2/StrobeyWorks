@@ -132,7 +132,7 @@ public class AgentNode extends RenderNode implements MidiSubscriber, BindableVal
     private Integer pendingOutputHeight;
     
     public AgentNode() {
-        setupControls();
+        super("Species-Agents");
         
         //loadDefaults();
         
@@ -183,30 +183,6 @@ public class AgentNode extends RenderNode implements MidiSubscriber, BindableVal
         randomTurnStrength = addFloatControl(g, "Random Turn", 0f, 20f, 2, 0.01f, 0f);
         randomSpeedStrength = addFloatControl(g, "Random Speed", 0f, 2f, 2, 0.01f, 0f);
         addInspectorItem(g);
-    }
-    
-    private BindableValue<Float> addFloatControl(
-        InspectorGroup g,
-        String name,
-        float min,
-        float max,
-        int precision,
-        float increment,
-        float defaultValue
-    ) {
-        BindableValue<Float> binding = BindableValue.of(defaultValue);
-        g.items().add(new InspectorControl(new FloatControlConfig(name, binding, min, max, precision, increment, defaultValue)));
-        return binding;
-    }
-    
-    private BindableValue<Boolean> addBooleanControl(
-        InspectorGroup g,
-        String name,
-        boolean defaultValue
-    ) {
-        BindableValue<Boolean> binding = BindableValue.of(defaultValue);
-        g.items().add(new InspectorControl(new BooleanControlConfig(name, binding, defaultValue)));
-        return binding;
     }
     
     public void loadDefaultMidiMap() {
@@ -705,45 +681,5 @@ public class AgentNode extends RenderNode implements MidiSubscriber, BindableVal
         glDeleteVertexArrays(agentVAOWrite);
         glDeleteBuffers(agentVBORead);
         glDeleteBuffers(agentVBOWrite);
-    }
-    
-    public BindableValue<Float> getDiffusion() {
-        return this.diffusion;
-    }
-    
-    public BindableValue<Float> getDecay() {
-        return this.decay;
-    }
-    
-    public BindableValue<Float> getSpeed() {
-        return this.speed;
-    }
-    
-    public BindableValue<Float> getSensorDistance() {
-        return this.sensorDistance;
-    }
-    
-    public BindableValue<Float> getSensorAngle() {
-        return this.sensorAngle;
-    }
-    
-    public BindableValue<Float> getTurnSpeed() {
-        return this.turnSpeed;
-    }
-    
-    public BindableValue<Float> getRandomTurnStrength() {
-        return this.randomTurnStrength;
-    }
-    
-    public BindableValue<Float> getRandomSpeedStrength() {
-        return this.randomSpeedStrength;
-    }
-    
-    public BindableValue<Float> getOpacityCuttoff() {
-        return this.opacityCuttoff;
-    }
-    
-    public BindableValue<Float> getPheramoneContribution() {
-        return this.pheramoneContribution;
     }
 }

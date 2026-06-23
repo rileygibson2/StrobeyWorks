@@ -24,13 +24,8 @@ import static org.lwjgl.opengl.GL15.glGenBuffers;
 import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
 import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
-import static strobeyworks.ui.core.UILength.pbh;
-import static strobeyworks.ui.core.UILength.pbw;
-import static strobeyworks.ui.core.UILength.pph;
-import static strobeyworks.ui.core.UILength.ppw;
-import static strobeyworks.ui.core.UILength.pcw;
 import static strobeyworks.ui.core.UILength.pch;
-import static strobeyworks.ui.core.UILength.px;
+import static strobeyworks.ui.core.UILength.pcw;
 import static strobeyworks.ui.core.UILength.sh;
 import static strobeyworks.ui.core.UILength.sw;
 
@@ -49,21 +44,20 @@ import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.platform.Transition;
 import strobeyworks.platform.WindowRenderer;
-import strobeyworks.rendernodes.PerlinNode;
 import strobeyworks.ui.components.UIColorPicker;
 import strobeyworks.ui.components.popups.UIPopup;
-import strobeyworks.ui.concepts.UITab;
 import strobeyworks.ui.logicpages.UIInspectorPane;
+import strobeyworks.ui.logicpages.UIA.UIAArea;
+import strobeyworks.ui.primitives.UIConnection;
 import strobeyworks.ui.primitives.UIElement;
-import strobeyworks.ui.primitives.UIElement.UIAlignContent;
 import strobeyworks.ui.primitives.UIElement.UIBoxMode;
 import strobeyworks.ui.primitives.UIElement.UIFlowDirection;
 import strobeyworks.ui.primitives.UIElement.UIOverflowMode;
 import strobeyworks.ui.primitives.UIElement.UIPositionMode;
 import strobeyworks.ui.primitives.UIIcon;
+import strobeyworks.ui.primitives.UIRectFactory;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
-import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.Vec4;
 
 public class UIRenderer extends WindowRenderer {
@@ -75,6 +69,7 @@ public class UIRenderer extends WindowRenderer {
     private int iconProgram;
     private int colorPickerProgram;
     private int colorGradientProgram;
+    private int connectionProgram;
     
     private Matrix4f projectionMatrix;
     private int quadVAO;
@@ -116,8 +111,13 @@ public class UIRenderer extends WindowRenderer {
     }
     
     private void buildBase() {
-        UIRectangle base = UIRectangle.defaultRect(sw(1f), sh(1f));
+        UIRectangle base = UIRectFactory.sized(sw(1f), sh(1f));
         base.style("color", UIColor.black());
+        
+        UIAArea nodeArea = new UIAArea();
+        nodeArea.style("width", pcw(0.6f))
+        .style("height", pch(1f))
+        .style("position", UIPositionMode.ABSOLUTE);
         
         UIInspectorPane inspectorPane = new UIInspectorPane();
         inspectorPane.style("width", pcw(0.4f))
@@ -125,6 +125,7 @@ public class UIRenderer extends WindowRenderer {
         .style("position", UIPositionMode.ABSOLUTE)
         .style("offset-left", pcw(0.6f));
         
+        base.addChild(nodeArea);
         base.addChild(inspectorPane);
         addToRoot(base);
     }
@@ -211,6 +212,7 @@ public class UIRenderer extends WindowRenderer {
         iconProgram = sM.createProgram("ui/ui_icon.vert", "ui/ui_icon.frag");
         colorPickerProgram = sM.createProgram("ui/ui_shapes.vert", "ui/ui_colorpicker.frag");
         colorGradientProgram = sM.createProgram("ui/ui_shapes.vert", "ui/ui_colorgradient.frag");
+        connectionProgram = sM.createProgram("ui/ui_shapes.vert", "ui/ui_connection.frag");
         
         // Shape setup
         quadVAO = glGenVertexArrays();
@@ -273,7 +275,7 @@ public class UIRenderer extends WindowRenderer {
             case MOUSE_MOVE:
             if (pointerElement!=null) return; // Suppress drag while element holds pointer
             
-            UIElement hit = rootElement.getDeepestElementAt(event.getMouseX(), event.getMouseY());
+            UIElement hit = rootElement.getDeepestVisibleElementAt(event.getMouseX(), event.getMouseY());
             if (hit==null) return;
             
             UIElement target = hit.findAncestorMatching(UIElement::isHoverable);
@@ -291,7 +293,7 @@ public class UIRenderer extends WindowRenderer {
             
             case SCROLL:
             
-            hit = rootElement.getDeepestElementAt(event.getMouseX(), event.getMouseY());
+            hit = rootElement.getDeepestVisibleElementAt(event.getMouseX(), event.getMouseY());
             if (hit == null) return;
             
             UIElement scrollReceiver = hit.findAncestorMatching(UIElement::isScrollable);
@@ -312,7 +314,7 @@ public class UIRenderer extends WindowRenderer {
             return;
             
             case LEFT_PRESS:
-            hit = rootElement.getDeepestElementAt(event.getMouseX(), event.getMouseY());
+            hit = rootElement.getDeepestVisibleElementAt(event.getMouseX(), event.getMouseY());
             if (hit==null) return;
             
             target = hit.findAncestorMatching(e -> e.isClickable() || e.isFocussable() || e.wantsPointer());
@@ -421,6 +423,18 @@ public class UIRenderer extends WindowRenderer {
         sM.bindVAO(0);
         sM.useProgram(0);
     }
+
+    public void renderShape(ShaderManager sM, UIElement e) {
+        sM.useProgram(shapeProgram);
+        sM.setCurrentProgram(shapeProgram);
+        
+        sM.setUniformMat4("uProjection", projectionMatrix);
+        sM.setUniformMat4("uModel", e.getModelMatrix());
+        e.setRenderUniforms(sM);
+        
+        sM.bindVAO(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
     
     public void renderText(ShaderManager sM, UIText tE) {
         UIFont font = tE.getFont();
@@ -449,18 +463,6 @@ public class UIRenderer extends WindowRenderer {
         
         glDrawArrays(GL_TRIANGLES, 0, vertices.length / 4);
         
-    }
-    
-    public void renderShape(ShaderManager sM, UIElement e) {
-        sM.useProgram(shapeProgram);
-        sM.setCurrentProgram(shapeProgram);
-        
-        sM.setUniformMat4("uProjection", projectionMatrix);
-        sM.setUniformMat4("uModel", e.getModelMatrix());
-        e.setRenderUniforms(sM);
-        
-        sM.bindVAO(quadVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
     }
     
     public void renderIcon(ShaderManager sM, UIIcon icon) {
@@ -524,6 +526,18 @@ public class UIRenderer extends WindowRenderer {
     public void renderColorGradient(ShaderManager sM, UIElement e) {
         sM.useProgram(colorGradientProgram);
         sM.setCurrentProgram(colorGradientProgram);
+        
+        sM.setUniformMat4("uProjection", projectionMatrix);
+        sM.setUniformMat4("uModel", e.getModelMatrix());
+        e.setRenderUniforms(sM);
+        
+        sM.bindVAO(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+
+    public void renderConnection(ShaderManager sM, UIConnection e) {
+        sM.useProgram(connectionProgram);
+        sM.setCurrentProgram(connectionProgram);
         
         sM.setUniformMat4("uProjection", projectionMatrix);
         sM.setUniformMat4("uModel", e.getModelMatrix());

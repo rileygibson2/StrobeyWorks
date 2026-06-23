@@ -12,4 +12,12 @@ public class Vec2 {
         this.x = a;
         this.y = a;
     }
+
+    public static Vec2 of(Vec2 v) {
+        return new Vec2(v.x, v.y);
+    }
+
+    public String toString() {
+        return ("(Vec2 x="+x+" y="+y+")");
+    }
 }

@@ -15,7 +15,7 @@ public class UIToggleControlRow extends UIDataRow {
         toggle.style("width", pcw(0.3f))
         .style("height", pch(0.8f));
         
-        
+        toggle.bindTo(config.binding());
         getValueArea().addChild(toggle);
     }
 }

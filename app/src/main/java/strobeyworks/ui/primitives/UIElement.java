@@ -25,11 +25,11 @@ import strobeyworks.ui.core.UIBounds;
 import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.core.UIRenderer;
-import strobeyworks.ui.primitives.UIElement.UIEventCallback;
 import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
 import strobeyworks.ui.style.UIStyleProperty;
 import strobeyworks.utils.Utils;
+import strobeyworks.utils.Vec2;
 import strobeyworks.utils.Vec4;
 
 /**
@@ -395,15 +395,17 @@ public abstract class UIElement {
     private boolean clickable;
     private boolean scrollable;
     
+    private boolean hitOverflowVisibleChildren;
+    
     // Callbacks
-    private UIBasicCallback onInitialise;
-    private UIEventCallback onClicked;
-    private UIEventCallback onGotPointer;
-    private UIEventCallback onLostPointer;
-    private UIEventCallback onGotFocus;
-    private UIEventCallback onLostFocus;
-    private UIEventCallback onGotHover;
-    private UIEventCallback onLostHover;
+    private Set<UIBasicCallback> onInitialise;
+    private Set<UIEventCallback> onClicked;
+    private Set<UIEventCallback> onGotPointer;
+    private Set<UIEventCallback> onLostPointer;
+    private Set<UIEventCallback> onGotFocus;
+    private Set<UIEventCallback> onLostFocus;
+    private Set<UIEventCallback> onGotHover;
+    private Set<UIEventCallback> onLostHover;
     
     // Functional
     private Matrix4f modelMatrix;
@@ -419,61 +421,72 @@ public abstract class UIElement {
     private UIStyle hoverStyle;
     
     public UIElement() {
-        this.width = px(0);
-        this.height = px(0);
+        width = px(0);
+        height = px(0);
         
-        this.boxMode = UIBoxMode.FIXED;
-        this.flowDirection = UIFlowDirection.ROW;
-        this.flowWrap = false;
-        this.positionMode = UIPositionMode.FLOW;
-        this.justifyContent = UIJustifyContent.START;
-        this.alignItems = UIAlignItems.START;
-        this.alignContent = UIAlignContent.START;
-        this.overflowX = UIOverflowMode.VISIBLE;
-        this.overflowY = UIOverflowMode.VISIBLE;
-        this.grow = 0f;
+        boxMode = UIBoxMode.FIXED;
+        flowDirection = UIFlowDirection.ROW;
+        flowWrap = false;
+        positionMode = UIPositionMode.FLOW;
+        justifyContent = UIJustifyContent.START;
+        alignItems = UIAlignItems.START;
+        alignContent = UIAlignContent.START;
+        overflowX = UIOverflowMode.VISIBLE;
+        overflowY = UIOverflowMode.VISIBLE;
+        grow = 0f;
         
-        this.paddingLeft = px(0);
-        this.paddingRight = px(0);
-        this.paddingTop = px(0);
-        this.paddingBottom = px(0);
+        paddingLeft = px(0);
+        paddingRight = px(0);
+        paddingTop = px(0);
+        paddingBottom = px(0);
         
-        this.marginLeft = px(0);
-        this.marginRight = px(0);
-        this.marginTop = px(0);
-        this.marginBottom = px(0);
+        marginLeft = px(0);
+        marginRight = px(0);
+        marginTop = px(0);
+        marginBottom = px(0);
         
-        this.offsetLeft = px(0);
-        this.offsetRight = px(0);
-        this.offsetTop = px(0);
-        this.offsetBottom = px(0);
+        offsetLeft = px(0);
+        offsetRight = px(0);
+        offsetTop = px(0);
+        offsetBottom = px(0);
         
-        this.borderEnabled = false;
-        this.borderThickness = px(0);
-        this.borderLeft = true;
-        this.borderRight = true;
-        this.borderTop = true;
-        this.borderBottom = true;
+        borderEnabled = false;
+        borderThickness = px(0);
+        borderLeft = true;
+        borderRight = true;
+        borderTop = true;
+        borderBottom = true;
         
-        this.transformScaleX = 1f;
-        this.transformScaleY = 1f;
+        transformScaleX = 1f;
+        transformScaleY = 1f;
         
-        this.opacity = 1f;
-        this.visible = true;
-        this.zIndex = 0;
+        opacity = 1f;
+        visible = true;
+        zIndex = 0;
         
-        this.layoutDirty = true;
-        this.subtreeDirty = false;
+        layoutDirty = true;
+        subtreeDirty = false;
         
-        this.focussable = false;
-        this.wantsPointer = false;
-        this.hoverable = false;
-        this.clickable = false;
-        this.scrollable = false;
+        focussable = false;
+        wantsPointer = false;
+        hoverable = false;
+        clickable = false;
+        scrollable = false;
         
-        this.debugEnabled = false;
+        onInitialise = new HashSet<>();
+        onClicked = new HashSet<>();
+        onGotPointer = new HashSet<>();
+        onLostPointer = new HashSet<>();
+        onGotFocus = new HashSet<>();
+        onLostFocus = new HashSet<>();
+        onGotHover = new HashSet<>();
+        onLostHover = new HashSet<>();
         
-        this.authoredStyle = new UIStyle();
+        hitOverflowVisibleChildren = false;
+        
+        debugEnabled = false;
+        
+        authoredStyle = new UIStyle();
         
         children = new ArrayList<>();
         updateModelMatrix();
@@ -721,68 +734,68 @@ public abstract class UIElement {
     }
     
     public UIElement onClicked(UIEventCallback callback) {
-        this.onClicked = callback;
+        this.onClicked.add(callback);
         return this;
     }
     
     public UIElement onGotHover(UIEventCallback callback) {
-        this.onGotHover = callback;
+        this.onGotHover.add(callback);
         return this;
     }
     
     public UIElement onLostHover(UIEventCallback callback) {
-        this.onLostHover = callback;
+        this.onLostHover.add(callback);
         return this;
     }
-
+    
     public UIElement onGotPointer(UIEventCallback callback) {
-        this.onGotPointer = callback;
+        this.onGotPointer.add(callback);
         return this;
     }
     
     public UIElement onLostPointer(UIEventCallback callback) {
-        this.onLostPointer = callback;
+        this.onLostPointer.add(callback);
         return this;
     }
     
     public UIElement onGotFocus(UIEventCallback callback) {
-        this.onGotFocus = callback;
+        this.onGotHover.add(callback);
         return this;
     }
     
     public UIElement onLostFocus(UIEventCallback callback) {
-        this.onLostFocus = callback;
+        this.onLostFocus.add(callback);
         return this;
     }
     
     public void gotFocus(IOEvent event) {
-        if (onGotFocus!=null) onGotFocus.implement(event);
+        for (UIEventCallback c : onGotFocus) c.implement(event);
     }
     
     public void lostFocus(IOEvent event) {
-        if (onLostFocus!=null) onLostFocus.implement(event);
+        for (UIEventCallback c : onLostFocus) c.implement(event);
     }
     
     public void gotPointer(IOEvent event) {
-        if (onGotPointer!=null) onGotPointer.implement(event);
+        for (UIEventCallback c : onGotPointer) c.implement(event);
     }
     
     public void lostPointer(IOEvent event) {
-        if (onLostPointer!=null) onLostPointer.implement(event);
+        for (UIEventCallback c : onLostPointer) c.implement(event);
     }
     
     public void gotHover(IOEvent event) {
-        if (onGotHover!=null) onGotHover.implement(event);
+        for (UIEventCallback c : onGotHover) c.implement(event);
         if (hoverStyle!=null) transitionToStyle(hoverStyle, "hover");
     }
     
     public void lostHover(IOEvent event) {
-        if (onLostHover!=null) onLostHover.implement(event);
+        for (UIEventCallback c : onLostHover) c.implement(event);
         transitionToStyle(authoredStyle, "hover");
     }
     
     public void clicked(IOEvent event) {
-        if (onClicked!=null) onClicked.implement(event);
+        for (UIEventCallback c : onClicked) c.implement(event);
     }
     
     public void handleIOEvent(IOEvent event) {}
@@ -791,19 +804,33 @@ public abstract class UIElement {
         for (UIElement c : children) c.handleIOEvent(event);
     }
     
-    public UIElement getDeepestElementAt(float x, float y) {
-        if (!contains(x, y)) return null;
+    /**
+    * Finds deepest element in this subtree that contains the provided point.
+    * If no deeper child found and the point is inside this element then will return this element.
+    * If hitOverflowVisibleChildren is set then will consider all visible children, regardless of
+    * if they are contained by the element or not.
+    * 
+    * @param x
+    * @param y
+    * @return
+    */
+    public UIElement getDeepestVisibleElementAt(float x, float y) {
+        if (!visible) return null;
+        
+        boolean inside = contains(x, y);
+        if (!inside&&!hitOverflowVisibleChildren) return null;
         UIElement hit = null;
         
         List<UIElement> sortedChildren = new ArrayList<>(children);
         sortedChildren.sort(Comparator.comparingInt(UIElement::getZIndex));
         
         for (UIElement c : sortedChildren) {
-            UIElement result = c.getDeepestElementAt(x, y);
+            UIElement result = c.getDeepestVisibleElementAt(x, y);
             if (result!=null) hit = result;
         }
         
-        return hit!=null ? hit : this;
+        if (hit!=null) return hit;
+        return inside ? this : null;
     }
     
     public UIElement findAncestorMatching(Predicate<UIElement> accepts) {
@@ -935,12 +962,12 @@ public abstract class UIElement {
     }
     
     public UIElement onInitialise(UIBasicCallback callback) {
-        this.onInitialise = callback;
+        onInitialise.add(callback);
         return this;
     }
     
     public void initialise() {
-        if (onInitialise!=null) onInitialise.implement();
+        for (UIBasicCallback c : onInitialise) c.implement();
     }
     
     public boolean isInitialised() {
@@ -1565,6 +1592,27 @@ public abstract class UIElement {
         y <= cy + h * 0.5f;
     }
     
+    public Vec2 getScreenCenter() {
+        return new Vec2(
+            getScreenX() - getParent().getScreenX() + getScreenWidth() * 0.5f,
+            getScreenY() - getParent().getScreenY() + getScreenHeight() * 0.5f
+        );
+    }
+    
+    public Vec2 getLocalLeftEdgeCenter() {
+        return new Vec2(
+            getLocalX(),
+            getLocalY()+getLocalHeight() * 0.5f
+        );
+    }
+    
+    public Vec2 getLocalRightEdgeCenter() {
+        return new Vec2(
+            getLocalX()+getLocalWidth(),
+            getLocalY()+getLocalHeight() * 0.5f
+        );
+    }
+    
     public void updateScrollBars() {
         if (overflowX==UIOverflowMode.SCROLL&&horizontalBar!=null&&childContentBounds!=null) {
             horizontalBar.setThumb(
@@ -1930,6 +1978,11 @@ public abstract class UIElement {
         if (verticalBar != null) verticalBar.showTemporarily();
         
         markLayoutDirty();
+        return this;
+    }
+    
+    public UIElement hitOverflowVisibleChildren(boolean value) {
+        this.hitOverflowVisibleChildren = value;
         return this;
     }
     

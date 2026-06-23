@@ -79,27 +79,4 @@ public class UIRectangle extends UIElement {
         this.borderColor = borderColor;
         return this;
     }
-
-    public static UIRectangle fullContentCollumn() {
-        UIRectangle r = new UIRectangle();
-        r.style("width", pcw(1.0f))
-        .style("height", pch(1.0f))
-        .style("flow-direction", UIFlowDirection.COLUMN);
-        return r;
-    }
-
-    public static UIRectangle fullContentRow() {
-        UIRectangle r = new UIRectangle();
-        r.style("width", pcw(1.0f))
-        .style("height", pch(1.0f))
-        .style("flow-direction", UIFlowDirection.ROW);
-        return r;
-    }
-
-    public static UIRectangle defaultRect(UILength width, UILength height) {
-        UIRectangle r = new UIRectangle();
-        r.style("width", width)
-        .style("height", height);
-        return r;
-    }
 }

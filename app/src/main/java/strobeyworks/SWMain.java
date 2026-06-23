@@ -3,7 +3,6 @@ package strobeyworks;
 import static org.lwjgl.glfw.GLFW.glfwPollEvents;
 import static org.lwjgl.glfw.GLFW.glfwTerminate;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -14,8 +13,9 @@ import strobeyworks.platform.MidiManager;
 import strobeyworks.platform.OutputRenderer;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.platform.Window;
-import strobeyworks.rendernodes.AgentNode;
+import strobeyworks.rendernodes.PerlinNode;
 import strobeyworks.ui.core.UIRenderer;
+import strobeyworks.utils.Vec2;
 
 public class SWMain {
     
@@ -28,7 +28,6 @@ public class SWMain {
     private MidiManager midiManager;
     
     private Set<RenderNode> renderNodes;
-    private RenderNode finalNode;
     
     private static long lastTime;
     private static float deltaTime;
@@ -81,14 +80,20 @@ public class SWMain {
     }
     
     private void loadRenderNodes() {
-        AgentNode n = new AgentNode();
-        RenderTarget t = RenderTarget.texture(200, 200);
+        PerlinNode n = new PerlinNode();
+        n.setCustomName("perlin1");
+        RenderTarget t = RenderTarget.texture(3000, 1800);
         n.setRenderTarget(t);
-
         renderNodes.add(n);
+
+        PerlinNode n1 = new PerlinNode();
+        n1.setCustomName("perlin2");
+        RenderTarget t1 = RenderTarget.texture(3000, 1800);
+        n1.setRenderTarget(t1);
+        n1.setUIAPosition(new Vec2(50, 50));
+        renderNodes.add(n1);
         
         UIRenderer.getInstance().setSelectedNode(n);
-        finalNode = n;
         outputRenderer.setSource(n.getRenderTarget());
     }
     
@@ -98,6 +103,10 @@ public class SWMain {
         for (RenderNode node : renderNodes) {
             node.resizeOutput(width, height);
         }
+    }
+
+    public Set<RenderNode> getAllNodes() {
+        return Set.copyOf(renderNodes);
     }
     
     private void start() {
