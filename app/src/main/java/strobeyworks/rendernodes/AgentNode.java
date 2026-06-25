@@ -64,28 +64,21 @@ import java.util.HashMap;
 import java.util.function.Consumer;
 
 import strobeyworks.SWMain;
-import strobeyworks.nodes.RenderNode;
+import strobeyworks.pipeline.InspectorItem.InspectorGroup;
+import strobeyworks.pipeline.RenderNode;
 import strobeyworks.platform.MidiManager;
 import strobeyworks.platform.MidiManager.MidiEvent;
 import strobeyworks.platform.MidiManager.MidiHandle;
 import strobeyworks.platform.MidiManager.MidiHandleType;
-import strobeyworks.rendernodes.InspectorItem.InspectorControl;
-import strobeyworks.rendernodes.InspectorItem.InspectorGroup;
-import strobeyworks.rendernodes.configs.ActionControlConfig;
-import strobeyworks.rendernodes.configs.BooleanControlConfig;
-import strobeyworks.rendernodes.configs.ControlConfig;
-import strobeyworks.rendernodes.configs.FloatControlConfig;
 import strobeyworks.platform.MidiSubscriber;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.utils.BindableList;
-import strobeyworks.utils.BindableListObserver;
 import strobeyworks.utils.BindableValue;
-import strobeyworks.utils.BindableValueObserver;
 import strobeyworks.utils.Utils;
 import strobeyworks.utils.Vec2;
 import strobeyworks.utils.Vec3;
 
-public class AgentNode extends RenderNode implements MidiSubscriber, BindableValueObserver<Float>, BindableListObserver {
+public class AgentNode extends RenderNode implements MidiSubscriber {
     
     private int agentPassProgram;
     private int depositPassProgram;
@@ -103,9 +96,6 @@ public class AgentNode extends RenderNode implements MidiSubscriber, BindableVal
     private int depositReadIndex = 0;
     
     private int numAgents = 1000000;
-    
-    private BindableValue<Float> width;
-    private BindableValue<Float> height;
     
     private BindableValue<Float> diffusion;
     private BindableValue<Float> decay;
@@ -127,12 +117,9 @@ public class AgentNode extends RenderNode implements MidiSubscriber, BindableVal
     
     private HashMap<MidiHandle, Consumer<MidiEvent>> midiHandleMap;
     
-    private boolean syncingOutputSizeControls;
-    private Integer pendingOutputWidth;
-    private Integer pendingOutputHeight;
     
     public AgentNode() {
-        super("Species-Agents");
+        super("Species-Agents", "agent");
         
         //loadDefaults();
         
@@ -153,36 +140,23 @@ public class AgentNode extends RenderNode implements MidiSubscriber, BindableVal
     
     @Override
     protected void setupControls() {
-        InspectorGroup g;
+        super.setupControls();
+
+        createInspectorGroup("Turning");
+        sensorAngle = addFloatControl("Sensor Angle", 0.02f, 3f, 3, 0.1f, 0.6f);
+        sensorDistance = addFloatControl("Sensor Distance", 0f, 0.5f, 2, 0.01f, 0.01f);
+        turnSpeed = addFloatControl("Turn Speed", 0.2f, 20f, 2, 1f, 2f);
+        speed = addFloatControl("Speed", 0f, 0.5f, 2, 0.01f, 0.05f);
         
-        g = new InspectorGroup("Output Size", new ArrayList<>());
-        width = addFloatControl(g, "Width", 1f, 10000, 0, 1f, 1500);
-        height = addFloatControl(g, "Height", 1f, 10000, 0, 1f, 900);
-        togg = addBooleanControl(g, "Toggle me", true);
-        g.items().add(new InspectorControl(new ActionControlConfig("Resize to window", "Run", this::resizeToOutputWindow)));
+        createInspectorGroup("Opacity");
+        diffusion = addFloatControl("Diffusion", 0f, 1.5f, 2, 0.01f, 0.1f);
+        decay = addFloatControl("Decay", 0f, 10f, 2, 1f, 4f);
+        opacityCuttoff = addFloatControl("Cuttoff", 0f, 1f, 2, 0.01f, 0f);
+        pheramoneContribution = addFloatControl("Contribution", 0f, 1f, 2, 0.01f, 1f);
         
-        addInspectorItem(g);
-        width.bind(this);
-        height.bind(this);
-        
-        g = new InspectorGroup("Turning", new ArrayList<>());
-        sensorAngle = addFloatControl(g, "Sensor Angle", 0.02f, 3f, 3, 0.1f, 0.6f);
-        sensorDistance = addFloatControl(g, "Sensor Distance", 0f, 0.5f, 2, 0.01f, 0.01f);
-        turnSpeed = addFloatControl(g, "Turn Speed", 0.2f, 20f, 2, 1f, 2f);
-        speed = addFloatControl(g, "Speed", 0f, 0.5f, 2, 0.01f, 0.05f);
-        addInspectorItem(g);
-        
-        g = new InspectorGroup("Opacity", new ArrayList<>());
-        diffusion = addFloatControl(g, "Diffusion", 0f, 1.5f, 2, 0.01f, 0.1f);
-        decay = addFloatControl(g, "Decay", 0f, 10f, 2, 1f, 4f);
-        opacityCuttoff = addFloatControl(g, "Cuttoff", 0f, 1f, 2, 0.01f, 0f);
-        pheramoneContribution = addFloatControl(g, "Contribution", 0f, 1f, 2, 0.01f, 1f);
-        addInspectorItem(g);
-        
-        g = new InspectorGroup("Random", new ArrayList<>());
-        randomTurnStrength = addFloatControl(g, "Random Turn", 0f, 20f, 2, 0.01f, 0f);
-        randomSpeedStrength = addFloatControl(g, "Random Speed", 0f, 2f, 2, 0.01f, 0f);
-        addInspectorItem(g);
+        createInspectorGroup("Random");
+        randomTurnStrength = addFloatControl("Random Turn", 0f, 20f, 2, 0.01f, 0f);
+        randomSpeedStrength = addFloatControl("Random Speed", 0f, 2f, 2, 0.01f, 0f);
     }
     
     public void loadDefaultMidiMap() {
@@ -229,30 +203,6 @@ public class AgentNode extends RenderNode implements MidiSubscriber, BindableVal
         c.accept(event);
     }
     
-    @Override
-    public void bindableValueChanged(BindableValue<Float> v) {
-        if (syncingOutputSizeControls) return;
-        
-        int newWidth = getOutputWidth();
-        int newHeight = getOutputHeight();
-        
-        if (v == width) {
-            newWidth = width.getValue().intValue();
-        }
-        
-        if (v == height) {
-            newHeight = height.getValue().intValue();
-        }
-        
-        pendingOutputWidth = newWidth;
-        pendingOutputHeight = newHeight;
-    }
-    
-    @Override
-    public void bindableListChanged(BindableList<?> v) {
-        
-    }
-    
     public void randomize() {
         diffusion.setValue(Utils.randomBetween(0.1f, 1f));
         decay.setValue(Utils.randomBetween(2f, 8f));
@@ -265,11 +215,6 @@ public class AgentNode extends RenderNode implements MidiSubscriber, BindableVal
         randomSpeedStrength.setValue(Utils.randomBetween(0f, 1f));
         
         pheramoneContribution.setValue(Utils.randomBetween(0.1f, 1f));
-    }
-    
-    public void resizeToOutputWindow() {
-        pendingOutputWidth = SWMain.getOutputWindow().getFramebufferWidth();
-        pendingOutputHeight = SWMain.getOutputWindow().getFramebufferHeight();
     }
     
     @Override
@@ -457,6 +402,8 @@ public class AgentNode extends RenderNode implements MidiSubscriber, BindableVal
     
     @Override
     protected void handleOutputResize() {
+        super.handleOutputResize();
+
         // Resize deposit textures
         for (int i = 0; i < 2; i++) {
             glBindTexture(GL_TEXTURE_2D, depositTextures[i]);
@@ -487,25 +434,6 @@ public class AgentNode extends RenderNode implements MidiSubscriber, BindableVal
         glBindTexture(GL_TEXTURE_2D, 0);
         
         depositReadIndex = 0;
-        
-        // Update controls
-        syncingOutputSizeControls = true;
-        try {
-            width.setValue((float) getOutputWidth());
-            height.setValue((float) getOutputHeight());
-        } finally {
-            syncingOutputSizeControls = false;
-        }
-    }
-    
-    @Override
-    public void update() {
-        if (pendingOutputWidth==null||pendingOutputHeight==null) return;
-        
-        resizeOutput(pendingOutputWidth, pendingOutputHeight);
-        
-        pendingOutputWidth = null;
-        pendingOutputHeight = null;
     }
     
     @Override

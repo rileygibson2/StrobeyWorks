@@ -4,7 +4,7 @@ import static strobeyworks.ui.core.UILength.pch;
 import static strobeyworks.ui.core.UILength.pcw;
 import static strobeyworks.ui.core.UILength.px;
 
-import strobeyworks.rendernodes.configs.FloatControlConfig;
+import strobeyworks.pipeline.configs.FloatControlConfig;
 import strobeyworks.ui.components.input.UISlider;
 import strobeyworks.ui.components.input.UIValueMapper;
 import strobeyworks.ui.components.input.field.UIFloatField;

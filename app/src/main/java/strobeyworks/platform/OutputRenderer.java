@@ -26,8 +26,7 @@ import static org.lwjgl.opengl.GL30.glBindFramebuffer;
 import static org.lwjgl.opengl.GL30.glBindVertexArray;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 
-import strobeyworks.SWMain;
-import strobeyworks.nodes.RenderTarget;
+import strobeyworks.pipeline.RenderTarget;
 import strobeyworks.utils.Vec2;
 
 public class OutputRenderer extends WindowRenderer {
@@ -41,10 +40,7 @@ public class OutputRenderer extends WindowRenderer {
     }
     
     @Override public void handleWindowResize() {
-        SWMain.getInstance().resizeOutputPipeline(
-            getParentWindow().getFramebufferWidth(),
-            getParentWindow().getFramebufferHeight()
-        );
+        
     }
     
     @Override

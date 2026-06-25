@@ -27,16 +27,16 @@ import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 import java.util.ArrayList;
 
 import strobeyworks.SWMain;
-import strobeyworks.nodes.RenderNode;
+import strobeyworks.pipeline.RenderNode;
+import strobeyworks.pipeline.InspectorItem.InspectorGroup;
+import strobeyworks.pipeline.InspectorItem.InspectorTab;
 import strobeyworks.platform.ShaderManager;
-import strobeyworks.rendernodes.InspectorItem.InspectorGroup;
-import strobeyworks.rendernodes.InspectorItem.InspectorTab;
 import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.BindableValueObserver;
 import strobeyworks.utils.Utils;
 import strobeyworks.utils.Vec3;
 
-public class PerlinNode extends RenderNode implements BindableValueObserver<Float> {
+public class PerlinNode extends RenderNode {
     
     private int noiseProgram;
     private int quadVAO;
@@ -64,11 +64,8 @@ public class PerlinNode extends RenderNode implements BindableValueObserver<Floa
     private Vec3 colorLow;
     private Vec3 colorHigh;
     
-    private BindableValue<Float> width;
-    private BindableValue<Float> height;
-    
     public PerlinNode() {
-        super("Perlin-Noise");
+        super("Perlin-Noise", "perlin");
         
         this.colorLow = new Vec3(0f, 0f, 0f);
         this.colorHigh = new Vec3(1f, 0f, 0.8f);
@@ -76,59 +73,30 @@ public class PerlinNode extends RenderNode implements BindableValueObserver<Floa
     
     @Override
     protected void setupControls() {
-        InspectorTab t;
-        InspectorGroup g;
+        super.setupControls();
+          
+        createInspectorTab("Structure");
+        createInspectorGroup("Base");
+        speed = addFloatControl("Speed", 0f, 1f, 3, 0.05f, 0.5f);
+        gridSize = addFloatControl("Grid", 2f, 50f, 0, 1f, 10f);
+        octaves = addFloatControl("Octaves", 1f, 10f, 0, 1f, 1f);
+        gamma = addFloatControl("Gamma", 0f, 5f, 3, 0.1f, 1f);
+        gain = addFloatControl("Gain", 0f, 5f, 3, 0.1f, 1f);
         
-        //width.bind(this);
-        //height.bind(this);
+        createInspectorTab("Processing");
+        createInspectorGroup("Warp");
+        warp = addBooleanControl("Warp", false);
+        warpStrength = addFloatControl("Strength", 0f, 3f, 3, 0.1f, 0f);
+        warpScale = addFloatControl("Scale", 0f, 3f, 3, 0.1f, 1f);
         
-        t = new InspectorTab("Structure");
-        g = new InspectorGroup("Base");
-        speed = addFloatControl(g, "Speed", 0f, 1f, 3, 0.05f, 0.5f);
-        gridSize = addFloatControl(g, "Grid", 2f, 50f, 0, 1f, 10f);
-        octaves = addFloatControl(g, "Octaves", 1f, 10f, 0, 1f, 1f);
-        gamma = addFloatControl(g, "Gamma", 0f, 5f, 3, 0.1f, 1f);
-        gain = addFloatControl(g, "Gain", 0f, 5f, 3, 0.1f, 1f);
-        t.add(g);
-        addInspectorItem(t);
-        
-        t = new InspectorTab("Processing");
-        g = new InspectorGroup("Warp");
-        warp = addBooleanControl(g, "Warp", false);
-        warpStrength = addFloatControl(g, "Strength", 0f, 3f, 3, 0.1f, 0f);
-        warpScale = addFloatControl(g, "Scale", 0f, 3f, 3, 0.1f, 1f);
-        t.add(g);
-        addInspectorItem(t);
-        
-        g = new InspectorGroup("Ridge");
-        octaveRidge = addBooleanControl(g, "Per Octave", false);
-        postRidge = addBooleanControl(g, "Post", false);
-        ridgePow = addFloatControl(g, "Ridge Power", 0f, 5f, 3, 0.1f, 2f);
-        t.add(g);
+        createInspectorGroup("Ridge");
+        octaveRidge = addBooleanControl("Per Octave", false);
+        postRidge = addBooleanControl("Post", false);
+        ridgePow = addFloatControl("Ridge Power", 0f, 5f, 3, 0.1f, 2f);
 
-        g = new InspectorGroup("Turbulence");
-        octaveTurbulence = addBooleanControl(g, "Octave Turbulence", false);
-        turbulencePow = addFloatControl(g, "Power", 0f, 5f, 3, 0.1f, 2f);
-        t.add(g);
-    }
-    
-    @Override
-    public void bindableValueChanged(BindableValue<Float> v) {
-        // if (syncingOutputSizeControls) return;
-        
-        int newWidth = getOutputWidth();
-        int newHeight = getOutputHeight();
-        
-        if (v == width) {
-            newWidth = width.getValue().intValue();
-        }
-        
-        if (v == height) {
-            newHeight = height.getValue().intValue();
-        }
-        
-        // pendingOutputWidth = newWidth;
-        //pendingOutputHeight = newHeight;
+        createInspectorGroup("Turbulence");
+        octaveTurbulence = addBooleanControl("Octave Turbulence", false);
+        turbulencePow = addFloatControl("Power", 0f, 5f, 3, 0.1f, 2f);
     }
     
     @Override
@@ -151,11 +119,6 @@ public class PerlinNode extends RenderNode implements BindableValueObserver<Floa
         sM.bindVAO(0);
         sM.bindVBO(0);
         sM.useProgram(0);
-    }
-    
-    @Override
-    public void update() {
-        
     }
     
     @Override
@@ -214,12 +177,6 @@ public class PerlinNode extends RenderNode implements BindableValueObserver<Floa
         glActiveTexture(GL_TEXTURE0);
         sM.bindVAO(0);
         sM.useProgram(0);
-    }
-    
-    @Override
-    protected void handleOutputResize() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'handleOutputResize'");
     }
     
     @Override

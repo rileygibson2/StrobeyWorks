@@ -38,7 +38,7 @@ import java.util.Set;
 
 import org.joml.Matrix4f;
 
-import strobeyworks.nodes.RenderNode;
+import strobeyworks.pipeline.RenderNode;
 import strobeyworks.platform.Animation;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.ShaderManager;
@@ -58,6 +58,7 @@ import strobeyworks.ui.primitives.UIIcon;
 import strobeyworks.ui.primitives.UIRectFactory;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
+import strobeyworks.ui.primitives.UITextureView;
 import strobeyworks.utils.Vec4;
 
 public class UIRenderer extends WindowRenderer {
@@ -88,6 +89,9 @@ public class UIRenderer extends WindowRenderer {
     private UIPopup fullScreenPopup;
     private UIRectangle fullScreenPopupBG;
     
+    private UIAArea uiaArea;
+    private UIInspectorPane inspectorPane;
+    
     private RenderNode selectedNode;
     
     public static UIRenderer getInstance() {
@@ -114,20 +118,31 @@ public class UIRenderer extends WindowRenderer {
         UIRectangle base = UIRectFactory.sized(sw(1f), sh(1f));
         base.style("color", UIColor.black());
         
-        UIAArea nodeArea = new UIAArea();
-        nodeArea.style("width", pcw(0.6f))
+        uiaArea = new UIAArea();
+        uiaArea.style("width", pcw(0.6f))
         .style("height", pch(1f))
         .style("position", UIPositionMode.ABSOLUTE);
         
-        UIInspectorPane inspectorPane = new UIInspectorPane();
+        inspectorPane = new UIInspectorPane();
         inspectorPane.style("width", pcw(0.4f))
         .style("height", pch(1f))
         .style("position", UIPositionMode.ABSOLUTE)
         .style("offset-left", pcw(0.6f));
         
-        base.addChild(nodeArea);
+        base.addChild(uiaArea);
         base.addChild(inspectorPane);
         addToRoot(base);
+        
+        uiaArea.rebuildFromPipeline();
+        inspectorPane.loadRenderNode(getSelectedNode());
+    }
+    
+    public UIAArea getUiaArea() {
+        return uiaArea;
+    }
+    
+    public UIInspectorPane getInspectorPane() {
+        return inspectorPane;
     }
     
     public void addToRoot(UIElement e) {
@@ -423,7 +438,7 @@ public class UIRenderer extends WindowRenderer {
         sM.bindVAO(0);
         sM.useProgram(0);
     }
-
+    
     public void renderShape(ShaderManager sM, UIElement e) {
         sM.useProgram(shapeProgram);
         sM.setCurrentProgram(shapeProgram);
@@ -511,6 +526,27 @@ public class UIRenderer extends WindowRenderer {
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
     
+    public void renderTextureView(ShaderManager sM, UITextureView view) {
+        sM.useProgram(iconProgram);
+        sM.setCurrentProgram(iconProgram);
+        
+        sM.setUniformMat4("uProjection", projectionMatrix);
+        
+        Matrix4f model = view.getModelMatrix();
+        sM.setUniformMat4("uModel", model);  
+        sM.setUniformVec4("uTint", new Vec4(1f, 1f, 1f, 1f));
+        sM.setUniformVec4("uUVRect", new Vec4(0f, 0f, 1f, 1f));     
+        
+        view.setRenderUniforms(sM);
+        
+        glActiveTexture(GL_TEXTURE0);
+        sM.bindTexture(view.getTextureId());
+        sM.setUniformInt("uTexture", 0);
+        
+        sM.bindVAO(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+    
     public void renderColorPicker(ShaderManager sM, UIColorPicker cP) {
         sM.useProgram(colorPickerProgram);
         sM.setCurrentProgram(colorPickerProgram);
@@ -534,7 +570,7 @@ public class UIRenderer extends WindowRenderer {
         sM.bindVAO(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
-
+    
     public void renderConnection(ShaderManager sM, UIConnection e) {
         sM.useProgram(connectionProgram);
         sM.setCurrentProgram(connectionProgram);

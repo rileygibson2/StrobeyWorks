@@ -19,7 +19,7 @@ public class UIRectFactory {
         return r;
     }
 
-    public static UIRectangle sizedCentered(UILength width, UILength height) {
+    public static UIRectangle sized_Center(UILength width, UILength height) {
         UIRectangle r = new UIRectangle();
         r.style("width", width)
         .style("height", height)
@@ -28,23 +28,33 @@ public class UIRectFactory {
         return r;
     }
 
-    public static UIRectangle sizedAligned(UILength width, UILength height) {
-        UIRectangle r = new UIRectangle();
-        r.style("width", width)
-        .style("height", height)
-        .style("align-items", UIAlignItems.CENTER);
-        return r;
-    }
-
-    public static UIRectangle absolute(UILength width, UILength height) {
+    public static UIRectangle sized_Absolute(UILength width, UILength height) {
         UIRectangle r = new UIRectangle();
         r.style("width", width)
         .style("height", height)
         .style("position", UIPositionMode.ABSOLUTE);
         return r;
     }
+
+    public static UIRectangle sized_Absolute_Center(UILength width, UILength height) {
+        UIRectangle r = new UIRectangle();
+        r.style("width", width)
+        .style("height", height)
+        .style("justify-content", UIJustifyContent.CENTER)
+        .style("align-items", UIAlignItems.CENTER)
+        .style("position", UIPositionMode.ABSOLUTE);
+        return r;
+    }
+
+    public static UIRectangle sized_Align(UILength width, UILength height) {
+        UIRectangle r = new UIRectangle();
+        r.style("width", width)
+        .style("height", height)
+        .style("align-items", UIAlignItems.CENTER);
+        return r;
+    }
     
-    public static UIRectangle fullContentCollumn() {
+    public static UIRectangle fullContent_Collumn() {
         UIRectangle r = new UIRectangle();
         r.style("width", pcw(1.0f))
         .style("height", pch(1.0f))
@@ -52,7 +62,7 @@ public class UIRectFactory {
         return r;
     }
 
-    public static UIRectangle fullContentRow() {
+    public static UIRectangle fullContent_Row() {
         UIRectangle r = new UIRectangle();
         r.style("width", pcw(1.0f))
         .style("height", pch(1.0f))
@@ -60,11 +70,11 @@ public class UIRectFactory {
         return r;
     }
 
-    public static UIRectangle rowGrow() {
+    public static UIRectangle rowGrow(float grow) {
         UIRectangle r = new UIRectangle();
         r.style("width", px(1))
         .style("height", pch(1.0f))
-        .style("grow", 1f);
+        .style("grow", grow);
         return r;
     }
 }

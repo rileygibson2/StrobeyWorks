@@ -5,16 +5,16 @@ import static strobeyworks.ui.core.UILength.pcw;
 import static strobeyworks.ui.core.UILength.px;
 
 import strobeyworks.logger.Logger;
-import strobeyworks.nodes.RenderNode;
-import strobeyworks.rendernodes.InspectorItem;
-import strobeyworks.rendernodes.InspectorItem.InspectorControl;
-import strobeyworks.rendernodes.InspectorItem.InspectorGroup;
-import strobeyworks.rendernodes.InspectorItem.InspectorTab;
-import strobeyworks.rendernodes.configs.ActionControlConfig;
-import strobeyworks.rendernodes.configs.BooleanControlConfig;
-import strobeyworks.rendernodes.configs.ControlConfig;
-import strobeyworks.rendernodes.configs.FloatControlConfig;
-import strobeyworks.rendernodes.configs.StringControlConfig;
+import strobeyworks.pipeline.InspectorItem;
+import strobeyworks.pipeline.RenderNode;
+import strobeyworks.pipeline.InspectorItem.InspectorControl;
+import strobeyworks.pipeline.InspectorItem.InspectorGroup;
+import strobeyworks.pipeline.InspectorItem.InspectorTab;
+import strobeyworks.pipeline.configs.ActionControlConfig;
+import strobeyworks.pipeline.configs.BooleanControlConfig;
+import strobeyworks.pipeline.configs.ControlConfig;
+import strobeyworks.pipeline.configs.FloatControlConfig;
+import strobeyworks.pipeline.configs.StringControlConfig;
 import strobeyworks.ui.components.UIColorPicker;
 import strobeyworks.ui.components.UIGradientSlider;
 import strobeyworks.ui.components.popups.UIContentPopup;
@@ -39,12 +39,6 @@ public class UIInspectorPane extends UIRectangle {
     private UITab mainTab;
     
     public UIInspectorPane() {
-        build();
-    }
-    
-    private void build() {
-        UIRenderer ui = UIRenderer.getInstance();
-        
         style("padding-left", px(2));
         style("padding-right", px(2));
         style("padding-top", px(1));
@@ -52,20 +46,24 @@ public class UIInspectorPane extends UIRectangle {
         style("align-content", UIAlignContent.CENTER);
         style("flow-direction", UIFlowDirection.COLUMN);
         style("color", UIColor.rgb(0.15f));
-        
-        node = UIRenderer.getInstance().getSelectedNode();
-        
-        addTitleLine();
-        addMainTab();
-        
-        for (InspectorItem item : node.getInspectorItems()) traverseInspectorTree(null, item);
-        
-        buildPropertiesTab();
     }
     
     @Override
     public void initialise() {
         super.initialise();
+        if (mainTab!=null) mainTab.setTab(0);
+    }
+
+    public void loadRenderNode(RenderNode node) {
+        removeAllContentChildren();
+        this.node = node;
+
+        addTitleLine();
+        addMainTab();
+        
+        for (InspectorItem item : node.getInspectorTabs()) traverseInspectorTree(null, item);
+        buildPropertiesTab();
+
         mainTab.setTab(0);
     }
     
@@ -80,14 +78,14 @@ public class UIInspectorPane extends UIRectangle {
         title.style("color", UIColor.rgb(0.7f))
         .style("margin-top", px(5));
         
-        UIText type = new UIText(UIFontManager.getUIFont("RobotoMono-Medium.ttf", 15f), node.getNodeTypeName());
+        UIText type = new UIText(UIFontManager.getUIFont("RobotoMono-Medium.ttf", 15f), node.getTypeName());
         type.style("margin-left", px(10))
         .style("margin-top", px(5))
         .style("color", UIColor.rgb(0.5f));
         
         addChild(line);
         line.addChild(title);
-        line.addChild(UIRectFactory.rowGrow());
+        line.addChild(UIRectFactory.rowGrow(1f));
         line.addChild(type);
     }
     
@@ -101,7 +99,7 @@ public class UIInspectorPane extends UIRectangle {
     }
     
     private void buildPropertiesTab() {
-        UIRectangle pane = UIRectFactory.fullContentCollumn();
+        UIRectangle pane = UIRectFactory.fullContent_Collumn();
         pane.style("overflow-y", UIOverflowMode.SCROLL);
         mainTab.addTab("Properties", pane);
         
@@ -112,7 +110,7 @@ public class UIInspectorPane extends UIRectangle {
     
     private void traverseInspectorTree(UIRectangle pane, InspectorItem item) {
         if (item instanceof InspectorTab tab) {
-            pane = UIRectFactory.fullContentCollumn();
+            pane = UIRectFactory.fullContent_Collumn();
             pane.style("overflow-y", UIOverflowMode.SCROLL);
             
             mainTab.addTab(tab.name(), pane);
@@ -171,7 +169,7 @@ public class UIInspectorPane extends UIRectangle {
     private UIContentPopup buildGradientPopup() {
         UIContentPopup popup = new UIContentPopup("-- Gradient --");
         
-        UIRectangle pane = UIRectFactory.fullContentCollumn();
+        UIRectangle pane = UIRectFactory.fullContent_Collumn();
         
         UIColorPicker colPick = new UIColorPicker();
         colPick.style("width", pcw(1f))

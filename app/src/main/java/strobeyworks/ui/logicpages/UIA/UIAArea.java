@@ -1,19 +1,20 @@
 package strobeyworks.ui.logicpages.UIA;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import strobeyworks.SWMain;
-import strobeyworks.nodes.RenderNode;
+import strobeyworks.pipeline.RenderNode;
+import strobeyworks.pipeline.RenderPipeline;
+import strobeyworks.pipeline.RenderPipelineListener;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.ui.core.UIColor;
+import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.ui.primitives.UIConnection;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Vec2;
 
-public class UIAArea extends UIRectangle {
+public class UIAArea extends UIRectangle implements RenderPipelineListener {
     
     private int uiaCameraX;
     private int uiaCameraY;
@@ -36,17 +37,18 @@ public class UIAArea extends UIRectangle {
         style("color", UIColor.rgb(0.1f));
         style("overflow-x", UIOverflowMode.HIDDEN);
         style("overflow-y", UIOverflowMode.HIDDEN);
-        
-        build();
+
+        RenderPipeline.getInstance().subscribe(this);
+    }
+
+    @Override
+    public void outputtingNodeChanged(RenderNode node) {
+        syncNodeVisuals();
     }
     
-    private void build() {
-        rebuildNodes();
-    }
-    
-    private void rebuildNodes() {
+    public void rebuildFromPipeline() {
         uiaNodes = new ArrayList<>();
-        Set<RenderNode> nodes = SWMain.getInstance().getAllNodes();
+        Set<RenderNode> nodes = RenderPipeline.getInstance().getAllNodes();
         
         for (RenderNode node : nodes) {
             UIANode n = new UIANode(this, node);
@@ -54,10 +56,19 @@ public class UIAArea extends UIRectangle {
             addChild(n);
         }
         
-        UIConnection c = new UIConnection(uiaNodes.get(0).getRightBall(), uiaNodes.get(1).getLeftBall());
+        UIConnection c = new UIConnection(uiaNodes.get(0), uiaNodes.get(1));
         addChildAtIndex(0, c); // behind nodes
         
+        syncNodeVisuals();
         repositionElements();
+    }
+    
+    public void syncNodeVisuals() {
+        RenderNode activeNode = RenderPipeline.getInstance().getOutputtingNode();
+
+        for (UIANode n : uiaNodes) {
+            n.setOutputActiveVisuals(n.getRenderNode()==activeNode);
+        }
     }
     
     private void repositionElements() {
@@ -72,18 +83,20 @@ public class UIAArea extends UIRectangle {
     
     public void selectNode(RenderNode node) {
         if (selectedNode!=null) {
-            selectedNode.style("border-enabled", false)
+            selectedNode.style("border-color", UIColor.rgb(0.3f))
             .style("z-index", 0);
         }
         if (node==null) return;
         
         for (UIANode uiaNode : uiaNodes) {
             if (uiaNode.getRenderNode()==node) {
-                uiaNode.style("border-enabled", true)
+                uiaNode.style("border-color", UIColor.rgb(0.3f, 0.5f, 0.3f))
                 .style("z-index", 1);
                 selectedNode = uiaNode;
             }
         }
+
+        UIRenderer.getInstance().getInspectorPane().loadRenderNode(node);
     }
     
     @Override

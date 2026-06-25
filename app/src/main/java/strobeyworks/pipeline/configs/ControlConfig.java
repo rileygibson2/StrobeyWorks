@@ -1,4 +1,4 @@
-package strobeyworks.rendernodes.configs;
+package strobeyworks.pipeline.configs;
 
 import strobeyworks.utils.BindableValue;
 

@@ -1,9 +1,9 @@
-package strobeyworks.rendernodes;
+package strobeyworks.pipeline;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import strobeyworks.rendernodes.configs.ControlConfig;
+import strobeyworks.pipeline.configs.ControlConfig;
 
 public sealed interface InspectorItem permits InspectorItem.InspectorControl, InspectorItem.InspectorGroup, InspectorItem.InspectorTab {
     

@@ -43,6 +43,7 @@ import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 
+import strobeyworks.SWMain;
 import strobeyworks.logger.LogColor;
 import strobeyworks.logger.LogColorEnum;
 import strobeyworks.logger.Logger;
@@ -79,6 +80,8 @@ public class Window {
     
     private WindowRenderer renderer;
     
+    private Window sharedContextWindow;
+    
     public Window(WindowRenderer renderer, int width, int height, String title) {
         this.renderer = renderer;
         this.width = width;
@@ -94,6 +97,10 @@ public class Window {
         renderer.setParentWindow(this);
     }
     
+    public void shareContextWith(Window window) {
+        this.sharedContextWindow = window;
+    }
+    
     public void stayFocussed() {
         this.stayFocussed = true;
     }
@@ -102,12 +109,12 @@ public class Window {
         this.screenPosX = screenPosX;
         this.screenPosY = screenPosY;
     }
-
+    
     public void setWindowDimensions(int width, int height) {
         this.width = width;
         this.height = height;
     }
-
+    
     public void focus() {
         glfwFocusWindow(windowID);
     }
@@ -137,7 +144,11 @@ public class Window {
         // Create window
         glfwWindowHint(GLFW_FLOATING, stayFocussed ? GLFW_TRUE : GLFW_FALSE);
         
-        windowID = glfwCreateWindow(width, height, title, NULL, NULL);
+        long sharedContext = sharedContextWindow != null
+        ? sharedContextWindow.getWindowID()
+        : NULL;
+        
+        windowID = glfwCreateWindow(width, height, title, NULL, sharedContext);
         if (windowID == NULL) {
             throw new RuntimeException("Failed to create GLFW window");
         }
@@ -184,6 +195,7 @@ public class Window {
         glfwSetFramebufferSizeCallback(windowID, (win, w, h) -> {
             framebufferWidth = w;
             framebufferHeight = h;
+            SWMain.windowResized(this);
             if (renderer!=null) renderer.handleWindowResize();
         });
         

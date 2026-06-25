@@ -1598,18 +1598,11 @@ public abstract class UIElement {
             getScreenY() - getParent().getScreenY() + getScreenHeight() * 0.5f
         );
     }
-    
-    public Vec2 getLocalLeftEdgeCenter() {
+
+    public Vec2 getScreenCenterRightEdge() {
         return new Vec2(
-            getLocalX(),
-            getLocalY()+getLocalHeight() * 0.5f
-        );
-    }
-    
-    public Vec2 getLocalRightEdgeCenter() {
-        return new Vec2(
-            getLocalX()+getLocalWidth(),
-            getLocalY()+getLocalHeight() * 0.5f
+            getScreenX() - getParent().getScreenX() + getScreenWidth() * 0.5f,
+            getScreenY() - getParent().getScreenY() + getScreenHeight() * 0.5f
         );
     }
     

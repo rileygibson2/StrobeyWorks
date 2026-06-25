@@ -7,12 +7,14 @@ import java.util.HashSet;
 import java.util.Set;
 
 import strobeyworks.logger.Logger;
-import strobeyworks.nodes.RenderNode;
-import strobeyworks.nodes.RenderTarget;
+import strobeyworks.pipeline.RenderNode;
+import strobeyworks.pipeline.RenderPipeline;
+import strobeyworks.pipeline.RenderTarget;
 import strobeyworks.platform.MidiManager;
 import strobeyworks.platform.OutputRenderer;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.platform.Window;
+import strobeyworks.rendernodes.AgentNode;
 import strobeyworks.rendernodes.PerlinNode;
 import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.utils.Vec2;
@@ -25,9 +27,9 @@ public class SWMain {
     private static Window uiWindow;
     private static OutputRenderer outputRenderer;
     
-    private MidiManager midiManager;
+    private static RenderPipeline pipeline;
     
-    private Set<RenderNode> renderNodes;
+    private MidiManager midiManager;
     
     private static long lastTime;
     private static float deltaTime;
@@ -41,10 +43,6 @@ public class SWMain {
     }
     
     private SWMain() {}
-    
-    public static Window getOutputWindow() {return outputWindow;}
-    
-    public static Window getUIWindow() {return uiWindow;}
     
     private void setup() {
         Logger.info("Setting up");
@@ -62,52 +60,48 @@ public class SWMain {
         uiWindow.stayFocussed();
         uiWindow.setScreenPos(0.8f, 0.5f);
         
-        
-        // Render pipeline initialise
         outputWindow.initialise();
         outputWindow.makeContextCurrent();
-
-        // Nodes
-        renderNodes = new HashSet<>();
-        loadRenderNodes();
         
-        for (RenderNode node : renderNodes) {
-            node.initialise(outputWindow.getFramebufferWidth(), outputWindow.getFramebufferHeight());
-        }
-
+        // Pipeline
+        pipeline = RenderPipeline.getInstance();
+        
+        // Nodes
+        simulate();
+        
+        
         // UI initialise
+        uiWindow.shareContextWith(outputWindow);
         uiWindow.initialise();
     }
     
-    private void loadRenderNodes() {
-        PerlinNode n = new PerlinNode();
-        n.setCustomName("perlin1");
-        RenderTarget t = RenderTarget.texture(3000, 1800);
-        n.setRenderTarget(t);
-        renderNodes.add(n);
-
-        PerlinNode n1 = new PerlinNode();
-        n1.setCustomName("perlin2");
-        RenderTarget t1 = RenderTarget.texture(3000, 1800);
-        n1.setRenderTarget(t1);
-        n1.setUIAPosition(new Vec2(50, 50));
-        renderNodes.add(n1);
+    private void simulate() {
+        RenderNode n = pipeline.addNode(PerlinNode.class, outputWindow.getFramebufferWidth(), outputWindow.getFramebufferHeight());
+        n.setUIAPosition(new Vec2(0, 0));
+        
+        n = pipeline.addNode(AgentNode.class, outputWindow.getFramebufferWidth(), outputWindow.getFramebufferHeight());
+        n.setUIAPosition(new Vec2(80, 80));
         
         UIRenderer.getInstance().setSelectedNode(n);
-        outputRenderer.setSource(n.getRenderTarget());
+        pipeline.setOutputtingNode(n);
     }
     
-    public void resizeOutputPipeline(int width, int height) {
-        outputWindow.makeContextCurrent();
+    public static void windowResized(Window window) {
+        if (pipeline == null) return;
+        window.makeContextCurrent();
         
-        for (RenderNode node : renderNodes) {
-            node.resizeOutput(width, height);
+        if (window==outputWindow) {
+            for (RenderNode n : pipeline.getAllNodes()) {
+                n.resizeOutput(window.getFramebufferWidth(), window.getFramebufferHeight());
+            }
         }
     }
 
-    public Set<RenderNode> getAllNodes() {
-        return Set.copyOf(renderNodes);
-    }
+    public static Window getOutputWindow() {return outputWindow;}
+
+    public static OutputRenderer getOutputWindowRenderer() {return outputRenderer;}
+    
+    public static Window getUIWindow() {return uiWindow;}
     
     private void start() {
         lastTime = System.nanoTime();
@@ -136,11 +130,7 @@ public class SWMain {
             
             // Nodes
             outputWindow.makeContextCurrent();
-            
-            for (RenderNode node : renderNodes) {
-                node.update();
-                node.render();
-            }
+            pipeline.iterate();
             
             // Windows
             outputWindow.iterate();
@@ -156,7 +146,7 @@ public class SWMain {
         
         // Output targets
         outputWindow.makeContextCurrent();
-        for (RenderNode node : renderNodes) node.cleanup();
+        pipeline.cleanup();
         
         // Windows
         if (outputWindow!=null) outputWindow.cleanup();

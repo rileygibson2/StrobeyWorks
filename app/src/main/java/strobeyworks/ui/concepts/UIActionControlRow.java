@@ -3,7 +3,7 @@ package strobeyworks.ui.concepts;
 import static strobeyworks.ui.core.UILength.pch;
 import static strobeyworks.ui.core.UILength.pcw;
 
-import strobeyworks.rendernodes.configs.ActionControlConfig;
+import strobeyworks.pipeline.configs.ActionControlConfig;
 import strobeyworks.ui.components.UIButton;
 import strobeyworks.ui.core.UIColor;
 

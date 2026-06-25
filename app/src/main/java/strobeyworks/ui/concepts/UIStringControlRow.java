@@ -4,7 +4,7 @@ import static strobeyworks.ui.core.UILength.pch;
 import static strobeyworks.ui.core.UILength.pcw;
 import static strobeyworks.ui.core.UILength.px;
 
-import strobeyworks.rendernodes.configs.StringControlConfig;
+import strobeyworks.pipeline.configs.StringControlConfig;
 import strobeyworks.ui.components.input.field.UIStringField;
 import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIFont;

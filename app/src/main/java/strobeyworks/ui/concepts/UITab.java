@@ -1,7 +1,6 @@
 package strobeyworks.ui.concepts;
 
-import static strobeyworks.ui.core.UILength.pbh;
-import static strobeyworks.ui.core.UILength.pbw;
+import static strobeyworks.ui.core.UILength.pch;
 import static strobeyworks.ui.core.UILength.pcw;
 import static strobeyworks.ui.core.UILength.ppw;
 import static strobeyworks.ui.core.UILength.px;
@@ -9,7 +8,6 @@ import static strobeyworks.ui.core.UILength.px;
 import java.util.ArrayList;
 import java.util.List;
 
-import strobeyworks.logger.Logger;
 import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.primitives.UIElement;
@@ -69,15 +67,16 @@ public class UITab extends UIRectangle {
         tab.style("box", UIBoxMode.FLEX)
         .style("margin-left", px(20))
         .style("align-items", UIAlignItems.CENTER)
-        .focussable(true);
-
+        .style("min-height", pch(1.0f))
+        .clickable(true);
+        
         if (t==0) tab.style("margin-left", px(10));
         
         UIText text = new UIText(font, title);
         text.style("color", UIColor.rgb(0.7f))
         .style("opacity", 0.5f);
         
-        tab.onGotFocus(event -> {
+        tab.onClicked(event -> {
             setTab(tab);
         });
         
@@ -105,7 +104,7 @@ public class UITab extends UIRectangle {
         // Move follower
         follower.style("width", px(tab.getLocalWidth()))
         .style("offset-left", px(tab.getLocalX()))
-        .style("offset-top", px(tab.getLocalY()+tab.getLocalHeight()));
+        .style("offset-top", pch(0.9f));
         
         
         content.removeAllContentChildren();

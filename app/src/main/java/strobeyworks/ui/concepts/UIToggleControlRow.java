@@ -3,7 +3,7 @@ package strobeyworks.ui.concepts;
 import static strobeyworks.ui.core.UILength.pch;
 import static strobeyworks.ui.core.UILength.pcw;
 
-import strobeyworks.rendernodes.configs.BooleanControlConfig;
+import strobeyworks.pipeline.configs.BooleanControlConfig;
 import strobeyworks.ui.components.input.UIToggle;
 
 public class UIToggleControlRow extends UIDataRow {
