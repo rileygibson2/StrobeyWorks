@@ -9,5 +9,6 @@ public record FloatControlConfig (
     float max,
     int precision,
     float increment,
-    float defaultValue
+    float defaultValue,
+    boolean slider
 ) implements ControlConfig {}

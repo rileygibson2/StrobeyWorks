@@ -10,6 +10,9 @@ uniform float uTime;
 uniform float uSpeed;
 uniform int uGridSize;
 
+uniform float uSeedOffset;
+uniform float uSalt;
+
 uniform int uOctaves;
 uniform float uLacunarity;
 uniform float uPersistence;
@@ -34,7 +37,14 @@ uniform vec3 uColorHigh;
 // Produces a repeatable pseudo-random value between 0 and 1
 // for each integer grid coordinate.
 float hash(vec3 p) {
-    p = fract(p * vec3(123.34, 456.21, 789.56));
+    // Discrete salt: changes the hash identity.
+    vec3 saltVec = vec3(
+        fract(uSalt * 0.1031),
+        fract(uSalt * 0.1137),
+        fract(uSalt * 0.1371)
+    );
+
+    p = fract(p * vec3(123.34, 456.21, 789.56) + saltVec);
     p += dot(p, p.yzx + 45.32);
 
     return fract((p.x + p.y) * p.z);
@@ -149,6 +159,13 @@ void main() {
     vec3 position = vec3(
         vUV * uGridSize,
         uTime * uSpeed
+    );
+
+    // Seed offset
+    position += vec3(
+        uSeedOffset * 0.01,
+        uSeedOffset * 0.013,
+        uSeedOffset * 0.017
     );
 
     // Noise

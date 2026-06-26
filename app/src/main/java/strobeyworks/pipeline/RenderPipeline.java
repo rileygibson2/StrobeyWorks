@@ -1,12 +1,19 @@
 package strobeyworks.pipeline;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import strobeyworks.SWMain;
+import strobeyworks.pipeline.configs.RenderInputConfig;
+import strobeyworks.platform.Window;
+import strobeyworks.rendernodes.AgentNode;
+import strobeyworks.rendernodes.MixNode;
+import strobeyworks.rendernodes.PerlinNode;
+import strobeyworks.ui.core.UIRenderer;
+import strobeyworks.utils.Vec2;
+import strobeyworks.utils.Vec3;
 
 public class RenderPipeline {
     
@@ -28,6 +35,32 @@ public class RenderPipeline {
         allNodes = new HashSet<>();
         compiledOrder = new ArrayList<>();
         subscribers = new HashSet<>();
+    }
+
+    public void simulate() {
+        // Nodes
+        Window output = SWMain.getOutputWindow();
+        PerlinNode n1 = addNode(PerlinNode.class, output.getFramebufferWidth(), output.getFramebufferHeight());
+        n1.setUIAPosition(new Vec2(0, 0));
+        n1.setColorHigh(new Vec3(1f, 1f, 1f));
+
+        PerlinNode n4 = addNode(PerlinNode.class, output.getFramebufferWidth(), output.getFramebufferHeight());
+        n4.setUIAPosition(new Vec2(140, 200));
+        n4.setColorHigh(new Vec3(0f, 1f, 0f));
+        
+        RenderNode n2 = addNode(AgentNode.class, output.getFramebufferWidth(), output.getFramebufferHeight());
+        n2.setUIAPosition(new Vec2(100, 100));
+
+        UIRenderer.getInstance().setSelectedNode(n2);
+        setOutputtingNode(n2);
+
+        RenderNode n3 = addNode(MixNode.class, output.getFramebufferWidth(), output.getFramebufferHeight());
+        n3.setUIAPosition(new Vec2(200, 300));
+
+        // Connections
+        addRenderInput(n3, new RenderInputConfig(n1));
+        addRenderInput(n3, new RenderInputConfig(n2));
+        addRenderInput(n3, new RenderInputConfig(n4));
     }
 
     public void subscribe(RenderPipelineListener listener) {
@@ -78,26 +111,26 @@ public class RenderPipeline {
     public RenderNode getOutputtingNode() {
         return outputtingNode;
     }
+
+    public void handleNodeControlsChanged() {
+        for (RenderPipelineListener l : subscribers) l.nodeControlsChanged();
+    }
     
-    public boolean connectNodeInput(RenderNode inputNode, RenderNode destinationNode) {
-        if (inputNode==null||destinationNode==null||inputNode==destinationNode) return false;
-        destinationNode.addInputNode(inputNode);
+    public boolean addRenderInput(RenderNode destinationNode, RenderInputConfig config) {
+        if (config==null||destinationNode==null||config.node()==null) return false;
+        RenderNode input = config.node();
+
+        if (input==destinationNode) return false;
+        destinationNode.addRenderInput(config);
         
         if (!compile()) {
-            destinationNode.removeInputNode(inputNode);
+            destinationNode.removeRenderInput(config);
             return false;
         }
         return true;
     }
     
     public boolean disconnectNodeInput(RenderNode inputNode, RenderNode destinationNode) {
-        if (inputNode==null||destinationNode==null) return false;
-        destinationNode.removeInputNode(inputNode);
-        
-        if (!compile()) {
-            destinationNode.addInputNode(inputNode);
-            return false;
-        }
         return true;
     }
     
@@ -119,7 +152,7 @@ public class RenderPipeline {
         if (visiting.contains(n)) return false; // Loop detected
         visiting.add(n);
         
-        for (RenderNode i : n.getInputNodes()) {
+        for (RenderNode i : n.getDistinctInputNodes()) {
             if (!compileVisit(i, visiting, visited, order)) return false;
         }
         

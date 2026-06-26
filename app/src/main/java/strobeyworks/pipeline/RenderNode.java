@@ -1,5 +1,22 @@
 package strobeyworks.pipeline;
 
+import static org.lwjgl.opengl.GL11.GL_FLOAT;
+import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
+import static org.lwjgl.opengl.GL11.glDrawArrays;
+import static org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER;
+import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
+import static org.lwjgl.opengl.GL15.GL_TRIANGLES;
+import static org.lwjgl.opengl.GL15.glBindBuffer;
+import static org.lwjgl.opengl.GL15.glBufferData;
+import static org.lwjgl.opengl.GL15.glDeleteBuffers;
+import static org.lwjgl.opengl.GL15.glGenBuffers;
+import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
+import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
+import static org.lwjgl.opengl.GL30.glBindVertexArray;
+import static org.lwjgl.opengl.GL30.glDeleteVertexArrays;
+import static org.lwjgl.opengl.GL30.glDeleteBuffers;
+import static org.lwjgl.opengl.GL30.glGenVertexArrays;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -13,19 +30,25 @@ import strobeyworks.pipeline.InspectorItem.InspectorTab;
 import strobeyworks.pipeline.configs.ActionControlConfig;
 import strobeyworks.pipeline.configs.BooleanControlConfig;
 import strobeyworks.pipeline.configs.FloatControlConfig;
+import strobeyworks.pipeline.configs.RenderInputConfig;
+import strobeyworks.platform.ShaderManager;
 import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.BindableValueObserver;
 import strobeyworks.utils.Vec2;
 
 public abstract class RenderNode implements BindableValueObserver<Float> {
     
-    private final String id;
+    private final UUID id;
     private String typeName;
     private String shortName;
     private String customName;
     private RenderTarget renderTarget;
 
-    private Set<RenderNode> nodeInputs;
+    private int fullQuadVAO;
+    private int fullQuadVBO;
+
+    private List<RenderInputConfig> inputConfigs;
+    private int inputNodeCount;
 
     private int outputWidth;
     private int outputHeight;
@@ -42,7 +65,7 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
     private Integer pendingOutputHeight;
 
     public RenderNode(String typeName, String shortName) {
-        this.id = UUID.randomUUID().toString();
+        this.id = UUID.randomUUID();
         this.typeName = typeName;
         this.shortName = shortName;
         this.customName = "";
@@ -50,7 +73,8 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         this.outputWidth = -1;
         this.outputHeight = -1;
 
-        this.nodeInputs = new HashSet<>();
+        this.inputConfigs = new ArrayList<>();
+        inputNodeCount = 0;
 
         this.uiaPosition = new Vec2(0f);
 
@@ -61,6 +85,22 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         this.outputWidth = outputWidth;
         this.outputHeight = outputHeight;
         handleOutputResize();
+    }
+
+    protected void initialiseFullQuad() {
+        fullQuadVAO = glGenVertexArrays();
+        fullQuadVBO = glGenBuffers();
+        
+        glBindVertexArray(fullQuadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, fullQuadVBO);
+        
+        glBufferData(GL_ARRAY_BUFFER, ShaderManager.QUAD_VERTICES, GL_STATIC_DRAW);
+        
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 3 * Float.BYTES, 0);
+        glEnableVertexAttribArray(0);
+        
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
     @Override
@@ -87,17 +127,39 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         return renderTarget;
     }
 
-    protected void addInputNode(RenderNode inputNode) {
-        if (inputNode==this) return;
-        nodeInputs.add(inputNode);
+    protected abstract void renderInputAdded(RenderInputConfig config);
+
+    protected void addRenderInput(RenderInputConfig config) {
+        if (config==null) return;
+        if (config.node()==this) return;
+        inputConfigs.add(config);
+        countInputNodes();
+        renderInputAdded(config);
     }
 
-    protected void removeInputNode(RenderNode inputNode) {
-        nodeInputs.remove(inputNode);
+    protected void removeRenderInput(RenderInputConfig config) {
+        inputConfigs.remove(config);
+        countInputNodes();
     }
 
-    protected Set<RenderNode> getInputNodes() {
-        return Set.copyOf(nodeInputs);
+    private void countInputNodes() {
+        Set<RenderNode> nodes = new HashSet<>();
+        for (RenderInputConfig c : inputConfigs) nodes.add(c.node());
+        inputNodeCount =  nodes.size();
+    }
+
+    protected Set<RenderNode> getDistinctInputNodes() {
+        Set<RenderNode> nodes = new HashSet<>();
+        for (RenderInputConfig c : inputConfigs) nodes.add(c.node());
+        return nodes;
+    }
+
+    public int getInputNodeCount() {
+        return inputNodeCount;
+    }
+
+    protected List<RenderInputConfig> getInputConfigs() {
+        return inputConfigs;
     }
 
     public InspectorTab createInspectorTab(String name) {
@@ -115,8 +177,7 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         return group;
     }
 
-    public void addInspectorControl(InspectorControl control) {
-        InspectorGroup group = getLastInspectorGroup();
+    public void addInspectorControl(InspectorControl control, InspectorGroup group) {
         if (group==null) return;
         group.add(control);
     }
@@ -144,29 +205,57 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         float max,
         int precision,
         float increment,
-        float defaultValue
+        float defaultValue,
+        boolean slider
+    ) {
+        return addFloatControl(name, min, max, precision, increment, defaultValue, slider, getLastInspectorGroup());
+    }
+
+    protected BindableValue<Float> addFloatControl(
+        String name,
+        float min,
+        float max,
+        int precision,
+        float increment,
+        float defaultValue,
+        boolean slider,
+        InspectorGroup group
     ) {
         BindableValue<Float> binding = BindableValue.of(defaultValue);
-        addInspectorControl(new InspectorControl(new FloatControlConfig(name, binding, min, max, precision, increment, defaultValue)));
+        addInspectorControl(
+            new InspectorControl(
+                new FloatControlConfig(
+                    name,
+                    binding,
+                    min,
+                    max,
+                    precision,
+                    increment,
+                    defaultValue,
+                    slider
+                )
+            ),
+            group
+        );
         return binding;
     }
     
     protected BindableValue<Boolean> addBooleanControl(String name, boolean defaultValue) {
         BindableValue<Boolean> binding = BindableValue.of(defaultValue);
-        addInspectorControl(new InspectorControl(new BooleanControlConfig(name, binding, defaultValue)));
+        addInspectorControl(new InspectorControl(new BooleanControlConfig(name, binding, defaultValue)), getLastInspectorGroup());
         return binding;
     }
 
     protected void addActionControl(String name, String buttonText, Runnable action) {
-        addInspectorControl(new InspectorControl(new ActionControlConfig("Resize to window", "Run", this::resizeToOutputWindow)));
+        addInspectorControl(new InspectorControl(new ActionControlConfig("Resize to window", "Run", this::resizeToOutputWindow)), getLastInspectorGroup());
     }
 
     protected void setupControls() {
-        createInspectorTab("Sizing");
-        createInspectorGroup("Output Size");
+        createInspectorTab("Size");
+        createInspectorGroup("Output Texture");
         
-        widthControl = addFloatControl("Width", 1f, 10000, 0, 1f, 1500);
-        heightControl = addFloatControl("Height", 1f, 10000, 0, 1f, 900);
+        widthControl = addFloatControl("Width", 1f, 10000, 0, 1f, 1500, false);
+        heightControl = addFloatControl("Height", 1f, 10000, 0, 1f, 900, false);
         addActionControl("Resize to window", "Run", this::resizeToOutputWindow);
         
         widthControl.bind(this);
@@ -228,8 +317,8 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         return outputHeight;
     }
 
-    public String getID() {
-        return this.id;
+    public String getIDString() {
+        return this.id.toString();
     }
 
     public String getTypeName() {
@@ -248,7 +337,15 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         return Vec2.of(uiaPosition);
     }
 
+    public void bindAndDrawFullScreen() {
+        ShaderManager.getInstance().bindVAO(fullQuadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+
     public void cleanup() {
+        if (fullQuadVAO!=0) glDeleteVertexArrays(fullQuadVAO);
+        if (fullQuadVBO!=0) glDeleteBuffers(fullQuadVBO);
+
         if (renderTarget!=null) renderTarget.cleanup();
         handleCleanup();
     }

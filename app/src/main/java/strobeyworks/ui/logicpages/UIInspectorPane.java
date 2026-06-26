@@ -7,6 +7,7 @@ import static strobeyworks.ui.core.UILength.px;
 import strobeyworks.logger.Logger;
 import strobeyworks.pipeline.InspectorItem;
 import strobeyworks.pipeline.RenderNode;
+import strobeyworks.pipeline.RenderPipelineListener;
 import strobeyworks.pipeline.InspectorItem.InspectorControl;
 import strobeyworks.pipeline.InspectorItem.InspectorGroup;
 import strobeyworks.pipeline.InspectorItem.InspectorTab;
@@ -33,7 +34,7 @@ import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
 import strobeyworks.utils.BindableValue;
 
-public class UIInspectorPane extends UIRectangle {
+public class UIInspectorPane extends UIRectangle implements RenderPipelineListener {
     
     private RenderNode node;
     private UITab mainTab;
@@ -46,6 +47,14 @@ public class UIInspectorPane extends UIRectangle {
         style("align-content", UIAlignContent.CENTER);
         style("flow-direction", UIFlowDirection.COLUMN);
         style("color", UIColor.rgb(0.15f));
+    }
+
+    @Override
+    public void outputtingNodeChanged(RenderNode node) {}
+
+    @Override
+    public void nodeControlsChanged() {
+        loadRenderNode(node);
     }
     
     @Override
@@ -101,11 +110,11 @@ public class UIInspectorPane extends UIRectangle {
     private void buildPropertiesTab() {
         UIRectangle pane = UIRectFactory.fullContent_Collumn();
         pane.style("overflow-y", UIOverflowMode.SCROLL);
-        mainTab.addTab("Properties", pane);
+        mainTab.addTab("Props", pane);
         
         addHeadingLine(pane, "Identity");
         addControlRow(pane, new StringControlConfig("Node name", null, ""));
-        addBoringDataLine(pane, "Node ID", node.getID().substring(0, 25));
+        addBoringDataLine(pane, "Node ID", node.getIDString().substring(0, 25));
     }
     
     private void traverseInspectorTree(UIRectangle pane, InspectorItem item) {

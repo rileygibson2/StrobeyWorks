@@ -66,6 +66,7 @@ import java.util.function.Consumer;
 import strobeyworks.SWMain;
 import strobeyworks.pipeline.InspectorItem.InspectorGroup;
 import strobeyworks.pipeline.RenderNode;
+import strobeyworks.pipeline.configs.RenderInputConfig;
 import strobeyworks.platform.MidiManager;
 import strobeyworks.platform.MidiManager.MidiEvent;
 import strobeyworks.platform.MidiManager.MidiHandle;
@@ -89,7 +90,6 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
     private int agentVBORead;
     private int agentVAOWrite;
     private int agentVAORead;
-    private int fullQuadVAO;
     
     private int[] depositTextures = new int[2];
     private int[] depositFBOs = new int[2];
@@ -140,24 +140,28 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
     
     @Override
     protected void setupControls() {
-        super.setupControls();
-
+        createInspectorTab("Agents");
         createInspectorGroup("Turning");
-        sensorAngle = addFloatControl("Sensor Angle", 0.02f, 3f, 3, 0.1f, 0.6f);
-        sensorDistance = addFloatControl("Sensor Distance", 0f, 0.5f, 2, 0.01f, 0.01f);
-        turnSpeed = addFloatControl("Turn Speed", 0.2f, 20f, 2, 1f, 2f);
-        speed = addFloatControl("Speed", 0f, 0.5f, 2, 0.01f, 0.05f);
+        sensorAngle = addFloatControl("Sensor Angle", 0.02f, 3f, 3, 0.1f, 0.6f, true);
+        sensorDistance = addFloatControl("Sensor Distance", 0f, 0.5f, 2, 0.01f, 0.01f, true);
+        turnSpeed = addFloatControl("Turn Speed", 0.2f, 20f, 2, 1f, 2f, true);
+        speed = addFloatControl("Speed", 0f, 0.5f, 2, 0.01f, 0.05f, true);
         
         createInspectorGroup("Opacity");
-        diffusion = addFloatControl("Diffusion", 0f, 1.5f, 2, 0.01f, 0.1f);
-        decay = addFloatControl("Decay", 0f, 10f, 2, 1f, 4f);
-        opacityCuttoff = addFloatControl("Cuttoff", 0f, 1f, 2, 0.01f, 0f);
-        pheramoneContribution = addFloatControl("Contribution", 0f, 1f, 2, 0.01f, 1f);
+        diffusion = addFloatControl("Diffusion", 0f, 1.5f, 2, 0.01f, 0.1f, true);
+        decay = addFloatControl("Decay", 0f, 10f, 2, 1f, 4f, true);
+        opacityCuttoff = addFloatControl("Cuttoff", 0f, 1f, 2, 0.01f, 0f, true);
+        pheramoneContribution = addFloatControl("Contribution", 0f, 1f, 2, 0.01f, 1f, true);
         
         createInspectorGroup("Random");
-        randomTurnStrength = addFloatControl("Random Turn", 0f, 20f, 2, 0.01f, 0f);
-        randomSpeedStrength = addFloatControl("Random Speed", 0f, 2f, 2, 0.01f, 0f);
+        randomTurnStrength = addFloatControl("Random Turn", 0f, 20f, 2, 0.01f, 0f, true);
+        randomSpeedStrength = addFloatControl("Random Speed", 0f, 2f, 2, 0.01f, 0f, true);
+    
+        super.setupControls();
     }
+
+    @Override
+    protected void renderInputAdded(RenderInputConfig config) {}
     
     public void loadDefaultMidiMap() {
         MidiManager m = MidiManager.getInstance();
@@ -384,22 +388,6 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
     
-    private void initialiseFullQuad() {
-        fullQuadVAO = glGenVertexArrays();
-        int fullQuadVBO = glGenBuffers();
-        
-        glBindVertexArray(fullQuadVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, fullQuadVBO);
-        
-        glBufferData(GL_ARRAY_BUFFER, ShaderManager.QUAD_VERTICES, GL_STATIC_DRAW);
-        
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 3 * Float.BYTES, 0);
-        glEnableVertexAttribArray(0);
-        
-        glBindVertexArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-    }
-    
     @Override
     protected void handleOutputResize() {
         super.handleOutputResize();
@@ -518,8 +506,7 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
         sM.setUniformFloat("uDiffusion", diffusion.getValue());
         sM.setUniformFloat("uDecay", decay.getValue());
         
-        glBindVertexArray(fullQuadVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        bindAndDrawFullScreen();
         
         depositReadIndex = writeIndex;
     }
@@ -583,8 +570,7 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
         glBindTexture(GL_TEXTURE_2D, depositTextures[depositReadIndex]);
         sM.setUniformInt("uDepositTexture", 0);
         
-        glBindVertexArray(fullQuadVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        bindAndDrawFullScreen();
         
         glBindVertexArray(0);
         glBindTexture(GL_TEXTURE_2D, 0);

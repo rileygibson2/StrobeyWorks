@@ -14,7 +14,7 @@ public class UIFloatControlRow extends UIDataRow {
     
     public UIFloatControlRow(FloatControlConfig config) {
         super(config.name());
-
+        
         style("align-items", UIAlignItems.CENTER);
         style("color", UIColor.rgb(0.18f));
         
@@ -22,16 +22,19 @@ public class UIFloatControlRow extends UIDataRow {
         field.setMaxCharacters(10);
         field.style("width", pcw(0.3f))
         .style("height", pch(0.8f));
-        
-        UISlider slider = new UISlider(UIValueMapper.normalisedFloat(config.min(), config.max()));
-        slider.style("width", pcw(0.7f))
-        .style("height", pch(0.8f))
-        .style("margin-left", px(2));
-        
+
         field.bindTo(config.binding());
-        slider.bindTo(config.binding());
-        
         getValueArea().addChild(field);
-        getValueArea().addChild(slider);
+        
+        if (config.slider()) {
+            UISlider slider = new UISlider(UIValueMapper.normalisedFloat(config.min(), config.max()));
+            slider.style("width", pcw(0.7f))
+            .style("height", pch(0.8f))
+            .style("margin-left", px(2));
+
+            slider.bindTo(config.binding());
+            getValueArea().addChild(slider);
+        }
+        else field.style("width", pcw(0.9f));
     }
 }

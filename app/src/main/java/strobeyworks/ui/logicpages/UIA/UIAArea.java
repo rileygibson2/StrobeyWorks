@@ -45,6 +45,9 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
     public void outputtingNodeChanged(RenderNode node) {
         syncNodeVisuals();
     }
+
+    @Override
+    public void nodeControlsChanged() {}
     
     public void rebuildFromPipeline() {
         uiaNodes = new ArrayList<>();

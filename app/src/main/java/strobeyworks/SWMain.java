@@ -65,25 +65,11 @@ public class SWMain {
         
         // Pipeline
         pipeline = RenderPipeline.getInstance();
-        
-        // Nodes
-        simulate();
-        
+        pipeline.simulate();
         
         // UI initialise
         uiWindow.shareContextWith(outputWindow);
         uiWindow.initialise();
-    }
-    
-    private void simulate() {
-        RenderNode n = pipeline.addNode(PerlinNode.class, outputWindow.getFramebufferWidth(), outputWindow.getFramebufferHeight());
-        n.setUIAPosition(new Vec2(0, 0));
-        
-        n = pipeline.addNode(AgentNode.class, outputWindow.getFramebufferWidth(), outputWindow.getFramebufferHeight());
-        n.setUIAPosition(new Vec2(80, 80));
-        
-        UIRenderer.getInstance().setSelectedNode(n);
-        pipeline.setOutputtingNode(n);
     }
     
     public static void windowResized(Window window) {

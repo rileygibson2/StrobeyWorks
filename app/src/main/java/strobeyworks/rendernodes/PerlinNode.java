@@ -3,44 +3,26 @@ package strobeyworks.rendernodes;
 import static org.lwjgl.opengl.GL11.GL_BLEND;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
-import static org.lwjgl.opengl.GL11.GL_FLOAT;
-import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
 import static org.lwjgl.opengl.GL11.glClear;
 import static org.lwjgl.opengl.GL11.glClearColor;
 import static org.lwjgl.opengl.GL11.glDisable;
-import static org.lwjgl.opengl.GL11.glDrawArrays;
 import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
 import static org.lwjgl.opengl.GL13.glActiveTexture;
-import static org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER;
-import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
-import static org.lwjgl.opengl.GL15.glBufferData;
-import static org.lwjgl.opengl.GL15.glDeleteBuffers;
-import static org.lwjgl.opengl.GL15.glGenBuffers;
 import static org.lwjgl.opengl.GL20.glDeleteProgram;
-import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
-import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 import static org.lwjgl.opengl.GL30.GL_FRAMEBUFFER;
 import static org.lwjgl.opengl.GL30.glBindFramebuffer;
-import static org.lwjgl.opengl.GL30.glDeleteVertexArrays;
-import static org.lwjgl.opengl.GL30.glGenVertexArrays;
-
-import java.util.ArrayList;
 
 import strobeyworks.SWMain;
 import strobeyworks.pipeline.RenderNode;
-import strobeyworks.pipeline.InspectorItem.InspectorGroup;
-import strobeyworks.pipeline.InspectorItem.InspectorTab;
+import strobeyworks.pipeline.configs.RenderInputConfig;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.utils.BindableValue;
-import strobeyworks.utils.BindableValueObserver;
 import strobeyworks.utils.Utils;
 import strobeyworks.utils.Vec3;
 
 public class PerlinNode extends RenderNode {
     
     private int noiseProgram;
-    private int quadVAO;
-    private int quadVBO;
     
     private BindableValue<Float> speed;
     private BindableValue<Float> gridSize;
@@ -60,6 +42,9 @@ public class PerlinNode extends RenderNode {
     
     private BindableValue<Boolean> octaveTurbulence;
     private BindableValue<Float> turbulencePow;
+
+    private BindableValue<Float> seedOffset;
+    private BindableValue<Float> salt;
     
     private Vec3 colorLow;
     private Vec3 colorHigh;
@@ -73,30 +58,40 @@ public class PerlinNode extends RenderNode {
     
     @Override
     protected void setupControls() {
-        super.setupControls();
-          
         createInspectorTab("Structure");
         createInspectorGroup("Base");
-        speed = addFloatControl("Speed", 0f, 1f, 3, 0.05f, 0.5f);
-        gridSize = addFloatControl("Grid", 2f, 50f, 0, 1f, 10f);
-        octaves = addFloatControl("Octaves", 1f, 10f, 0, 1f, 1f);
-        gamma = addFloatControl("Gamma", 0f, 5f, 3, 0.1f, 1f);
-        gain = addFloatControl("Gain", 0f, 5f, 3, 0.1f, 1f);
+        speed = addFloatControl("Speed", 0f, 1f, 3, 0.05f, 0.5f, true);
+        gridSize = addFloatControl("Grid", 2f, 50f, 0, 1f, 10f, true);
+        octaves = addFloatControl("Octaves", 1f, 10f, 0, 1f, 1f, true);
+        gamma = addFloatControl("Gamma", 0f, 5f, 3, 0.1f, 4f, true);
+        gain = addFloatControl("Gain", 0f, 5f, 3, 0.1f, 4f, true);
+        createInspectorGroup("Seed");
+        seedOffset = addFloatControl("Offset", 0f, 100f, 0, 1f, 0f, true);
+        salt = addFloatControl("Salt", 0f, 9999f, 0, 1f, 0f, false);
         
         createInspectorTab("Processing");
         createInspectorGroup("Warp");
         warp = addBooleanControl("Warp", false);
-        warpStrength = addFloatControl("Strength", 0f, 3f, 3, 0.1f, 0f);
-        warpScale = addFloatControl("Scale", 0f, 3f, 3, 0.1f, 1f);
+        warpStrength = addFloatControl("Strength", 0f, 3f, 3, 0.1f, 0f, true);
+        warpScale = addFloatControl("Scale", 0f, 3f, 3, 0.1f, 1f, true);
         
         createInspectorGroup("Ridge");
         octaveRidge = addBooleanControl("Per Octave", false);
         postRidge = addBooleanControl("Post", false);
-        ridgePow = addFloatControl("Ridge Power", 0f, 5f, 3, 0.1f, 2f);
+        ridgePow = addFloatControl("Ridge Power", 0f, 5f, 3, 0.1f, 2f, true);
 
         createInspectorGroup("Turbulence");
         octaveTurbulence = addBooleanControl("Octave Turbulence", false);
-        turbulencePow = addFloatControl("Power", 0f, 5f, 3, 0.1f, 2f);
+        turbulencePow = addFloatControl("Power", 0f, 5f, 3, 0.1f, 2f, true);
+    
+        super.setupControls();
+    }
+
+    @Override
+    protected void renderInputAdded(RenderInputConfig config) {}
+
+    public void setColorHigh(Vec3 color) {
+        this.colorHigh = color;
     }
     
     @Override
@@ -107,17 +102,8 @@ public class PerlinNode extends RenderNode {
         
         // Shaders init
         noiseProgram = sM.createProgram("noise/perlinfbm.vert", "noise/perlinfbm.frag");
-        quadVAO = glGenVertexArrays();
-        quadVBO = glGenBuffers();
-        sM.bindVAO(quadVAO);
-        sM.bindVBO(quadVBO);
-        glBufferData(GL_ARRAY_BUFFER, ShaderManager.QUAD_VERTICES, GL_STATIC_DRAW);
-        
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 3 * Float.BYTES, 0);
-        glEnableVertexAttribArray(0);
-        
-        sM.bindVAO(0);
-        sM.bindVBO(0);
+        initialiseFullQuad();
+
         sM.useProgram(0);
     }
     
@@ -146,6 +132,8 @@ public class PerlinNode extends RenderNode {
         sM.setUniformInt("uGridSize", (int) gridSizeV);
         sM.setUniformFloat("uTime", SWMain.getTotalTime());
         sM.setUniformFloat("uSpeed", speed.getValue());
+        sM.setUniformFloat("uSeedOffset", seedOffset.getValue());
+        sM.setUniformFloat("uSalt", salt.getValue());
         
         double octaveV = Math.ceil(octaves.getValue());
         octaveV = Utils.clamp(1, 10, octaveV);
@@ -170,8 +158,7 @@ public class PerlinNode extends RenderNode {
         sM.setUniformVec3("uColorLow", colorLow);
         sM.setUniformVec3("uColorHigh", colorHigh);
         
-        sM.bindVAO(quadVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        bindAndDrawFullScreen();
         
         // Reset
         glActiveTexture(GL_TEXTURE0);
@@ -181,16 +168,6 @@ public class PerlinNode extends RenderNode {
     
     @Override
     protected void handleCleanup() {
-        if (quadVAO!=0) {
-            glDeleteVertexArrays(quadVAO);
-            quadVAO = 0;
-        }
-        
-        if (quadVBO!=0) {
-            glDeleteBuffers(quadVBO);
-            quadVBO = 0;
-        }
-        
         if (noiseProgram!=0) {
             glDeleteProgram(noiseProgram);
             noiseProgram = 0;
