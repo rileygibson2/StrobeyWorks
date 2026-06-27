@@ -1,13 +1,18 @@
 package strobeyworks.ui.logicpages.UIA;
 
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_L;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_S;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import strobeyworks.logger.Logger;
 import strobeyworks.pipeline.RenderNode;
 import strobeyworks.pipeline.RenderPipeline;
 import strobeyworks.pipeline.RenderPipelineListener;
 import strobeyworks.platform.IOEvent;
+import strobeyworks.ui.components.input.notifications.UIBanner.UIBannerMode;
 import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.ui.primitives.UIConnection;
@@ -33,6 +38,7 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
         
         wantsPointer(true);
         clickable(true);
+        focussable(true);
         
         style("color", UIColor.rgb(0.1f));
         style("overflow-x", UIOverflowMode.HIDDEN);
@@ -48,22 +54,53 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
 
     @Override
     public void nodeControlsChanged() {}
+
+    @Override
+    public void pipelineLoaded() {
+        rebuildFromPipeline();
+    }
+
+    @Override
+    public void pipelineSaved(String savedFileName) {
+        UIRenderer.getInstance().createBanner(UIBannerMode.SUCCESS, "Saved", "File: \""+savedFileName+"\"");
+    }
     
     public void rebuildFromPipeline() {
+        removeAllContentChildren();
+
         uiaNodes = new ArrayList<>();
         Set<RenderNode> nodes = RenderPipeline.getInstance().getAllNodes();
         
+        // Add nodes
         for (RenderNode node : nodes) {
             UIANode n = new UIANode(this, node);
             uiaNodes.add(n);
             addChild(n);
         }
-        
-        UIConnection c = new UIConnection(uiaNodes.get(0), uiaNodes.get(1));
-        addChildAtIndex(0, c); // behind nodes
+
+        // Add connections
+        for (RenderNode node : nodes) {
+            UIANode n1 = getUIForNode(node);
+            List<RenderNode> connections = node.getNodeConnections();
+
+            for (RenderNode connectingNode : connections) {
+                UIANode n2 = getUIForNode(connectingNode);
+                if (n2==null) continue;
+
+                UIConnection c = new UIConnection(n1, n2);
+                addChildAtIndex(0, c); 
+            }
+        }
         
         syncNodeVisuals();
         repositionElements();
+    }
+
+    private UIANode getUIForNode(RenderNode node) {
+        for (UIANode uiaNode : uiaNodes) {
+            if (uiaNode.getRenderNode()==node) return uiaNode;
+        }
+        return null;
     }
     
     public void syncNodeVisuals() {
@@ -89,8 +126,9 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
             selectedNode.style("border-color", UIColor.rgb(0.3f))
             .style("z-index", 0);
         }
+        UIRenderer.getInstance().getInspectorPane().loadRenderNode(node);
+
         if (node==null) return;
-        
         for (UIANode uiaNode : uiaNodes) {
             if (uiaNode.getRenderNode()==node) {
                 uiaNode.style("border-color", UIColor.rgb(0.3f, 0.5f, 0.3f))
@@ -98,8 +136,6 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
                 selectedNode = uiaNode;
             }
         }
-
-        UIRenderer.getInstance().getInspectorPane().loadRenderNode(node);
     }
     
     @Override
@@ -130,9 +166,18 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
             
             repositionElements();
             break;
+
+            case KEY_DOWN :
+            handleKeyDown(event.getKeyCode());
+            break;
             
             default:
             break;
         }
+    }
+    
+    private void handleKeyDown(int keyCode) {
+        if (keyCode == GLFW_KEY_S) RenderPipeline.getInstance().savePipelineToDisk();
+        if (keyCode == GLFW_KEY_L) RenderPipeline.getInstance().loadPipelineFromDisk();
     }
 }

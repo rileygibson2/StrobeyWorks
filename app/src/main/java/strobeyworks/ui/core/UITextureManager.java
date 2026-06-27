@@ -36,10 +36,7 @@ public class UITextureManager {
     private static final Map<String, UITexture> loaded = new HashMap<>();
     
     public static UITexture getUITexture(String textureName) {
-        UITexture tex = loaded.get(textureName);
-        if (tex==null) Logger.throwRuntimeException("UI texture not loaded: " + textureName);
-        
-        return tex;
+        return loaded.get(textureName);
     }
     
     public static void loadTexture(String fileName) {

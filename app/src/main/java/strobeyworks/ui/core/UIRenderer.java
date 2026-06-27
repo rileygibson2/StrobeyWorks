@@ -26,6 +26,7 @@ import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 import static strobeyworks.ui.core.UILength.pch;
 import static strobeyworks.ui.core.UILength.pcw;
+import static strobeyworks.ui.core.UILength.px;
 import static strobeyworks.ui.core.UILength.sh;
 import static strobeyworks.ui.core.UILength.sw;
 
@@ -38,13 +39,14 @@ import java.util.Set;
 
 import org.joml.Matrix4f;
 
-import strobeyworks.pipeline.RenderNode;
 import strobeyworks.platform.Animation;
 import strobeyworks.platform.IOEvent;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.platform.Transition;
 import strobeyworks.platform.WindowRenderer;
 import strobeyworks.ui.components.UIColorPicker;
+import strobeyworks.ui.components.input.notifications.UIBanner;
+import strobeyworks.ui.components.input.notifications.UIBanner.UIBannerMode;
 import strobeyworks.ui.components.popups.UIPopup;
 import strobeyworks.ui.logicpages.UIInspectorPane;
 import strobeyworks.ui.logicpages.UIA.UIAArea;
@@ -88,11 +90,11 @@ public class UIRenderer extends WindowRenderer {
     
     private UIPopup fullScreenPopup;
     private UIRectangle fullScreenPopupBG;
+
+    private UIBanner banner;
     
     private UIAArea uiaArea;
     private UIInspectorPane inspectorPane;
-    
-    private RenderNode selectedNode;
     
     public static UIRenderer getInstance() {
         if (instance==null) instance = new UIRenderer();
@@ -112,6 +114,8 @@ public class UIRenderer extends WindowRenderer {
         UITextureManager.loadTexture("light.png");
         UITextureManager.loadTexture("data.png");
         UITextureManager.loadTexture("close.png");
+
+        UITextureManager.loadTexture("tick_circle.png");
     }
     
     private void buildBase() {
@@ -134,10 +138,10 @@ public class UIRenderer extends WindowRenderer {
         addToRoot(base);
         
         uiaArea.rebuildFromPipeline();
-        inspectorPane.loadRenderNode(getSelectedNode());
+        inspectorPane.loadRenderNode(null);
     }
     
-    public UIAArea getUiaArea() {
+    public UIAArea getUIAArea() {
         return uiaArea;
     }
     
@@ -169,14 +173,6 @@ public class UIRenderer extends WindowRenderer {
         transitions.get(e).add(t);
     }
     
-    public void setSelectedNode(RenderNode node) {
-        this.selectedNode = node;
-    }
-    
-    public RenderNode getSelectedNode() {
-        return selectedNode;
-    }
-    
     public void createFullScreenPopup(UIPopup popup) {
         if (fullScreenPopup!=null) return;
         
@@ -199,6 +195,23 @@ public class UIRenderer extends WindowRenderer {
         fullScreenPopup = popup;
         rootElement.addChild(fullScreenPopupBG);
         rootElement.addChild(fullScreenPopup);
+    }
+
+    public void createBanner(UIBannerMode mode, String title, String message) {
+        if (banner!=null) rootElement.removeChild(banner);
+
+        banner = new UIBanner(mode, title, message);
+        banner.style("z-index", 999)
+        .style("offset-left", px(20));
+        addToRoot(banner);
+
+        banner.fadeOut(2);
+    }
+
+    public void removeBanner(UIBanner banner) {
+        if (banner==null) return;
+        rootElement.removeChild(banner);
+        this.banner = null;
     }
     
     @Override
@@ -396,14 +409,18 @@ public class UIRenderer extends WindowRenderer {
     
     @Override
     public void update() {
-        // Animations and transitions
+        // Animations
         for (Animation a : animations) a.trigger();
         
+        // Transitions
         for (Map.Entry<UIElement, Set<Transition>> entry : transitions.entrySet()) {
             for (Transition t : entry.getValue()) t.update();
             entry.getValue().removeIf(e -> e.isComplete()||e.isInterrupted());
         }
         transitions.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+
+        // Opacity
+        if (rootElement.isOpacityDirty()) rootElement.updateEffectiveOpacity(1f);
         
         // Layout
         if (rootElement.isLayoutDirty()) layout();

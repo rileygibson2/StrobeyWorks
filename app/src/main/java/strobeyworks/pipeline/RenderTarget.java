@@ -26,22 +26,21 @@ import static org.lwjgl.opengl.GL30.glFramebufferTexture2D;
 import static org.lwjgl.opengl.GL30.glGenFramebuffers;
 
 import strobeyworks.logger.Logger;
+import strobeyworks.utils.Vec2I;
 
 public class RenderTarget {
     
     private final int fbo;
     private final int texture;
-    private int width;
-    private int height;
+    private Vec2I dimensions;
     
-    private RenderTarget(int fbo, int texture, int width, int height) {
+    private RenderTarget(int fbo, int texture, Vec2I dimensions) {
         this.fbo = fbo;
         this.texture = texture;
-        this.width = width;
-        this.height = height;
+        this.dimensions = Vec2I.of(dimensions);
     }
     
-    public static RenderTarget texture(int width, int height) {
+    public static RenderTarget texture(Vec2I dimensions) {
         int texture = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, texture);
         
@@ -49,8 +48,8 @@ public class RenderTarget {
             GL_TEXTURE_2D,
             0,
             GL_RGBA,
-            width,
-            height,
+            dimensions.x,
+            dimensions.y,
             0,
             GL_RGBA,
             GL_UNSIGNED_BYTE,
@@ -82,20 +81,19 @@ public class RenderTarget {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glBindTexture(GL_TEXTURE_2D, 0);
         
-        return new RenderTarget(fbo, texture, width, height);
+        return new RenderTarget(fbo, texture, dimensions);
     }
     
-    public void resize(int width, int height) {
-        this.width = width;
-        this.height = height;
+    public void resize(Vec2I dimensions) {
+        this. dimensions = dimensions;
         
         glBindTexture(GL_TEXTURE_2D, texture);
         glTexImage2D(
             GL_TEXTURE_2D,
             0,
             GL_RGBA,
-            width,
-            height,
+            dimensions.x,
+            dimensions.y,
             0,
             GL_RGBA,
             GL_UNSIGNED_BYTE,
@@ -106,7 +104,7 @@ public class RenderTarget {
     
     public void bind() {
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-        glViewport(0, 0, width, height);
+        glViewport(0, 0, dimensions.x, dimensions.y);
     }
     
     public void cleanup() {   
@@ -123,11 +121,7 @@ public class RenderTarget {
         return texture;
     }
     
-    public int getWidth() {
-        return width;
-    }
-    
-    public int getHeight() {
-        return height;
+    public Vec2I getDimensions() {
+        return dimensions;
     }
 }

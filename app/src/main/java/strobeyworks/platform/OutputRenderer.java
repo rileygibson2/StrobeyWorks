@@ -28,6 +28,7 @@ import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 
 import strobeyworks.pipeline.RenderTarget;
 import strobeyworks.utils.Vec2;
+import strobeyworks.utils.Vec2I;
 
 public class OutputRenderer extends WindowRenderer {
     
@@ -68,7 +69,8 @@ public class OutputRenderer extends WindowRenderer {
         if (source == null) return;
         
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glViewport(0, 0, getParentWindow().getFramebufferWidth(), getParentWindow().getFramebufferHeight());
+        Vec2I d = getParentWindow().getFramebufferDimensions();
+        glViewport(0, 0, d.x, d.y);
         
         glDisable(GL_BLEND);
         glDisable(GL_DEPTH_TEST);
@@ -84,8 +86,10 @@ public class OutputRenderer extends WindowRenderer {
         glBindTexture(GL_TEXTURE_2D, source.getTexture());
         sM.setUniformInt("uTexture", 0);
         
-        float scaleX = (float) source.getWidth() / getParentWindow().getFramebufferWidth();
-        float scaleY = (float) source.getHeight() / getParentWindow().getFramebufferHeight();
+        Vec2I sourceD = source.getDimensions();
+        Vec2I windowD = getParentWindow().getFramebufferDimensions();
+        float scaleX = (float) sourceD.x/windowD.x;
+        float scaleY = (float) sourceD.y/windowD.y;
         sM.setUniformVec2("uScale", new Vec2(scaleX, scaleY));
         
         glBindVertexArray(vao);

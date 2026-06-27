@@ -2,6 +2,7 @@ package strobeyworks.ui.primitives;
 
 import static strobeyworks.ui.core.UILength.px;
 
+import strobeyworks.pipeline.RenderNode;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIRenderer;

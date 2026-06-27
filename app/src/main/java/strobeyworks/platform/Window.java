@@ -3,7 +3,9 @@ package strobeyworks.platform;
 import static org.lwjgl.glfw.GLFW.GLFW_CONTEXT_VERSION_MAJOR;
 import static org.lwjgl.glfw.GLFW.GLFW_CONTEXT_VERSION_MINOR;
 import static org.lwjgl.glfw.GLFW.GLFW_FALSE;
+import static org.lwjgl.glfw.GLFW.GLFW_FLOATING;
 import static org.lwjgl.glfw.GLFW.GLFW_OPENGL_CORE_PROFILE;
+import static org.lwjgl.glfw.GLFW.GLFW_OPENGL_FORWARD_COMPAT;
 import static org.lwjgl.glfw.GLFW.GLFW_OPENGL_PROFILE;
 import static org.lwjgl.glfw.GLFW.GLFW_RESIZABLE;
 import static org.lwjgl.glfw.GLFW.GLFW_TRUE;
@@ -17,7 +19,6 @@ import static org.lwjgl.glfw.GLFW.glfwGetPrimaryMonitor;
 import static org.lwjgl.glfw.GLFW.glfwGetVideoMode;
 import static org.lwjgl.glfw.GLFW.glfwInit;
 import static org.lwjgl.glfw.GLFW.glfwMakeContextCurrent;
-import static org.lwjgl.glfw.GLFW.glfwPollEvents;
 import static org.lwjgl.glfw.GLFW.glfwSetErrorCallback;
 import static org.lwjgl.glfw.GLFW.glfwSetFramebufferSizeCallback;
 import static org.lwjgl.glfw.GLFW.glfwSetWindowPos;
@@ -25,19 +26,12 @@ import static org.lwjgl.glfw.GLFW.glfwSetWindowTitle;
 import static org.lwjgl.glfw.GLFW.glfwShowWindow;
 import static org.lwjgl.glfw.GLFW.glfwSwapBuffers;
 import static org.lwjgl.glfw.GLFW.glfwSwapInterval;
-import static org.lwjgl.glfw.GLFW.glfwTerminate;
 import static org.lwjgl.glfw.GLFW.glfwWindowHint;
 import static org.lwjgl.glfw.GLFW.glfwWindowShouldClose;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
 import static org.lwjgl.opengl.GL11.glEnable;
 import static org.lwjgl.opengl.GL11.glViewport;
 import static org.lwjgl.system.MemoryUtil.NULL;
-import static org.lwjgl.glfw.GLFW.GLFW_FLOATING;
-import static org.lwjgl.glfw.GLFW.GLFW_TRUE;
-import static org.lwjgl.glfw.GLFW.GLFW_FALSE;
-import static org.lwjgl.glfw.GLFW.glfwWindowHint;
-import static org.lwjgl.glfw.GLFW.GLFW_OPENGL_FORWARD_COMPAT;
-
 
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
@@ -48,6 +42,8 @@ import strobeyworks.logger.LogColor;
 import strobeyworks.logger.LogColorEnum;
 import strobeyworks.logger.Logger;
 import strobeyworks.platform.IOEvent.IOEventType;
+import strobeyworks.utils.Vec2;
+import strobeyworks.utils.Vec2I;
 
 
 @LogColor(LogColorEnum.PURPLE)
@@ -57,8 +53,7 @@ public class Window {
     private long windowID;
     private int width;
     private int height;
-    private int framebufferWidth;
-    private int framebufferHeight;
+    private Vec2I framebufferDimensons;
     private GLCapabilities capabilities;
     
     private IO io;
@@ -186,15 +181,13 @@ public class Window {
         int[] fbHeight = new int[1];
         glfwGetFramebufferSize(windowID, fbWidth, fbHeight);
         
-        framebufferWidth = fbWidth[0];
-        framebufferHeight = fbHeight[0];
+        framebufferDimensons = new Vec2I(fbWidth[0], fbHeight[0]);
         
-        glViewport(0, 0, framebufferWidth, framebufferHeight);
+        glViewport(0, 0, framebufferDimensons.x, framebufferDimensons.y);
         
         // Handle resize
         glfwSetFramebufferSizeCallback(windowID, (win, w, h) -> {
-            framebufferWidth = w;
-            framebufferHeight = h;
+            framebufferDimensons = new Vec2I(w, h);
             SWMain.windowResized(this);
             if (renderer!=null) renderer.handleWindowResize();
         });
@@ -221,7 +214,7 @@ public class Window {
         // Make this window's context current
         glfwMakeContextCurrent(windowID);
         GL.setCapabilities(capabilities);
-        glViewport(0, 0, framebufferWidth, framebufferHeight);
+        glViewport(0, 0, framebufferDimensons.x, framebufferDimensons.y);
         
         // FPS calcs
         if (fpsTimer >= 1.0) {
@@ -256,9 +249,7 @@ public class Window {
     
     public int getHeight() {return height;}
     
-    public int getFramebufferWidth() {return framebufferWidth;}
-    
-    public int getFramebufferHeight() {return framebufferHeight;}
+    public Vec2I getFramebufferDimensions() {return framebufferDimensons;}
     
     public float getAspectRatio() {return (float) width/(float) height;} 
     

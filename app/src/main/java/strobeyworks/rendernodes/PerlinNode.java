@@ -12,12 +12,16 @@ import static org.lwjgl.opengl.GL20.glDeleteProgram;
 import static org.lwjgl.opengl.GL30.GL_FRAMEBUFFER;
 import static org.lwjgl.opengl.GL30.glBindFramebuffer;
 
+import java.util.List;
+import java.util.UUID;
+
 import strobeyworks.SWMain;
 import strobeyworks.pipeline.RenderNode;
 import strobeyworks.pipeline.configs.RenderInputConfig;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.Utils;
+import strobeyworks.utils.Vec2I;
 import strobeyworks.utils.Vec3;
 
 public class PerlinNode extends RenderNode {
@@ -50,7 +54,11 @@ public class PerlinNode extends RenderNode {
     private Vec3 colorHigh;
     
     public PerlinNode() {
-        super("Perlin-Noise", "perlin");
+        this(UUID.randomUUID());
+    }
+    
+    public PerlinNode(UUID id) {
+        super(id, "Perlin-Noise", "perlin");
         
         this.colorLow = new Vec3(0f, 0f, 0f);
         this.colorHigh = new Vec3(1f, 0f, 0.8f);
@@ -58,29 +66,29 @@ public class PerlinNode extends RenderNode {
     
     @Override
     protected void setupControls() {
-        createInspectorTab("Structure");
-        createInspectorGroup("Base");
+        createControlTab("Structure");
+        createControlGroup("Base");
         speed = addFloatControl("Speed", 0f, 1f, 3, 0.05f, 0.5f, true);
         gridSize = addFloatControl("Grid", 2f, 50f, 0, 1f, 10f, true);
         octaves = addFloatControl("Octaves", 1f, 10f, 0, 1f, 1f, true);
         gamma = addFloatControl("Gamma", 0f, 5f, 3, 0.1f, 4f, true);
         gain = addFloatControl("Gain", 0f, 5f, 3, 0.1f, 4f, true);
-        createInspectorGroup("Seed");
+        createControlGroup("Seed");
         seedOffset = addFloatControl("Offset", 0f, 100f, 0, 1f, 0f, true);
         salt = addFloatControl("Salt", 0f, 9999f, 0, 1f, 0f, false);
         
-        createInspectorTab("Processing");
-        createInspectorGroup("Warp");
+        createControlTab("Processing");
+        createControlGroup("Warp");
         warp = addBooleanControl("Warp", false);
         warpStrength = addFloatControl("Strength", 0f, 3f, 3, 0.1f, 0f, true);
         warpScale = addFloatControl("Scale", 0f, 3f, 3, 0.1f, 1f, true);
         
-        createInspectorGroup("Ridge");
+        createControlGroup("Ridge");
         octaveRidge = addBooleanControl("Per Octave", false);
         postRidge = addBooleanControl("Post", false);
         ridgePow = addFloatControl("Ridge Power", 0f, 5f, 3, 0.1f, 2f, true);
 
-        createInspectorGroup("Turbulence");
+        createControlGroup("Turbulence");
         octaveTurbulence = addBooleanControl("Octave Turbulence", false);
         turbulencePow = addFloatControl("Power", 0f, 5f, 3, 0.1f, 2f, true);
     
@@ -95,8 +103,8 @@ public class PerlinNode extends RenderNode {
     }
     
     @Override
-    public void initialise(int outputWidth, int outputHeight) {
-        super.initialise(outputWidth, outputHeight);
+    public void initialise(Vec2I dimensions) {
+        super.initialise(dimensions);
         
         ShaderManager sM = ShaderManager.getInstance();
         

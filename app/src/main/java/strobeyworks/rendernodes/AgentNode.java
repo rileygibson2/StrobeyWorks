@@ -15,7 +15,6 @@ import static org.lwjgl.opengl.GL11.GL_TEXTURE_MAG_FILTER;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_MIN_FILTER;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_S;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_T;
-import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
 import static org.lwjgl.opengl.GL11.glBindTexture;
 import static org.lwjgl.opengl.GL11.glBlendFunc;
 import static org.lwjgl.opengl.GL11.glClear;
@@ -34,7 +33,6 @@ import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
 import static org.lwjgl.opengl.GL13.glActiveTexture;
 import static org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER;
 import static org.lwjgl.opengl.GL15.GL_DYNAMIC_COPY;
-import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
 import static org.lwjgl.opengl.GL15.glBindBuffer;
 import static org.lwjgl.opengl.GL15.glBufferData;
 import static org.lwjgl.opengl.GL15.glDeleteBuffers;
@@ -59,12 +57,12 @@ import static org.lwjgl.opengl.GL30.glFramebufferTexture2D;
 import static org.lwjgl.opengl.GL30.glGenFramebuffers;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 import strobeyworks.SWMain;
-import strobeyworks.pipeline.InspectorItem.InspectorGroup;
 import strobeyworks.pipeline.RenderNode;
 import strobeyworks.pipeline.configs.RenderInputConfig;
 import strobeyworks.platform.MidiManager;
@@ -77,6 +75,7 @@ import strobeyworks.utils.BindableList;
 import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.Utils;
 import strobeyworks.utils.Vec2;
+import strobeyworks.utils.Vec2I;
 import strobeyworks.utils.Vec3;
 
 public class AgentNode extends RenderNode implements MidiSubscriber {
@@ -117,9 +116,12 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
     
     private HashMap<MidiHandle, Consumer<MidiEvent>> midiHandleMap;
     
-    
     public AgentNode() {
-        super("Species-Agents", "agent");
+        this(UUID.randomUUID());
+    }
+    
+    public AgentNode(UUID id) {
+        super(id, "Species-Agents", "agent");
         
         //loadDefaults();
         
@@ -140,20 +142,20 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
     
     @Override
     protected void setupControls() {
-        createInspectorTab("Agents");
-        createInspectorGroup("Turning");
+        createControlTab("Agents");
+        createControlGroup("Turning");
         sensorAngle = addFloatControl("Sensor Angle", 0.02f, 3f, 3, 0.1f, 0.6f, true);
         sensorDistance = addFloatControl("Sensor Distance", 0f, 0.5f, 2, 0.01f, 0.01f, true);
         turnSpeed = addFloatControl("Turn Speed", 0.2f, 20f, 2, 1f, 2f, true);
         speed = addFloatControl("Speed", 0f, 0.5f, 2, 0.01f, 0.05f, true);
         
-        createInspectorGroup("Opacity");
+        createControlGroup("Opacity");
         diffusion = addFloatControl("Diffusion", 0f, 1.5f, 2, 0.01f, 0.1f, true);
         decay = addFloatControl("Decay", 0f, 10f, 2, 1f, 4f, true);
         opacityCuttoff = addFloatControl("Cuttoff", 0f, 1f, 2, 0.01f, 0f, true);
         pheramoneContribution = addFloatControl("Contribution", 0f, 1f, 2, 0.01f, 1f, true);
         
-        createInspectorGroup("Random");
+        createControlGroup("Random");
         randomTurnStrength = addFloatControl("Random Turn", 0f, 20f, 2, 0.01f, 0f, true);
         randomSpeedStrength = addFloatControl("Random Speed", 0f, 2f, 2, 0.01f, 0f, true);
     
@@ -222,8 +224,8 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
     }
     
     @Override
-    public void initialise(int outputWidth, int outputHeight) {
-        super.initialise(outputWidth, outputHeight);
+    public void initialise(Vec2I dimensions) {
+        super.initialise(dimensions);
         ShaderManager sM = ShaderManager.getInstance();
         
         float[] agents = initialiseAgents();

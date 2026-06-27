@@ -1,29 +1,40 @@
 package strobeyworks.pipeline;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import strobeyworks.SWMain;
+import strobeyworks.logger.Logger;
+import strobeyworks.pipeline.RenderNode.RenderInputState;
+import strobeyworks.pipeline.RenderNode.RenderNodeState;
 import strobeyworks.pipeline.configs.RenderInputConfig;
-import strobeyworks.platform.Window;
+import strobeyworks.platform.JSONManager;
 import strobeyworks.rendernodes.AgentNode;
 import strobeyworks.rendernodes.MixNode;
 import strobeyworks.rendernodes.PerlinNode;
 import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.utils.Vec2;
+import strobeyworks.utils.Vec2I;
 import strobeyworks.utils.Vec3;
 
 public class RenderPipeline {
+    
+    public record RenderPipelineState(
+        List<RenderNodeState> nodes,
+        String outputtingNodeID
+    ) {}
     
     private static RenderPipeline instance;
     
     private Set<RenderNode> allNodes;
     private List<RenderNode> compiledOrder;
-
+    
     private RenderNode outputtingNode;
-
+    
     private Set<RenderPipelineListener> subscribers;
     
     public static RenderPipeline getInstance() {
@@ -36,58 +47,53 @@ public class RenderPipeline {
         compiledOrder = new ArrayList<>();
         subscribers = new HashSet<>();
     }
-
+    
     public void simulate() {
+        Vec2I d = SWMain.getOutputWindow().getFramebufferDimensions();
+        
         // Nodes
-        Window output = SWMain.getOutputWindow();
-        PerlinNode n1 = addNode(PerlinNode.class, output.getFramebufferWidth(), output.getFramebufferHeight());
+        PerlinNode n1 = addNode(PerlinNode.class, d);
         n1.setUIAPosition(new Vec2(0, 0));
         n1.setColorHigh(new Vec3(1f, 1f, 1f));
-
-        PerlinNode n4 = addNode(PerlinNode.class, output.getFramebufferWidth(), output.getFramebufferHeight());
+        
+        PerlinNode n4 = addNode(PerlinNode.class, d);
         n4.setUIAPosition(new Vec2(140, 200));
         n4.setColorHigh(new Vec3(0f, 1f, 0f));
         
-        RenderNode n2 = addNode(AgentNode.class, output.getFramebufferWidth(), output.getFramebufferHeight());
+        RenderNode n2 = addNode(AgentNode.class, d);
         n2.setUIAPosition(new Vec2(100, 100));
 
-        UIRenderer.getInstance().setSelectedNode(n2);
         setOutputtingNode(n2);
-
-        RenderNode n3 = addNode(MixNode.class, output.getFramebufferWidth(), output.getFramebufferHeight());
+        
+        RenderNode n3 = addNode(MixNode.class, d);
         n3.setUIAPosition(new Vec2(200, 300));
-
+        
         // Connections
-        addRenderInput(n3, new RenderInputConfig(n1));
-        addRenderInput(n3, new RenderInputConfig(n2));
-        addRenderInput(n3, new RenderInputConfig(n4));
+        addInputToNode(n3, new RenderInputConfig(n1));
+        addInputToNode(n3, new RenderInputConfig(n2));
+        addInputToNode(n3, new RenderInputConfig(n4));
     }
-
+    
     public void subscribe(RenderPipelineListener listener) {
         subscribers.add(listener);
     }
-
+    
     public void unsubscribe(RenderPipelineListener listener) {
         subscribers.remove(listener);
     }
     
-    public <T extends RenderNode> T addNode(Class<T> nodeClass, int width, int height) {
-        T node = null;
-        try {
-            node = nodeClass.getDeclaredConstructor().newInstance();
-            allNodes.add(node);
-            if (!compile()) throw new RuntimeException("Failed to create render node: compile failed");
-
-            node.setupControls();
-            RenderTarget target = RenderTarget.texture(width, height);
-            node.setCustomName(node.getShortName()+(countNodesOfType(nodeClass)));
-            node.setRenderTarget(target);
-            node.initialise(width, height);
-            
-            return node;
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Failed to create render node: " + nodeClass.getName(), e);
-        }
+    public <T extends RenderNode> T addNode(Class<T> nodeClass, Vec2I dimensions) {
+        T node = RenderNode.getNode(nodeClass);
+        allNodes.add(node);
+        if (!compile()) throw new RuntimeException("Failed to create render node: compile failed");
+        
+        node.setupControls();
+        RenderTarget target = RenderTarget.texture(dimensions);
+        node.setCustomName(node.getShortName()+(countNodesOfType(nodeClass)));
+        node.setRenderTarget(target);
+        node.initialise(dimensions);
+        
+        return node;
     }
     
     public int countNodesOfType(Class<? extends RenderNode> type) {
@@ -95,11 +101,11 @@ public class RenderPipeline {
         .filter(type::isInstance)
         .count();
     }
-
+    
     public Set<RenderNode> getAllNodes() {
         return Set.copyOf(allNodes);
     }
-
+    
     public void setOutputtingNode(RenderNode node) {
         if (node==null) return;
         outputtingNode = node;
@@ -107,25 +113,24 @@ public class RenderPipeline {
         
         for (RenderPipelineListener l : subscribers) l.outputtingNodeChanged(node);
     }
-
+    
     public RenderNode getOutputtingNode() {
         return outputtingNode;
     }
-
+    
     public void handleNodeControlsChanged() {
         for (RenderPipelineListener l : subscribers) l.nodeControlsChanged();
     }
     
-    public boolean addRenderInput(RenderNode destinationNode, RenderInputConfig config) {
-        if (config==null||destinationNode==null||config.node()==null) return false;
+    public boolean addInputToNode(RenderNode node, RenderInputConfig config) {
+        if (config==null||node==null||config.node()==null) return false;
         RenderNode input = config.node();
-
-        if (input==destinationNode) return false;
-        destinationNode.addRenderInput(config);
+        
+        if (input==node) return false;
+        node.addInput(config);
         
         if (!compile()) {
-            destinationNode.removeRenderInput(config);
-            return false;
+            throw new RuntimeException("Render pipeline would not compile");
         }
         return true;
     }
@@ -142,7 +147,7 @@ public class RenderPipeline {
         for (RenderNode n : allNodes) {
             if (!compileVisit(n, visiting, visited, newCompiledOrder)) return false;
         }
-
+        
         compiledOrder = newCompiledOrder;
         return true;
     }
@@ -162,12 +167,93 @@ public class RenderPipeline {
         
         return true;
     }
+    
+    public void savePipelineToDisk() {
+        Logger.info("Saving pipeline to disk");
+        RenderPipelineState state = getState();
+        JSONManager.savePipelineState("test1.show", state);
 
+        for (RenderPipelineListener l : subscribers) l.pipelineSaved("test1.show");
+    }
+    
+    public void loadPipelineFromDisk() {
+        Logger.info("Loading pipeline from disk");
+        RenderPipelineState state = JSONManager.loadPipelineState("test1.show");
+        
+        configureFromState(state);
+    }
+    
+    public RenderPipelineState getState() {
+        List<RenderNodeState> nodeStates = new ArrayList<>();
+        for (RenderNode n : allNodes) nodeStates.add(n.getState());
+        
+        return new RenderPipelineState(
+            nodeStates,
+            outputtingNode.getIDString()
+        );
+    }
+    
+    public void configureFromState(RenderPipelineState state) {
+        // Clear state
+        cleanup();
+        allNodes = new HashSet<>();
+        compiledOrder = new ArrayList<>();
+        outputtingNode = null;
+        
+        // Create all nodes
+        Vec2I dimensions = SWMain.getOutputWindow().getFramebufferDimensions();
+        Map<String, RenderNode> loadedNodes = new HashMap<>();
+        
+        for (RenderNodeState nodeState : state.nodes()) {
+            RenderNode node = RenderNode.loadFromState(nodeState);
+            
+            allNodes.add(node);
+            node.setupControls();
+            RenderTarget target = RenderTarget.texture(dimensions);
+            node.setRenderTarget(target);
+            node.initialise(dimensions);
+            
+            loadedNodes.put(nodeState.id(), node);
+        }
+        
+        // Link inputs
+        for (RenderNodeState nodeState : state.nodes()) {
+            RenderNode destination = loadedNodes.get(nodeState.id());
+            if (destination == null || nodeState.inputs() == null) continue;
+            
+            for (RenderInputState inputState : nodeState.inputs()) {
+                RenderNode source = loadedNodes.get(inputState.nodeID());
+                if (source == null) continue;
+
+                addInputToNode(destination, new RenderInputConfig(source));
+            }
+        }
+        
+        // Apply controls to nodes
+        for (RenderNodeState nodeState : state.nodes()) {
+            RenderNode node = loadedNodes.get(nodeState.id());
+            if (node==null) continue;
+            node.applyControlStates(nodeState.controls());
+        }
+        
+        // Apply pipeline settings
+        for (RenderNode n : allNodes) {
+            if (n.hasSameID(state.outputtingNodeID)) setOutputtingNode(n);
+        }
+        
+        // Compile
+        if (!compile()) {
+            throw new RuntimeException("Pipeline state could not be loaded - compile error");
+        }
+        
+        for (RenderPipelineListener l : subscribers) l.pipelineLoaded();
+    }
+    
     public void iterate() {
         for (RenderNode n : compiledOrder) n.update();
         for (RenderNode n : compiledOrder) n.render();
     }
-
+    
     public void cleanup() {
         for (RenderNode n : allNodes) n.cleanup();
     }

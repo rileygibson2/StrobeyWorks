@@ -1,6 +1,7 @@
 package strobeyworks.pipeline.configs;
 
 import strobeyworks.pipeline.RenderNode;
+import strobeyworks.pipeline.RenderNode.RenderInputState;
 
 public final record RenderInputConfig(
     RenderNode node,
@@ -18,4 +19,8 @@ public final record RenderInputConfig(
     }
 
     public RenderInputConfig(RenderNode node) {this(node, TextureInputMode.UNNECESSARY, 0);}
+
+    public RenderInputState getState() {
+        return new RenderInputState(node.getIDString());
+    }
 }

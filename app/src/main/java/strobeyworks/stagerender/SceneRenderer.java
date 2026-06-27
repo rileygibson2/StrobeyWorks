@@ -29,17 +29,18 @@ import org.joml.Matrix4f;
 import strobeyworks.SWMain;
 import strobeyworks.platform.Animation;
 import strobeyworks.platform.IOEvent;
-import strobeyworks.platform.WindowRenderer;
 import strobeyworks.platform.ShaderManager;
+import strobeyworks.platform.WindowRenderer;
 import strobeyworks.stagerender.lightsources.DirectionalLight;
 import strobeyworks.stagerender.lightsources.LightSource;
 import strobeyworks.stagerender.lightsources.SpotLight;
 import strobeyworks.stagerender.object.Mesh;
-import strobeyworks.stagerender.object.SceneObject;
 import strobeyworks.stagerender.object.Mesh.MeshType;
+import strobeyworks.stagerender.object.SceneObject;
 import strobeyworks.stagerender.scenes.Scene;
 import strobeyworks.stagerender.scenes.WorkingScene;
 import strobeyworks.utils.MeshStatics;
+import strobeyworks.utils.Vec2I;
 import strobeyworks.utils.Vec3;
 
 public class SceneRenderer extends WindowRenderer {
@@ -223,7 +224,8 @@ public class SceneRenderer extends WindowRenderer {
         
         //Reset
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        sM.assertViewport(getParentWindow().getFramebufferWidth(), getParentWindow().getFramebufferHeight());
+        Vec2I d = getParentWindow().getFramebufferDimensions();
+        sM.assertViewport(d.x, d.y);
         
         sM.bindVAO(0);
         sM.useProgram(0);

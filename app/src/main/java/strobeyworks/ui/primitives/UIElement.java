@@ -314,6 +314,7 @@ public abstract class UIElement {
     private List<UIElement> children;
     private boolean layoutDirty; // Object layout has changed
     private boolean subtreeDirty; // Composition of subtree has changed
+    private boolean opacityDirty;
     private boolean initialised; // Element has been initialised (also indicator of computed layout values existing)
     
     // Authored style properties
@@ -387,6 +388,7 @@ public abstract class UIElement {
     
     private UIBounds childContentBounds;
     private UIBounds effectiveClip;
+    private float effectiveOpacity;
     
     // IO
     private boolean focussable;
@@ -466,6 +468,7 @@ public abstract class UIElement {
         
         layoutDirty = true;
         subtreeDirty = false;
+        opacityDirty = true;
         
         focussable = false;
         wantsPointer = false;
@@ -497,7 +500,7 @@ public abstract class UIElement {
     // -----------------------------------------------------------------------------
     
     public void setRenderUniforms(ShaderManager sM) {
-        sM.setUniformFloat("uOpacity", opacity);
+        sM.setUniformFloat("uOpacity", effectiveOpacity);
         sM.setUniformInt("uHasBorder", borderEnabled ? 1 : 0);
         sM.setUniformFloat("uBorderThickness", resolve(borderThickness));
         sM.setUniformVec4("uBorderSides", new Vec4(
@@ -858,6 +861,7 @@ public abstract class UIElement {
         children.add(e);
         e.setParent(this);
         
+        markOpacityDirty();
         markLayoutDirty();
         markSubtreeDirty();
     }
@@ -866,6 +870,7 @@ public abstract class UIElement {
         children.add(i, e);
         e.setParent(this);
         
+        markOpacityDirty();
         markLayoutDirty();
         markSubtreeDirty();
     }
@@ -874,6 +879,7 @@ public abstract class UIElement {
         children.remove(e);
         e.setParent(null);
         
+        markOpacityDirty();
         markLayoutDirty();
         markSubtreeDirty();
     }
@@ -940,7 +946,7 @@ public abstract class UIElement {
     
     public void markLayoutDirty() {
         layoutDirty = true;
-        if (parent != null) parent.markLayoutDirty();
+        if (parent!=null) parent.markLayoutDirty();
     }
     
     public boolean isLayoutDirty() {
@@ -949,7 +955,7 @@ public abstract class UIElement {
     
     public void markSubtreeDirty() {
         subtreeDirty = true;
-        if (parent != null) parent.markSubtreeDirty();
+        if (parent!=null) parent.markSubtreeDirty();
     }
     
     public boolean isSubtreeDirty() {
@@ -959,6 +965,15 @@ public abstract class UIElement {
     public void clearSubtreeDirtyMark() {
         subtreeDirty = false;
         for (UIElement c : children) c.clearSubtreeDirtyMark();
+    }
+
+    public void markOpacityDirty() {
+        opacityDirty = true;
+        if (parent!=null) parent.markOpacityDirty();
+    }
+    
+    public boolean isOpacityDirty() {
+        return opacityDirty;
     }
     
     public UIElement onInitialise(UIBasicCallback callback) {
@@ -990,6 +1005,15 @@ public abstract class UIElement {
         
         for (UIElement child : children) {
             child.layoutUpdatedSubtree();
+        }
+    }
+    
+    public void updateEffectiveOpacity(float parentOpacity) {
+        effectiveOpacity = parentOpacity*opacity;
+        opacityDirty = false;
+        
+        for (UIElement child : children) {
+            child.updateEffectiveOpacity(effectiveOpacity);
         }
     }
     
@@ -1598,7 +1622,7 @@ public abstract class UIElement {
             getScreenY() - getParent().getScreenY() + getScreenHeight() * 0.5f
         );
     }
-
+    
     public Vec2 getScreenCenterRightEdge() {
         return new Vec2(
             getScreenX() - getParent().getScreenX() + getScreenWidth() * 0.5f,
@@ -1893,7 +1917,10 @@ public abstract class UIElement {
     }
     
     private UIElement opacity(float opacity) {
+        if (this.opacity==opacity) return this;
+
         this.opacity = opacity;
+        markOpacityDirty();
         return this;
     }
     

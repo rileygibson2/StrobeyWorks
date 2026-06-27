@@ -65,7 +65,8 @@ public class SWMain {
         
         // Pipeline
         pipeline = RenderPipeline.getInstance();
-        pipeline.simulate();
+        //pipeline.simulate();
+        pipeline.loadPipelineFromDisk();
         
         // UI initialise
         uiWindow.shareContextWith(outputWindow);
@@ -78,7 +79,7 @@ public class SWMain {
         
         if (window==outputWindow) {
             for (RenderNode n : pipeline.getAllNodes()) {
-                n.resizeOutput(window.getFramebufferWidth(), window.getFramebufferHeight());
+                n.resizeOutput(window.getFramebufferDimensions());
             }
         }
     }

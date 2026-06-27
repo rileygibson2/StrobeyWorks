@@ -16,38 +16,42 @@ import static org.lwjgl.opengl.GL30.glBindFramebuffer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
-import strobeyworks.pipeline.InspectorItem.InspectorControl;
-import strobeyworks.pipeline.InspectorItem.InspectorGroup;
 import strobeyworks.pipeline.RenderNode;
 import strobeyworks.pipeline.RenderPipeline;
-import strobeyworks.pipeline.configs.FloatControlConfig;
+import strobeyworks.pipeline.ControlItem.ControlGroup;
 import strobeyworks.pipeline.configs.RenderInputConfig;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.utils.BindableValue;
+import strobeyworks.utils.Vec2I;
 
 public class MixNode extends RenderNode {
     
     private int program;
 
-    private InspectorGroup weightGroup;
+    private ControlGroup weightGroup;
     private List<BindableValue<Float>> weights;
     
     public MixNode() {
-        super("Mix", "mix");
+        this(UUID.randomUUID());
+    }
+
+    public MixNode(UUID id) {
+        super(id, "Mix", "mix");
         weights = new ArrayList<>();
     }
     
     @Override
     protected void setupControls() {
-        createInspectorTab("Mix");
-        weightGroup = createInspectorGroup("Weights");
+        createControlTab("Mix");
+        weightGroup = createControlGroup("Weights");
         super.setupControls();
     }
     
     @Override
-    public void initialise(int outputWidth, int outputHeight) {
-        super.initialise(outputWidth, outputHeight);
+    public void initialise(Vec2I dimensions) {
+        super.initialise(dimensions);
         
         ShaderManager sM = ShaderManager.getInstance();
         
@@ -60,7 +64,7 @@ public class MixNode extends RenderNode {
     @Override
     protected void renderInputAdded(RenderInputConfig config) {
         float d = 0.5f;
-        BindableValue<Float> w = addFloatControl("map", 0f, 1f, 2, 0.1f, d, true, weightGroup);
+        BindableValue<Float> w = addFloatControl("Input "+(getInputNodeCount()), 0f, 1f, 2, 0.1f, d, true, weightGroup);
         weights.add(w);
 
         RenderPipeline.getInstance().handleNodeControlsChanged();

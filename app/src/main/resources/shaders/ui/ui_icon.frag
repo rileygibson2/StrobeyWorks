@@ -5,6 +5,7 @@ in vec2 vUV;
 
 uniform sampler2D uTexture;
 uniform vec4 uTint;
+uniform float uOpacity;
 
 uniform int uClipEnabled;
 uniform vec4 uClipBounds; // minX, minY, maxX, maxY in UI coordinates
@@ -29,6 +30,7 @@ void main() {
     
     vec4 tex = texture(uTexture, vUV);
     vec4 color = tex * uTint;
+    color.a *= uOpacity;
 
     if (color.a <= 0.0) discard;
     FragColor = color;

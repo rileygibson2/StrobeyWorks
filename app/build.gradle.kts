@@ -27,6 +27,8 @@ dependencies {
     implementation("org.joml:joml:1.10.8")
     implementation("org.lwjgl:lwjgl-stb")
 
+    implementation("com.google.code.gson:gson:2.11.0")
+
     runtimeOnly("org.lwjgl:lwjgl::$lwjglNatives")
     runtimeOnly("org.lwjgl:lwjgl-glfw::$lwjglNatives")
     runtimeOnly("org.lwjgl:lwjgl-opengl::$lwjglNatives")
