@@ -48,6 +48,10 @@ public class Transition {
         this(duration,  delay, null, updateAction);
     }
 
+    public Transition(float duration, float delay, String tag) {
+        this(duration,  delay, tag, null);
+    }
+
     public Transition(float duration, float delay, String tag, TransitionUpdateCallback updateAction) {
         this.duration = duration;
         this.delay = delay;

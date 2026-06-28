@@ -6,10 +6,10 @@ public class UITexture {
     private int width;
     private int height;
 
-    private String name;
+    private String fileName;
     
-    public UITexture(String name, int textureID, int width, int height) {
-        this.name = name;
+    public UITexture(String fileName, int textureID, int width, int height) {
+        this.fileName = fileName;
         this.textureID = textureID;
         this.width = width;
         this.height = height;
@@ -27,7 +27,7 @@ public class UITexture {
         return this.height;
     }
 
-    public String getName() {
-        return this.name;
+    public String getFileName() {
+        return this.fileName;
     }
 }

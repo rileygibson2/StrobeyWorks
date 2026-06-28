@@ -12,12 +12,11 @@ import static org.lwjgl.opengl.GL20.glDeleteProgram;
 import static org.lwjgl.opengl.GL30.GL_FRAMEBUFFER;
 import static org.lwjgl.opengl.GL30.glBindFramebuffer;
 
-import java.util.List;
 import java.util.UUID;
 
 import strobeyworks.SWMain;
 import strobeyworks.pipeline.RenderNode;
-import strobeyworks.pipeline.configs.RenderInputConfig;
+import strobeyworks.pipeline.configs.TextureInput;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.Utils;
@@ -58,10 +57,10 @@ public class PerlinNode extends RenderNode {
     }
     
     public PerlinNode(UUID id) {
-        super(id, "Perlin-Noise", "perlin");
+        super(id, "Perlin-Noise", "perlin", 0);
         
         this.colorLow = new Vec3(0f, 0f, 0f);
-        this.colorHigh = new Vec3(1f, 0f, 0.8f);
+        this.colorHigh = new Vec3(1f, 1f, 1f);
     }
     
     @Override
@@ -96,7 +95,7 @@ public class PerlinNode extends RenderNode {
     }
 
     @Override
-    protected void renderInputAdded(RenderInputConfig config) {}
+    protected void textureInputAdded(TextureInput input) {}
 
     public void setColorHigh(Vec3 color) {
         this.colorHigh = color;

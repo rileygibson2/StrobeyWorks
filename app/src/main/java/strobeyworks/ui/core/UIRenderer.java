@@ -86,12 +86,15 @@ public class UIRenderer extends WindowRenderer {
     private UIElement hoveredElement;
     
     protected Set<Animation> animations;
-    protected Map<UIElement, Set<Transition>> transitions;
+    
+    protected final Map<UIElement, Set<Transition>> transitions;
+    private final List<Runnable> pendingTransitionOps;
+    private boolean updatingTransitions = false;
     
     private UIPopup fullScreenPopup;
     private UIRectangle fullScreenPopupBG;
-
-    private UIBanner banner;
+    
+    private List<UIBanner> banners;
     
     private UIAArea uiaArea;
     private UIInspectorPane inspectorPane;
@@ -105,6 +108,8 @@ public class UIRenderer extends WindowRenderer {
         visibleUIElements = new ArrayList<>();
         animations = new HashSet<>();
         transitions = new HashMap<>();
+        banners = new ArrayList<>();
+        pendingTransitionOps = new ArrayList<>();
     }
     
     private void loadUIResources() {
@@ -114,8 +119,12 @@ public class UIRenderer extends WindowRenderer {
         UITextureManager.loadTexture("light.png");
         UITextureManager.loadTexture("data.png");
         UITextureManager.loadTexture("close.png");
-
+        
         UITextureManager.loadTexture("tick_circle.png");
+        UITextureManager.loadTexture("exclaim_circle.png");
+        UITextureManager.loadTexture("cross_circle.png");
+        UITextureManager.loadTexture("i_circle.png");
+        UITextureManager.loadTexture("question_circle.png");
     }
     
     private void buildBase() {
@@ -163,13 +172,25 @@ public class UIRenderer extends WindowRenderer {
         animations.remove(a);
     }
     
+    
     public void addTransition(UIElement e, Transition t) {
+        if (updatingTransitions) {
+            pendingTransitionOps.add(() -> addTransition(e, t));
+            return;
+        }
+        
         if (transitions.containsKey(e)) {
             for (Transition eT : transitions.get(e)) {
-                if (eT.hasTag()&&t.hasTag()&&eT.getTag().equals(t.getTag())) eT.interrupt();
+                // Interrupt transitions with the same tag
+                if (
+                    eT.hasTag()&&
+                    t.hasTag()&&
+                    eT.getTag().equals(t.getTag())
+                ) eT.interrupt();
             }
         }
         else transitions.put(e, new HashSet<>());
+        
         transitions.get(e).add(t);
     }
     
@@ -198,20 +219,37 @@ public class UIRenderer extends WindowRenderer {
     }
 
     public void createBanner(UIBannerMode mode, String title, String message) {
-        if (banner!=null) rootElement.removeChild(banner);
-
-        banner = new UIBanner(mode, title, message);
-        banner.style("z-index", 999)
-        .style("offset-left", px(20));
-        addToRoot(banner);
-
-        banner.fadeOut(2);
+        addBanner(new UIBanner(mode, title, message));
     }
+    
+    public void addBanner(UIBanner banner) {
+        int offsetTop = banners.size()*60+20;
 
+        banner.style("width", px(250))
+        .style("height", px(40))
+        .style("z-index", 999)
+        .style("position", UIPositionMode.ABSOLUTE)
+        .style("offset-left", px(20))
+        .style("offset-top", px(offsetTop));
+        addToRoot(banner);
+        
+        banner.run(2);
+        banners.add(banner);
+        repositionBanners();
+    }
+    
     public void removeBanner(UIBanner banner) {
-        if (banner==null) return;
+        banners.remove(banner);
         rootElement.removeChild(banner);
-        this.banner = null;
+        repositionBanners();
+    }
+    
+    private void repositionBanners() {
+        int offset = 20;
+        for (UIBanner b : banners) {
+            b.reposition(px(offset), null);
+            offset += 60;
+        }
     }
     
     @Override
@@ -412,13 +450,26 @@ public class UIRenderer extends WindowRenderer {
         // Animations
         for (Animation a : animations) a.trigger();
         
-        // Transitions
+        /**
+        * Update transitions
+        * Set and release transitions lock.
+        * This defers any transition structure modification that occurs as a part of
+        * transition completion callbacks into the pendingTransitionsOp list.
+        * After the pass is over it implements the transition changes on the list and
+        * releases the lock.
+        */
+        updatingTransitions = true;
         for (Map.Entry<UIElement, Set<Transition>> entry : transitions.entrySet()) {
             for (Transition t : entry.getValue()) t.update();
             entry.getValue().removeIf(e -> e.isComplete()||e.isInterrupted());
         }
+        updatingTransitions = false;
+        
+        for (Runnable op : pendingTransitionOps) op.run();
+        pendingTransitionOps.clear();
+        
         transitions.entrySet().removeIf(entry -> entry.getValue().isEmpty());
-
+        
         // Opacity
         if (rootElement.isOpacityDirty()) rootElement.updateEffectiveOpacity(1f);
         

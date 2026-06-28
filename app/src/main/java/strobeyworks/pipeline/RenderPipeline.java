@@ -9,14 +9,13 @@ import java.util.Set;
 
 import strobeyworks.SWMain;
 import strobeyworks.logger.Logger;
-import strobeyworks.pipeline.RenderNode.RenderInputState;
 import strobeyworks.pipeline.RenderNode.RenderNodeState;
-import strobeyworks.pipeline.configs.RenderInputConfig;
+import strobeyworks.pipeline.configs.TextureInput;
+import strobeyworks.pipeline.configs.TextureInput.TextureInputMode;
+import strobeyworks.pipeline.configs.TextureInput.TextureInputState;
 import strobeyworks.platform.JSONManager;
-import strobeyworks.rendernodes.AgentNode;
-import strobeyworks.rendernodes.MixNode;
+import strobeyworks.rendernodes.MaskNode;
 import strobeyworks.rendernodes.PerlinNode;
-import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.utils.Vec2;
 import strobeyworks.utils.Vec2I;
 import strobeyworks.utils.Vec3;
@@ -54,24 +53,22 @@ public class RenderPipeline {
         // Nodes
         PerlinNode n1 = addNode(PerlinNode.class, d);
         n1.setUIAPosition(new Vec2(0, 0));
-        n1.setColorHigh(new Vec3(1f, 1f, 1f));
+        n1.setColorHigh(new Vec3(0f, 0f, 1f));
         
-        PerlinNode n4 = addNode(PerlinNode.class, d);
-        n4.setUIAPosition(new Vec2(140, 200));
-        n4.setColorHigh(new Vec3(0f, 1f, 0f));
         
-        RenderNode n2 = addNode(AgentNode.class, d);
-        n2.setUIAPosition(new Vec2(100, 100));
-
-        setOutputtingNode(n2);
+        PerlinNode n2 = addNode(PerlinNode.class, d);
+        n2.setUIAPosition(new Vec2(140, 200));
+        n2.setColorHigh(new Vec3(1f, 0f, 0f));
         
-        RenderNode n3 = addNode(MixNode.class, d);
+        
+        RenderNode n3 = addNode(MaskNode.class, d);
         n3.setUIAPosition(new Vec2(200, 300));
         
         // Connections
-        addInputToNode(n3, new RenderInputConfig(n1));
-        addInputToNode(n3, new RenderInputConfig(n2));
-        addInputToNode(n3, new RenderInputConfig(n4));
+        addTextureInputToNode(n3, new TextureInput(n1));
+        addTextureInputToNode(n3, new TextureInput(n2, TextureInputMode.RED));
+        
+        setOutputtingNode(n3);
     }
     
     public void subscribe(RenderPipelineListener listener) {
@@ -122,12 +119,12 @@ public class RenderPipeline {
         for (RenderPipelineListener l : subscribers) l.nodeControlsChanged();
     }
     
-    public boolean addInputToNode(RenderNode node, RenderInputConfig config) {
-        if (config==null||node==null||config.node()==null) return false;
-        RenderNode input = config.node();
+    public boolean addTextureInputToNode(RenderNode destNode, TextureInput input) {
+        if (input==null||destNode==null||input.getNode()==null) return false;
+        RenderNode inputNode = input.getNode();
         
-        if (input==node) return false;
-        node.addInput(config);
+        if (inputNode==destNode) return false;
+        destNode.addTextureInput(input);
         
         if (!compile()) {
             throw new RuntimeException("Render pipeline would not compile");
@@ -157,7 +154,7 @@ public class RenderPipeline {
         if (visiting.contains(n)) return false; // Loop detected
         visiting.add(n);
         
-        for (RenderNode i : n.getDistinctInputNodes()) {
+        for (RenderNode i : n.getNodeDependancies()) {
             if (!compileVisit(i, visiting, visited, order)) return false;
         }
         
@@ -172,8 +169,8 @@ public class RenderPipeline {
         Logger.info("Saving pipeline to disk");
         RenderPipelineState state = getState();
         JSONManager.savePipelineState("test1.show", state);
-
-        for (RenderPipelineListener l : subscribers) l.pipelineSaved("test1.show");
+        
+        for (RenderPipelineListener l : subscribers) l.pipelineSavedToFile("test1.show");
     }
     
     public void loadPipelineFromDisk() {
@@ -181,6 +178,7 @@ public class RenderPipeline {
         RenderPipelineState state = JSONManager.loadPipelineState("test1.show");
         
         configureFromState(state);
+        for (RenderPipelineListener l : subscribers) l.pipelineLoadedFromFile("test1.show");
     }
     
     public RenderPipelineState getState() {
@@ -216,16 +214,19 @@ public class RenderPipeline {
             loadedNodes.put(nodeState.id(), node);
         }
         
-        // Link inputs
+        // Link texture inputs
         for (RenderNodeState nodeState : state.nodes()) {
             RenderNode destination = loadedNodes.get(nodeState.id());
-            if (destination == null || nodeState.inputs() == null) continue;
+            if (destination==null||nodeState.textureInputs()==null) continue;
             
-            for (RenderInputState inputState : nodeState.inputs()) {
-                RenderNode source = loadedNodes.get(inputState.nodeID());
-                if (source == null) continue;
-
-                addInputToNode(destination, new RenderInputConfig(source));
+            for (TextureInputState texInputState : nodeState.textureInputs()) {
+                RenderNode source = loadedNodes.get(texInputState.nodeID());
+                if (source==null) continue;
+                
+                TextureInputMode mode = TextureInputMode.UNNECESSARY;
+                if (texInputState.mode() != null) mode = TextureInputMode.valueOf(texInputState.mode());
+                
+                addTextureInputToNode(destination, new TextureInput(source, mode));
             }
         }
         
@@ -246,7 +247,7 @@ public class RenderPipeline {
             throw new RuntimeException("Pipeline state could not be loaded - compile error");
         }
         
-        for (RenderPipelineListener l : subscribers) l.pipelineLoaded();
+        for (RenderPipelineListener l : subscribers) l.pipelineFullyReloaded();
     }
     
     public void iterate() {

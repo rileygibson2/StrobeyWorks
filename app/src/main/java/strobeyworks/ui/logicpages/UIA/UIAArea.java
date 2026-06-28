@@ -12,6 +12,7 @@ import strobeyworks.pipeline.RenderNode;
 import strobeyworks.pipeline.RenderPipeline;
 import strobeyworks.pipeline.RenderPipelineListener;
 import strobeyworks.platform.IOEvent;
+import strobeyworks.ui.components.input.notifications.UIBanner;
 import strobeyworks.ui.components.input.notifications.UIBanner.UIBannerMode;
 import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIRenderer;
@@ -43,31 +44,47 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
         style("color", UIColor.rgb(0.1f));
         style("overflow-x", UIOverflowMode.HIDDEN);
         style("overflow-y", UIOverflowMode.HIDDEN);
-
+        
         RenderPipeline.getInstance().subscribe(this);
     }
-
+    
     @Override
     public void outputtingNodeChanged(RenderNode node) {
         syncNodeVisuals();
     }
-
+    
     @Override
     public void nodeControlsChanged() {}
-
+    
     @Override
-    public void pipelineLoaded() {
+    public void pipelineFullyReloaded() {
         rebuildFromPipeline();
     }
-
+    
     @Override
-    public void pipelineSaved(String savedFileName) {
-        UIRenderer.getInstance().createBanner(UIBannerMode.SUCCESS, "Saved", "File: \""+savedFileName+"\"");
+    public void pipelineSavedToFile(String fileName) {
+        UIRenderer.getInstance().createBanner(
+            UIBannerMode.SUCCESS,
+            "Saved",
+            "File: \""+fileName+"\""
+        );
+    }
+    
+    @Override
+    public void pipelineLoadedFromFile(String fileName) {
+        UIBanner banner = new UIBanner(
+            "refresh_circle",
+            UIColor.rgb(0.9f),
+            "Loaded from file",
+            "File: \""+fileName+"\""
+        );
+        
+        UIRenderer.getInstance().addBanner(banner);
     }
     
     public void rebuildFromPipeline() {
         removeAllContentChildren();
-
+        
         uiaNodes = new ArrayList<>();
         Set<RenderNode> nodes = RenderPipeline.getInstance().getAllNodes();
         
@@ -77,16 +94,16 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
             uiaNodes.add(n);
             addChild(n);
         }
-
+        
         // Add connections
         for (RenderNode node : nodes) {
             UIANode n1 = getUIForNode(node);
             List<RenderNode> connections = node.getNodeConnections();
-
+            
             for (RenderNode connectingNode : connections) {
                 UIANode n2 = getUIForNode(connectingNode);
                 if (n2==null) continue;
-
+                
                 UIConnection c = new UIConnection(n1, n2);
                 addChildAtIndex(0, c); 
             }
@@ -95,7 +112,7 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
         syncNodeVisuals();
         repositionElements();
     }
-
+    
     private UIANode getUIForNode(RenderNode node) {
         for (UIANode uiaNode : uiaNodes) {
             if (uiaNode.getRenderNode()==node) return uiaNode;
@@ -105,7 +122,7 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
     
     public void syncNodeVisuals() {
         RenderNode activeNode = RenderPipeline.getInstance().getOutputtingNode();
-
+        
         for (UIANode n : uiaNodes) {
             n.setOutputActiveVisuals(n.getRenderNode()==activeNode);
         }
@@ -127,7 +144,7 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
             .style("z-index", 0);
         }
         UIRenderer.getInstance().getInspectorPane().loadRenderNode(node);
-
+        
         if (node==null) return;
         for (UIANode uiaNode : uiaNodes) {
             if (uiaNode.getRenderNode()==node) {
@@ -166,7 +183,7 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
             
             repositionElements();
             break;
-
+            
             case KEY_DOWN :
             handleKeyDown(event.getKeyCode());
             break;

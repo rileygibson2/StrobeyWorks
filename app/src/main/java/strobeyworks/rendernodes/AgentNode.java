@@ -58,13 +58,12 @@ import static org.lwjgl.opengl.GL30.glGenFramebuffers;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
 import strobeyworks.SWMain;
 import strobeyworks.pipeline.RenderNode;
-import strobeyworks.pipeline.configs.RenderInputConfig;
+import strobeyworks.pipeline.configs.TextureInput;
 import strobeyworks.platform.MidiManager;
 import strobeyworks.platform.MidiManager.MidiEvent;
 import strobeyworks.platform.MidiManager.MidiHandle;
@@ -121,7 +120,7 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
     }
     
     public AgentNode(UUID id) {
-        super(id, "Species-Agents", "agent");
+        super(id, "Species-Agents", "agent", 0);
         
         //loadDefaults();
         
@@ -163,7 +162,7 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
     }
 
     @Override
-    protected void renderInputAdded(RenderInputConfig config) {}
+    protected void textureInputAdded(TextureInput input) {}
     
     public void loadDefaultMidiMap() {
         MidiManager m = MidiManager.getInstance();

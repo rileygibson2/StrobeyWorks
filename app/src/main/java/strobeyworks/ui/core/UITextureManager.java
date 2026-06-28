@@ -36,10 +36,18 @@ public class UITextureManager {
     private static final Map<String, UITexture> loaded = new HashMap<>();
     
     public static UITexture getUITexture(String textureName) {
-        return loaded.get(textureName);
+        // Check is a filename, if not default to .png
+        String filename = textureName.matches(".*\\.[A-Za-z0-9]+$")
+        ? textureName : textureName + ".png";
+
+        UITexture tex = loaded.get(filename);
+        if (tex==null) tex = loadTexture(filename);
+        if (tex==null) Logger.throwRuntimeException("Could not load texture: " + filename);
+        
+        return tex;
     }
     
-    public static void loadTexture(String fileName) {
+    public static UITexture loadTexture(String fileName) {
         try {
             ByteBuffer imageBuffer = Utils.loadResourceToByteBuffer("/icons/"+fileName);
             
@@ -81,14 +89,14 @@ public class UITextureManager {
                 glBindTexture(GL_TEXTURE_2D, 0);
                 stbi_image_free(pixels);
                 
-                String name;
-                if (fileName.indexOf(".")!=-1) name = fileName.substring(0, fileName.indexOf("."));
-                else name = fileName;
-                
-                loaded.put(name, new UITexture(name, textureId, width, height));
+                UITexture tex = new UITexture(fileName, textureId, width, height);
+                loaded.put(fileName, tex);
+                return tex;
             }
         } catch (IOException e) {
             Logger.throwRuntimeException("Could not load texture: " + fileName, e);
         }
+        
+        return null;
     }
 }

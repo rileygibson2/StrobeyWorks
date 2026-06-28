@@ -7,6 +7,7 @@ import static strobeyworks.ui.core.UILength.px;
 import strobeyworks.platform.Transition;
 import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIFontManager;
+import strobeyworks.ui.core.UILength;
 import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.ui.primitives.UIIcon;
 import strobeyworks.ui.primitives.UIIcon.UIIconFitMode;
@@ -26,34 +27,42 @@ public class UIBanner extends UIRectangle {
         HELP
     }
     
-    private final String[] icons = {
-        "tick_circle"
+    private static final String[] icons = {
+        "tick_circle",
+        "exclaim_circle",
+        "cross_circle",
+        "i_circle",
+        "question_circle",
     };
     
-    private final UIColor[] colors = {
-        UIColor.rgb(0.5f, 1f, 0.5f)
+    private static final UIColor[] colors = {
+        UIColor.rgb(0.5f, 1f, 0.2f),
+        UIColor.rgb(1f, 0.6f, 0.2f),
+        UIColor.rgb(1f, 0.2f, 0.2f),
+        UIColor.rgb(0.5f, 0.8f, 0.8f),
+        UIColor.rgb(0.2f, 0.7f, 1f)
     };
-    
+
     public UIBanner(UIBannerMode mode, String title, String message) {
-        style("width", px(250));
-        style("height", px(40));
-        style("position", UIPositionMode.ABSOLUTE);
-        style("offset-top", px(20));
+        this(icons[mode.ordinal()], colors[mode.ordinal()], title, message);
+    }
+    
+    public UIBanner(String iconFileName, UIColor color, String title, String message) {
         style("align-items", UIAlignItems.CENTER);
-        
         style("color", UIColor.rgb(0.3f));
         style("corner-radius", new Vec4(0, 4, 4, 0));
+        style("opacity", 0f);
         
         UIRectangle line = UIRectFactory.sized(px(2), pbh(1f));
         line.style("position", UIPositionMode.ABSOLUTE)
-        .style("color", colors[mode.ordinal()]);
+        .style("color", color);
         
-        UIIcon icon = new UIIcon(icons[mode.ordinal()]);
+        UIIcon icon = new UIIcon(iconFileName);
         icon.style("width", pch(0.5f))
         .style("height", pch(0.5f))
         .style("margin-left", px(15))
         .style("icon-fit-mode", UIIconFitMode.FIT)
-        .style("tint", colors[mode.ordinal()]);
+        .style("tint", color);
         
         UIRectangle right = new UIRectangle();
         right.style("box", UIBoxMode.FLEX)
@@ -75,15 +84,28 @@ public class UIBanner extends UIRectangle {
         addChild(icon);
         addChild(right);
     }
+
+    public void reposition(UILength offsetTop, UILength offsetLeft) {
+        UIStyle move = new UIStyle();
+        if (offsetTop!=null) move.set(StyleProps.OFFSET_TOP, offsetTop);
+        if (offsetLeft!=null) move.set(StyleProps.OFFSET_LEFT, offsetLeft);
+
+        transitionToStyle(move, new Transition(0.3f, "reposition"));
+    }
     
-    public void fadeOut(int delay) {
-        Transition t = new Transition(1f, delay);
-        t.setCompletedAction(() -> {
-            UIRenderer.getInstance().removeBanner(this);
-        });
-        
-        UIStyle hidden = new UIStyle();
-        hidden.set(StyleProps.OPACITY, 0f);
-        transitionToStyle(hidden, t);
+    public void run(int fadeoutDelay) {
+        UIStyle in = new UIStyle();
+        in.set(StyleProps.OPACITY, 1f);
+
+        UIStyle out = new UIStyle();
+        out.set(StyleProps.OPACITY, 0f);
+
+        Transition outTrans = new Transition(0.3f, fadeoutDelay, "out");
+        outTrans.setCompletedAction(() -> UIRenderer.getInstance().removeBanner(this));
+
+        Transition inTrans = new Transition(0.3f, "in");
+        inTrans.setCompletedAction(() -> transitionToStyle(out, outTrans));
+
+        transitionToStyle(in, inTrans);
     }
 }

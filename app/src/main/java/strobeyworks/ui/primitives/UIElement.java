@@ -29,7 +29,6 @@ import strobeyworks.ui.style.StyleProps;
 import strobeyworks.ui.style.UIStyle;
 import strobeyworks.ui.style.UIStyleProperty;
 import strobeyworks.utils.Utils;
-import strobeyworks.utils.Vec2;
 import strobeyworks.utils.Vec4;
 
 /**
@@ -220,14 +219,6 @@ public abstract class UIElement {
         SCROLL
     }
     
-    public enum UIRenderType {
-        SHAPE,
-        TEXT,
-        ICON,
-        COLOR_PICKER,
-        GRADIENT_SLIDER
-    }
-    
     @FunctionalInterface
     public interface UIEventCallback {
         void implement(IOEvent event);
@@ -372,9 +363,6 @@ public abstract class UIElement {
     private float scrollX;
     private float scrollY;
     
-    // Render
-    private UIRenderType renderType;
-    
     // Computed values
     private float localX;
     private float localY;
@@ -518,10 +506,6 @@ public abstract class UIElement {
             sM.setUniformVec4("uClipBounds", effectiveClip.toVec4());
         }
         else sM.setUniformInt("uClipEnabled", 0);
-    }
-    
-    public UIRenderType getRenderType() {
-        return UIRenderType.SHAPE;
     }
     
     public void render(UIRenderer renderer, ShaderManager sM) {
@@ -1616,20 +1600,6 @@ public abstract class UIElement {
         y <= cy + h * 0.5f;
     }
     
-    public Vec2 getScreenCenter() {
-        return new Vec2(
-            getScreenX() - getParent().getScreenX() + getScreenWidth() * 0.5f,
-            getScreenY() - getParent().getScreenY() + getScreenHeight() * 0.5f
-        );
-    }
-    
-    public Vec2 getScreenCenterRightEdge() {
-        return new Vec2(
-            getScreenX() - getParent().getScreenX() + getScreenWidth() * 0.5f,
-            getScreenY() - getParent().getScreenY() + getScreenHeight() * 0.5f
-        );
-    }
-    
     public void updateScrollBars() {
         if (overflowX==UIOverflowMode.SCROLL&&horizontalBar!=null&&childContentBounds!=null) {
             horizontalBar.setThumb(
@@ -1774,7 +1744,6 @@ public abstract class UIElement {
         
         if (overflowX==UIOverflowMode.SCROLL) {
             if (horizontalBar==null) {
-                Logger.debug("adding");
                 horizontalBar = new UIScrollBar(ScrollAxis.HORIZONTAL);
                 addChild(horizontalBar);
             }

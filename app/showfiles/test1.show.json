@@ -1,7 +1,7 @@
 {
   "nodes": [
     {
-      "id": "93286d0a-e803-40a2-916e-0352023100a1",
+      "id": "251d43e3-b952-4c6e-bb0b-bac467ad023c",
       "typeName": "Perlin-Noise",
       "customName": "perlin1",
       "uiaXPos": 0,
@@ -15,22 +15,22 @@
         {
           "key": "Structure/Base/Grid",
           "type": "float",
-          "value": 4.5631595
+          "value": 2.0
         },
         {
           "key": "Structure/Base/Octaves",
           "type": "float",
-          "value": 1.0
+          "value": 3.417556
         },
         {
           "key": "Structure/Base/Gamma",
           "type": "float",
-          "value": 5.0
+          "value": 3.7761953
         },
         {
           "key": "Structure/Base/Gain",
           "type": "float",
-          "value": 5.0
+          "value": 3.3509004
         },
         {
           "key": "Structure/Seed/Offset",
@@ -45,12 +45,12 @@
         {
           "key": "Processing/Warp/Warp",
           "type": "boolean",
-          "value": true
+          "value": false
         },
         {
           "key": "Processing/Warp/Strength",
           "type": "float",
-          "value": 0.0
+          "value": 1.5329211
         },
         {
           "key": "Processing/Warp/Scale",
@@ -60,7 +60,7 @@
         {
           "key": "Processing/Ridge/Per Octave",
           "type": "boolean",
-          "value": false
+          "value": true
         },
         {
           "key": "Processing/Ridge/Post",
@@ -70,17 +70,17 @@
         {
           "key": "Processing/Ridge/Ridge Power",
           "type": "float",
-          "value": 2.0
+          "value": 4.408552
         },
         {
           "key": "Processing/Turbulence/Octave Turbulence",
           "type": "boolean",
-          "value": false
+          "value": true
         },
         {
           "key": "Processing/Turbulence/Power",
           "type": "float",
-          "value": 2.0
+          "value": 0.6914231
         },
         {
           "key": "Size/Output Texture/Width",
@@ -93,14 +93,41 @@
           "value": 1800.0
         }
       ],
-      "inputs": []
+      "textureInputs": []
     },
     {
-      "id": "6a1f94cb-ea60-4c2e-854a-682dfe0377de",
+      "id": "db67af81-6d95-42b5-9272-d34747a439c2",
+      "typeName": "Mask",
+      "customName": "mask1",
+      "uiaXPos": 403,
+      "uiaYPos": 23,
+      "controls": [
+        {
+          "key": "Size/Output Texture/Width",
+          "type": "float",
+          "value": 3000.0
+        },
+        {
+          "key": "Size/Output Texture/Height",
+          "type": "float",
+          "value": 1800.0
+        }
+      ],
+      "textureInputs": [
+        {
+          "nodeID": "251d43e3-b952-4c6e-bb0b-bac467ad023c"
+        },
+        {
+          "nodeID": "de9c565d-0eca-4f12-a000-9fb6bfea579e"
+        }
+      ]
+    },
+    {
+      "id": "de9c565d-0eca-4f12-a000-9fb6bfea579e",
       "typeName": "Perlin-Noise",
       "customName": "perlin2",
-      "uiaXPos": 119,
-      "uiaYPos": 2,
+      "uiaXPos": 140,
+      "uiaYPos": 200,
       "controls": [
         {
           "key": "Structure/Base/Speed",
@@ -110,27 +137,27 @@
         {
           "key": "Structure/Base/Grid",
           "type": "float",
-          "value": 4.5548296
+          "value": 2.0
         },
         {
           "key": "Structure/Base/Octaves",
           "type": "float",
-          "value": 2.1334708
+          "value": 1.0
         },
         {
           "key": "Structure/Base/Gamma",
           "type": "float",
-          "value": 4.0
+          "value": 4.624833
         },
         {
           "key": "Structure/Base/Gain",
           "type": "float",
-          "value": 4.0
+          "value": 4.981144
         },
         {
           "key": "Structure/Seed/Offset",
           "type": "float",
-          "value": 0.0
+          "value": 48.5853
         },
         {
           "key": "Structure/Seed/Salt",
@@ -145,22 +172,22 @@
         {
           "key": "Processing/Warp/Strength",
           "type": "float",
-          "value": 1.8315713
+          "value": 3.0
         },
         {
           "key": "Processing/Warp/Scale",
           "type": "float",
-          "value": 1.0
+          "value": 0.6781008
         },
         {
           "key": "Processing/Ridge/Per Octave",
           "type": "boolean",
-          "value": true
+          "value": false
         },
         {
           "key": "Processing/Ridge/Post",
           "type": "boolean",
-          "value": false
+          "value": true
         },
         {
           "key": "Processing/Ridge/Ridge Power",
@@ -175,121 +202,6 @@
         {
           "key": "Processing/Turbulence/Power",
           "type": "float",
-          "value": 0.0488707
-        },
-        {
-          "key": "Size/Output Texture/Width",
-          "type": "float",
-          "value": 3000.0
-        },
-        {
-          "key": "Size/Output Texture/Height",
-          "type": "float",
-          "value": 1800.0
-        }
-      ],
-      "inputs": []
-    },
-    {
-      "id": "996cfa0f-a1ba-4ed9-9e77-e44be6fbd0ac",
-      "typeName": "Mix",
-      "customName": "mix1",
-      "uiaXPos": 84,
-      "uiaYPos": 202,
-      "controls": [
-        {
-          "key": "Size/Output Texture/Width",
-          "type": "float",
-          "value": 3000.0
-        },
-        {
-          "key": "Size/Output Texture/Height",
-          "type": "float",
-          "value": 1800.0
-        },
-        {
-          "key": "Mix/Weights/Input 1",
-          "type": "float",
-          "value": 1.0
-        },
-        {
-          "key": "Mix/Weights/Input 2",
-          "type": "float",
-          "value": 0.0
-        },
-        {
-          "key": "Mix/Weights/Input 3",
-          "type": "float",
-          "value": 0.52036685
-        }
-      ],
-      "inputs": [
-        {
-          "nodeID": "93286d0a-e803-40a2-916e-0352023100a1"
-        },
-        {
-          "nodeID": "85ec10a8-f242-4e0e-8a12-9bf21376946d"
-        },
-        {
-          "nodeID": "6a1f94cb-ea60-4c2e-854a-682dfe0377de"
-        }
-      ]
-    },
-    {
-      "id": "85ec10a8-f242-4e0e-8a12-9bf21376946d",
-      "typeName": "Species-Agents",
-      "customName": "agent1",
-      "uiaXPos": 382,
-      "uiaYPos": -28,
-      "controls": [
-        {
-          "key": "Agents/Turning/Sensor Angle",
-          "type": "float",
-          "value": 0.6
-        },
-        {
-          "key": "Agents/Turning/Sensor Distance",
-          "type": "float",
-          "value": 0.01
-        },
-        {
-          "key": "Agents/Turning/Turn Speed",
-          "type": "float",
-          "value": 2.0
-        },
-        {
-          "key": "Agents/Turning/Speed",
-          "type": "float",
-          "value": 0.05
-        },
-        {
-          "key": "Agents/Opacity/Diffusion",
-          "type": "float",
-          "value": 0.1
-        },
-        {
-          "key": "Agents/Opacity/Decay",
-          "type": "float",
-          "value": 4.0
-        },
-        {
-          "key": "Agents/Opacity/Cuttoff",
-          "type": "float",
-          "value": 0.0
-        },
-        {
-          "key": "Agents/Opacity/Contribution",
-          "type": "float",
-          "value": 1.0
-        },
-        {
-          "key": "Agents/Random/Random Turn",
-          "type": "float",
-          "value": 0.0
-        },
-        {
-          "key": "Agents/Random/Random Speed",
-          "type": "float",
           "value": 0.0
         },
         {
@@ -303,8 +215,8 @@
           "value": 1800.0
         }
       ],
-      "inputs": []
+      "textureInputs": []
     }
   ],
-  "outputtingNodeID": "996cfa0f-a1ba-4ed9-9e77-e44be6fbd0ac"
+  "outputtingNodeID": "db67af81-6d95-42b5-9272-d34747a439c2"
 }

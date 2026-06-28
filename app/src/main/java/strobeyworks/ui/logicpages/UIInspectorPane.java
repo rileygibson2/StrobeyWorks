@@ -53,12 +53,15 @@ public class UIInspectorPane extends UIRectangle implements RenderPipelineListen
     }
 
     @Override
-    public void pipelineLoaded() {
+    public void pipelineFullyReloaded() {
         loadRenderNode(null);
     }
 
     @Override
-    public void pipelineSaved(String savedFileName) {}
+    public void pipelineSavedToFile(String fileName) {}
+
+    @Override
+    public void pipelineLoadedFromFile(String fileName) {}
     
     @Override
     public void initialise() {

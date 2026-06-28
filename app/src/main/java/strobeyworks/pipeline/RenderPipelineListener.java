@@ -4,7 +4,8 @@ public interface RenderPipelineListener {
     void outputtingNodeChanged(RenderNode node);
     void nodeControlsChanged();
 
-    void pipelineLoaded();
+    void pipelineFullyReloaded();
 
-    void pipelineSaved(String savedFileName);
+    void pipelineSavedToFile(String fileName);
+    void pipelineLoadedFromFile(String fileName);
 }

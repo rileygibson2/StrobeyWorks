@@ -65,8 +65,8 @@ public class SWMain {
         
         // Pipeline
         pipeline = RenderPipeline.getInstance();
-        //pipeline.simulate();
-        pipeline.loadPipelineFromDisk();
+        pipeline.simulate();
+        //pipeline.loadPipelineFromDisk();
         
         // UI initialise
         uiWindow.shareContextWith(outputWindow);
