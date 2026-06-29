@@ -5,25 +5,20 @@ import static strobeyworks.ui.core.UILength.pcw;
 import static strobeyworks.ui.core.UILength.px;
 
 import strobeyworks.logger.Logger;
-import strobeyworks.pipeline.ControlItem;
-import strobeyworks.pipeline.ControlItem.ControlElement;
-import strobeyworks.pipeline.ControlItem.ControlGroup;
-import strobeyworks.pipeline.ControlItem.ControlTab;
 import strobeyworks.pipeline.RenderNode;
 import strobeyworks.pipeline.RenderPipelineListener;
-import strobeyworks.pipeline.configs.ControlConfig;
-import strobeyworks.pipeline.configs.ControlConfig.ActionControlConfig;
-import strobeyworks.pipeline.configs.ControlConfig.BooleanControlConfig;
-import strobeyworks.pipeline.configs.ControlConfig.FloatControlConfig;
-import strobeyworks.pipeline.configs.ControlConfig.StringControlConfig;
+import strobeyworks.pipeline.controls.ControlConfig;
+import strobeyworks.pipeline.controls.ControlConfig.StringControlConfig;
+import strobeyworks.pipeline.controls.ControlElement;
+import strobeyworks.pipeline.controls.ControlItem;
+import strobeyworks.pipeline.controls.ControlItem.ControlGroup;
+import strobeyworks.pipeline.controls.ControlItem.ControlTab;
 import strobeyworks.ui.components.UIColorPicker;
 import strobeyworks.ui.components.UIGradientSlider;
 import strobeyworks.ui.components.popups.UIContentPopup;
-import strobeyworks.ui.concepts.UIDataRow;
 import strobeyworks.ui.concepts.UITab;
 import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIFontManager;
-import strobeyworks.ui.primitives.UIElement;
 import strobeyworks.ui.primitives.UIRectFactory;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
@@ -118,10 +113,11 @@ public class UIInspectorPane extends UIRectangle implements RenderPipelineListen
     private void buildPropertiesTab() {
         UIRectangle pane = UIRectFactory.fullContent_Collumn();
         pane.style("overflow-y", UIOverflowMode.SCROLL);
+
         mainTab.addTab("Props", pane);
         
         addHeadingLine(pane, "Identity");
-        addControlRow(pane, new StringControlConfig("", "Node name", null, ""));
+        addDataRow(pane, new StringControlConfig("Node name", ""));
         addBoringDataLine(pane, "Node ID", node.getIDString().substring(0, 25));
     }
     
@@ -130,19 +126,20 @@ public class UIInspectorPane extends UIRectangle implements RenderPipelineListen
             pane = UIRectFactory.fullContent_Collumn();
             pane.style("overflow-y", UIOverflowMode.SCROLL);
             
-            mainTab.addTab(tab.name(), pane);
-            for (ControlItem child : tab.items()) traverseInspectorTree(pane, child);
+            mainTab.addTab(tab.getName(), pane);
+            for (ControlGroup child : tab.getItems()) traverseInspectorTree(pane, child);
         }
         
         if (item instanceof ControlGroup group) {
             if (pane==null) Logger.throwRuntimeException("No inspector tab to add inspector group to");
-            addHeadingLine(pane, group.name());
-            for (ControlItem child : group.items()) traverseInspectorTree(pane, child);
+            
+            addHeadingLine(pane, group.getName());
+            for (ControlItem child : group.getItems()) traverseInspectorTree(pane, child);
         }
         
         if (item instanceof ControlElement control) {
             if (pane==null) Logger.throwRuntimeException("No tab to add inspector control to");
-            addControlRow(pane, control.config());
+            addDataRow(pane, control);
         }
     }
     
@@ -161,21 +158,25 @@ public class UIInspectorPane extends UIRectangle implements RenderPipelineListen
     }
     
     private void addBoringDataLine(UIRectangle pane, String name, String value) {
-        UIElement line = UIDataRow.boringRow(name, value);
+        UIDataRow row = new UIDataRow(name, value);
         
-        line.style("width", pcw(1f))
+        row.style("width", pcw(1f))
         .style("height", px(40))
         .style("margin-top", px(2));
-        pane.addChild(line);
+        pane.addChild(row);
     }
     
-    private void addControlRow(UIRectangle pane, ControlConfig config) {
-        UIElement row = null;
-        if (config instanceof FloatControlConfig c) row = UIDataRow.floatControl(c);
-        else if (config instanceof BooleanControlConfig c) row = UIDataRow.toggleControl(c);
-        else if (config instanceof StringControlConfig c) row = UIDataRow.stringControl(c);
-        else if (config instanceof ActionControlConfig c) row = UIDataRow.actionControl(c);
-        if (row==null) return;
+    private void addDataRow(UIRectangle pane, ControlElement element) {
+        UIDataRow row = new UIDataRow(element);
+        
+        row.style("width", pcw(1f))
+        .style("height", px(40))
+        .style("margin-top", px(2));
+        pane.addChild(row);
+    }
+
+    private void addDataRow(UIRectangle pane, ControlConfig config) {
+        UIDataRow row = new UIDataRow(config);
         
         row.style("width", pcw(1f))
         .style("height", px(40))

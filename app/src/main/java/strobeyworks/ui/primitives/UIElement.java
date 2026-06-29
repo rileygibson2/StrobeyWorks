@@ -746,7 +746,7 @@ public abstract class UIElement {
     }
     
     public UIElement onGotFocus(UIEventCallback callback) {
-        this.onGotHover.add(callback);
+        this.onGotFocus.add(callback);
         return this;
     }
     

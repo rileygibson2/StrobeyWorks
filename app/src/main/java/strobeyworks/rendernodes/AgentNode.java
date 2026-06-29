@@ -63,7 +63,10 @@ import java.util.function.Consumer;
 
 import strobeyworks.SWMain;
 import strobeyworks.pipeline.RenderNode;
-import strobeyworks.pipeline.configs.TextureInput;
+import strobeyworks.pipeline.controls.ControlItem.ControlGroup;
+import strobeyworks.pipeline.controls.ControlItem.ControlTab;
+import strobeyworks.pipeline.input.FloatConstantInput;
+import strobeyworks.pipeline.input.TextureInput;
 import strobeyworks.platform.MidiManager;
 import strobeyworks.platform.MidiManager.MidiEvent;
 import strobeyworks.platform.MidiManager.MidiHandle;
@@ -95,19 +98,6 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
     
     private int numAgents = 1000000;
     
-    private BindableValue<Float> diffusion;
-    private BindableValue<Float> decay;
-    private BindableValue<Float> speed;
-    private BindableValue<Float> pheramoneContribution;
-    
-    private BindableValue<Float> sensorDistance;
-    private BindableValue<Float> sensorAngle;
-    private BindableValue<Float> turnSpeed;
-    private BindableValue<Float> randomTurnStrength;
-    private BindableValue<Float> randomSpeedStrength;
-    
-    private BindableValue<Float> opacityCuttoff;
-    
     private BindableList<Vec3> stopColors;
     private BindableList<Float> stopPositions;
     
@@ -120,7 +110,7 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
     }
     
     public AgentNode(UUID id) {
-        super(id, "Species-Agents", "agent", 0);
+        super(id, "Species-Agents", "agent", 0, true);
         
         //loadDefaults();
         
@@ -141,22 +131,25 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
     
     @Override
     protected void setupControls() {
-        createControlTab("Agents");
-        createControlGroup("Turning");
-        sensorAngle = addFloatControl("Sensor Angle", 0.02f, 3f, 3, 0.1f, 0.6f, true);
-        sensorDistance = addFloatControl("Sensor Distance", 0f, 0.5f, 2, 0.01f, 0.01f, true);
-        turnSpeed = addFloatControl("Turn Speed", 0.2f, 20f, 2, 1f, 2f, true);
-        speed = addFloatControl("Speed", 0f, 0.5f, 2, 0.01f, 0.05f, true);
+        ControlTab t = createControlTab("Agents");
+        ControlGroup g = createControlGroup("Turning", t);
+
+        addControlledFloatInput("Sensor Angle", 0.02f, 3f, 3, 0.1f, 0.6f, true, "uSensorAngle", g);
+        addControlledFloatInput("Sensor Distance", 0f, 0.5f, 2, 0.01f, 0.01f, true, "uSensorDistance", g);
+        addControlledFloatInput("Turn Speed", 0.2f, 20f, 2, 1f, 2f, true, "uTurnSpeed", g);
+        addControlledFloatInput("Speed", 0f, 0.5f, 2, 0.01f, 0.05f, true, "uSpeed", g);
         
-        createControlGroup("Opacity");
-        diffusion = addFloatControl("Diffusion", 0f, 1.5f, 2, 0.01f, 0.1f, true);
-        decay = addFloatControl("Decay", 0f, 10f, 2, 1f, 4f, true);
-        opacityCuttoff = addFloatControl("Cuttoff", 0f, 1f, 2, 0.01f, 0f, true);
-        pheramoneContribution = addFloatControl("Contribution", 0f, 1f, 2, 0.01f, 1f, true);
+        g = createControlGroup("Opacity", t);
+
+        addControlledFloatInput("Diffusion", 0f, 1.5f, 2, 0.01f, 0.1f, true, "uDiffusion", g);
+        addControlledFloatInput("Decay", 0f, 10f, 2, 1f, 4f, true, "uDecay", g);
+        addControlledFloatInput("Cuttoff", 0f, 1f, 2, 0.01f, 0f, true, "uOpacityCuttoff", g);
+        addControlledFloatInput("Contribution", 0f, 1f, 2, 0.01f, 1f, true, "uPheramoneContribution", g);
         
-        createControlGroup("Random");
-        randomTurnStrength = addFloatControl("Random Turn", 0f, 20f, 2, 0.01f, 0f, true);
-        randomSpeedStrength = addFloatControl("Random Speed", 0f, 2f, 2, 0.01f, 0f, true);
+        g = createControlGroup("Random", t);
+
+        addControlledFloatInput("Random Turn", 0f, 20f, 2, 0.01f, 0f, true, "uRandomTurnStrength", g);
+        addControlledFloatInput("Random Speed", 0f, 2f, 2, 0.01f, 0f, true, "uRandomSpeedStrength", g);
     
         super.setupControls();
     }
@@ -165,7 +158,7 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
     protected void textureInputAdded(TextureInput input) {}
     
     public void loadDefaultMidiMap() {
-        MidiManager m = MidiManager.getInstance();
+        /*MidiManager m = MidiManager.getInstance();
         
         midiHandleMap.put(m.getHandle(MidiHandleType.FADER, 1), e -> tempFloat(diffusion, e));
         midiHandleMap.put(m.getHandle(MidiHandleType.FADER, 2), e -> tempFloat(decay, e));
@@ -181,7 +174,7 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
         m.subscribe(this, m.getHandle(MidiHandleType.FADER, 4));
         m.subscribe(this, m.getHandle(MidiHandleType.FADER, 5));
         
-        m.subscribe(this, m.getHandle(MidiHandleType.BUTTON, 11));
+        m.subscribe(this, m.getHandle(MidiHandleType.BUTTON, 11));*/
     }
     
     private void tempFloat(BindableValue<Float> b, MidiEvent e) {
@@ -209,7 +202,7 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
     }
     
     public void randomize() {
-        diffusion.setValue(Utils.randomBetween(0.1f, 1f));
+        /*diffusion.setValue(Utils.randomBetween(0.1f, 1f));
         decay.setValue(Utils.randomBetween(2f, 8f));
         speed.setValue(Utils.randomBetween(0.001f, 0.1f));
         
@@ -219,7 +212,7 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
         randomTurnStrength.setValue(Utils.randomBetween(0f, 4f));
         randomSpeedStrength.setValue(Utils.randomBetween(0f, 1f));
         
-        pheramoneContribution.setValue(Utils.randomBetween(0.1f, 1f));
+        pheramoneContribution.setValue(Utils.randomBetween(0.1f, 1f));*/
     }
     
     @Override
@@ -443,18 +436,14 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
         sM.setCurrentProgram(agentPassProgram);
         
         sM.setUniformFloat("uDeltaTime", SWMain.getDeltaTime());
-        sM.setUniformFloat("uSpeed", speed.getValue());
         sM.setUniformFloat("uTime", (float) SWMain.getTotalTime());
         
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, depositTextures[depositReadIndex]);
         
         sM.setUniformInt("uDepositTexture", 0);
-        sM.setUniformFloat("uSensorDistance", sensorDistance.getValue());
-        sM.setUniformFloat("uSensorAngle", sensorAngle.getValue());
-        sM.setUniformFloat("uTurnSpeed", turnSpeed.getValue());
-        sM.setUniformFloat("uRandomTurnStrength", randomTurnStrength.getValue());
-        sM.setUniformFloat("uRandomSpeedStrength", randomSpeedStrength.getValue());
+        
+        uploadInputs(sM);
         
         glBindVertexArray(agentVAORead);
         
@@ -504,8 +493,8 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
         sM.setUniformInt("uDepositTexture", 0);
         sM.setUniformVec2("uTexelSize", new Vec2(1f/getOutputWidth(), 1f/getOutputHeight()));
         sM.setUniformFloat("uDeltaTime", SWMain.getDeltaTime());
-        sM.setUniformFloat("uDiffusion", diffusion.getValue());
-        sM.setUniformFloat("uDecay", decay.getValue());
+        
+        uploadInputs(sM);
         
         bindAndDrawFullScreen();
         
@@ -528,7 +517,8 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
         sM.useProgram(depositPassProgram);
         sM.setCurrentProgram(depositPassProgram);
         
-        sM.setUniformFloat("uPheramoneContribution", pheramoneContribution.getValue());
+        uploadInputs(sM);
+
         glBindVertexArray(agentVAORead);
         glDrawArrays(GL_POINTS, 0, numAgents);
         
@@ -548,7 +538,7 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
         sM.useProgram(finalPassProgram);
         sM.setCurrentProgram(finalPassProgram);
         
-        sM.setUniformFloat("uOpacityCuttoff", opacityCuttoff.getValue());
+        uploadInputs(sM);
         
         int maxStops = 5;
         sM.setUniformInt("uStopCount", stopColors.size());

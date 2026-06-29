@@ -16,38 +16,18 @@ import java.util.UUID;
 
 import strobeyworks.SWMain;
 import strobeyworks.pipeline.RenderNode;
-import strobeyworks.pipeline.configs.TextureInput;
+import strobeyworks.pipeline.controls.ControlItem.ControlGroup;
+import strobeyworks.pipeline.controls.ControlItem.ControlTab;
+import strobeyworks.pipeline.input.BooleanConstantInput;
+import strobeyworks.pipeline.input.FloatConstantInput;
+import strobeyworks.pipeline.input.TextureInput;
 import strobeyworks.platform.ShaderManager;
-import strobeyworks.utils.BindableValue;
-import strobeyworks.utils.Utils;
 import strobeyworks.utils.Vec2I;
 import strobeyworks.utils.Vec3;
 
 public class PerlinNode extends RenderNode {
     
     private int noiseProgram;
-    
-    private BindableValue<Float> speed;
-    private BindableValue<Float> gridSize;
-    
-    private BindableValue<Float> octaves;
-    
-    private BindableValue<Float> gamma;
-    private BindableValue<Float> gain;
-    
-    private BindableValue<Boolean> warp;
-    private BindableValue<Float> warpStrength;
-    private BindableValue<Float> warpScale;
-    
-    private BindableValue<Boolean> octaveRidge;
-    private BindableValue<Boolean> postRidge;
-    private BindableValue<Float> ridgePow;
-    
-    private BindableValue<Boolean> octaveTurbulence;
-    private BindableValue<Float> turbulencePow;
-
-    private BindableValue<Float> seedOffset;
-    private BindableValue<Float> salt;
     
     private Vec3 colorLow;
     private Vec3 colorHigh;
@@ -57,7 +37,7 @@ public class PerlinNode extends RenderNode {
     }
     
     public PerlinNode(UUID id) {
-        super(id, "Perlin-Noise", "perlin", 0);
+        super(id, "Perlin-Noise", "perlin", 0, true);
         
         this.colorLow = new Vec3(0f, 0f, 0f);
         this.colorHigh = new Vec3(1f, 1f, 1f);
@@ -65,31 +45,37 @@ public class PerlinNode extends RenderNode {
     
     @Override
     protected void setupControls() {
-        createControlTab("Structure");
-        createControlGroup("Base");
-        speed = addFloatControl("Speed", 0f, 1f, 3, 0.05f, 0.5f, true);
-        gridSize = addFloatControl("Grid", 2f, 50f, 0, 1f, 10f, true);
-        octaves = addFloatControl("Octaves", 1f, 10f, 0, 1f, 1f, true);
-        gamma = addFloatControl("Gamma", 0f, 5f, 3, 0.1f, 4f, true);
-        gain = addFloatControl("Gain", 0f, 5f, 3, 0.1f, 4f, true);
-        createControlGroup("Seed");
-        seedOffset = addFloatControl("Offset", 0f, 100f, 0, 1f, 0f, true);
-        salt = addFloatControl("Salt", 0f, 9999f, 0, 1f, 0f, false);
+        ControlTab t = createControlTab("Structure");
+        ControlGroup g = createControlGroup("Base", t);
         
-        createControlTab("Processing");
-        createControlGroup("Warp");
-        warp = addBooleanControl("Warp", false);
-        warpStrength = addFloatControl("Strength", 0f, 3f, 3, 0.1f, 0f, true);
-        warpScale = addFloatControl("Scale", 0f, 3f, 3, 0.1f, 1f, true);
+        addControlledFloatInput("Speed", 0f, 1f, 3, 0.05f, 0.5f, true, "uSpeed", g);
+        addControlledFloatInput("Grid", 2f, 50f, 0, 1f, 10f, true, "uGridSize", g);
+        addControlledFloatInput("Octaves", 1f, 10f, 0, 1f, 1f, true, "uOctaves", g);
+        addControlledFloatInput("Gamma", 0f, 5f, 3, 0.1f, 4f, true, "uGamma", g);
+        addControlledFloatInput("Gain", 0f, 5f, 3, 0.1f, 4f, true, "uGain", g);
         
-        createControlGroup("Ridge");
-        octaveRidge = addBooleanControl("Per Octave", false);
-        postRidge = addBooleanControl("Post", false);
-        ridgePow = addFloatControl("Ridge Power", 0f, 5f, 3, 0.1f, 2f, true);
+        g = createControlGroup("Seed", t);
 
-        createControlGroup("Turbulence");
-        octaveTurbulence = addBooleanControl("Octave Turbulence", false);
-        turbulencePow = addFloatControl("Power", 0f, 5f, 3, 0.1f, 2f, true);
+        addControlledFloatInput("Offset", 0f, 100f, 0, 1f, 0f, true, "uSeedOffset", g);
+        addControlledFloatInput("Salt", 0f, 9999f, 0, 1f, 0f, false, "uSalt", g);
+        
+        t = createControlTab("Processing");
+        g = createControlGroup("Warp", t);
+        
+        addControlledBooleanInput("Warp", false, "uWarp", g);
+        addControlledFloatInput("Strength", 0f, 3f, 3, 0.1f, 0f, true, "uWarpStrength", g);
+        addControlledFloatInput("Scale", 0f, 3f, 3, 0.1f, 1f, true, "uWarpScale", g);
+        
+        g = createControlGroup("Ridge", t);
+        
+        addControlledBooleanInput("Per Octave", false, "uOctaveRidge", g);
+        addControlledBooleanInput("Post", false, "uPostRidge", g);
+        addControlledFloatInput("Ridge Power", 0f, 5f, 3, 0.1f, 2f, true, "uRidgePow", g);
+
+        g = createControlGroup("Turbulence", t);
+
+        addControlledBooleanInput("Octave Turbulence", false, "uOctaveTurbulence", g);
+        addControlledFloatInput("Power", 0f, 5f, 3, 0.1f, 2f, true, "uTurbulencePow", g);
     
         super.setupControls();
     }
@@ -134,37 +120,14 @@ public class PerlinNode extends RenderNode {
         sM.useProgram(noiseProgram);
         sM.setCurrentProgram(noiseProgram);
         
-        double gridSizeV = Math.ceil(gridSize.getValue());
-        gridSizeV = Utils.clamp(2, 1000, gridSizeV);
-        sM.setUniformInt("uGridSize", (int) gridSizeV);
         sM.setUniformFloat("uTime", SWMain.getTotalTime());
-        sM.setUniformFloat("uSpeed", speed.getValue());
-        sM.setUniformFloat("uSeedOffset", seedOffset.getValue());
-        sM.setUniformFloat("uSalt", salt.getValue());
-        
-        double octaveV = Math.ceil(octaves.getValue());
-        octaveV = Utils.clamp(1, 10, octaveV);
-        sM.setUniformInt("uOctaves", (int) octaveV);
         sM.setUniformFloat("uLacunarity", 2.0f);
         sM.setUniformFloat("uPersistence", 0.5f);
-        
-        sM.setUniformFloat("uGamma", gamma.getValue());
-        sM.setUniformFloat("uGain", gain.getValue());
-        
-        sM.setUniformInt("uWarp", warp.getValue() ? 1 : 0);
-        sM.setUniformFloat("uWarpStrength", warpStrength.getValue());
-        sM.setUniformFloat("uWarpScale", warpScale.getValue());
-        
-        sM.setUniformInt("uOctaveRidge", octaveRidge.getValue() ? 1 : 0);
-        sM.setUniformInt("uPostRidge", postRidge.getValue() ? 1 : 0);
-        sM.setUniformFloat("uRidgePow", ridgePow.getValue());
-        
-        sM.setUniformInt("uOctaveTurbulence", octaveTurbulence.getValue() ? 1 : 0);
-        sM.setUniformFloat("uTurbulencePow", turbulencePow.getValue());
-        
+
         sM.setUniformVec3("uColorLow", colorLow);
         sM.setUniformVec3("uColorHigh", colorHigh);
-        
+
+        uploadInputs(sM);
         bindAndDrawFullScreen();
         
         // Reset

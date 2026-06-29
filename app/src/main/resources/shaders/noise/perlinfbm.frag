@@ -8,12 +8,12 @@ const float PI = 3.14159265359;
 
 uniform float uTime;
 uniform float uSpeed;
-uniform int uGridSize;
+uniform float uGridSize;
 
 uniform float uSeedOffset;
 uniform float uSalt;
 
-uniform int uOctaves;
+uniform float uOctaves;
 uniform float uLacunarity;
 uniform float uPersistence;
 
@@ -103,7 +103,7 @@ float fbm(vec3 position, bool ridged, bool turbulence) {
 
     // GLSL prefers a compile-time loop limit.
     for (int octave = 0; octave < 10; octave++) {
-        if (octave >= uOctaves) {
+        if (octave >= int(uOctaves)) {
             break;
         }
 
@@ -157,7 +157,7 @@ vec3 hsbToRgb(vec3 hsb) {
 
 void main() {
     vec3 position = vec3(
-        vUV * uGridSize,
+        vUV * int(uGridSize),
         uTime * uSpeed
     );
 

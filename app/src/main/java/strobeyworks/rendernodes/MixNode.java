@@ -3,8 +3,6 @@ package strobeyworks.rendernodes;
 import static org.lwjgl.opengl.GL11.GL_BLEND;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
-import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
-import static org.lwjgl.opengl.GL11.glBindTexture;
 import static org.lwjgl.opengl.GL11.glClear;
 import static org.lwjgl.opengl.GL11.glClearColor;
 import static org.lwjgl.opengl.GL11.glDisable;
@@ -18,10 +16,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import strobeyworks.pipeline.ControlItem.ControlGroup;
 import strobeyworks.pipeline.RenderNode;
 import strobeyworks.pipeline.RenderPipeline;
-import strobeyworks.pipeline.configs.TextureInput;
+import strobeyworks.pipeline.controls.ControlItem.ControlGroup;
+import strobeyworks.pipeline.controls.ControlItem.ControlTab;
+import strobeyworks.pipeline.input.TextureInput;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.Vec2I;
@@ -38,14 +37,14 @@ public class MixNode extends RenderNode {
     }
     
     public MixNode(UUID id) {
-        super(id, "Mix", "mix", 5);
+        super(id, "Mix", "mix", 5, true);
         weights = new ArrayList<>();
     }
     
     @Override
     protected void setupControls() {
-        createControlTab("Mix");
-        weightGroup = createControlGroup("Weights");
+        ControlTab t = createControlTab("Mix");
+        weightGroup = createControlGroup("Weights", t);
         super.setupControls();
     }
     
@@ -64,8 +63,8 @@ public class MixNode extends RenderNode {
     @Override
     protected void textureInputAdded(TextureInput input) {
         float d = 0.5f;
-        BindableValue<Float> w = addFloatControl("Input "+(getNodeDependancyCount()), 0f, 1f, 2, 0.1f, d, true, weightGroup);
-        weights.add(w);
+        //BindableValue<Float> w = addFloatControl("Input "+(getNodeDependancyCount()), 0f, 1f, 2, 0.1f, d, true, weightGroup);
+        //weights.add(w);
         
         RenderPipeline.getInstance().handleNodeControlsChanged();
     }
@@ -90,8 +89,8 @@ public class MixNode extends RenderNode {
         sM.useProgram(program);
         sM.setCurrentProgram(program);
         
-        uploadTextureInputs(sM);
-        
+        uploadInputs(sM);
+
         for (int i = 0; i < weights.size(); i++) {
             sM.setUniformFloat("uMixWeights[" + i + "]", weights.get(i).getValue());
         }

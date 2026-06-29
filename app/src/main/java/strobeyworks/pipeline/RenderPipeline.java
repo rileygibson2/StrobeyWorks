@@ -1,19 +1,14 @@
 package strobeyworks.pipeline;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import strobeyworks.SWMain;
-import strobeyworks.logger.Logger;
 import strobeyworks.pipeline.RenderNode.RenderNodeState;
-import strobeyworks.pipeline.configs.TextureInput;
-import strobeyworks.pipeline.configs.TextureInput.TextureInputMode;
-import strobeyworks.pipeline.configs.TextureInput.TextureInputState;
-import strobeyworks.platform.JSONManager;
+import strobeyworks.pipeline.input.TextureInput;
+import strobeyworks.pipeline.input.TextureInput.TextureInputMode;
 import strobeyworks.rendernodes.MaskNode;
 import strobeyworks.rendernodes.PerlinNode;
 import strobeyworks.utils.Vec2;
@@ -65,8 +60,8 @@ public class RenderPipeline {
         n3.setUIAPosition(new Vec2(200, 300));
         
         // Connections
-        addTextureInputToNode(n3, new TextureInput(n1));
-        addTextureInputToNode(n3, new TextureInput(n2, TextureInputMode.RED));
+        n3.addInput(new TextureInput(n1));
+        n3.addInput(new TextureInput(n2, TextureInputMode.RED));
         
         setOutputtingNode(n3);
     }
@@ -82,7 +77,7 @@ public class RenderPipeline {
     public <T extends RenderNode> T addNode(Class<T> nodeClass, Vec2I dimensions) {
         T node = RenderNode.getNode(nodeClass);
         allNodes.add(node);
-        if (!compile()) throw new RuntimeException("Failed to create render node: compile failed");
+        if (!tryCompile()) throw new RuntimeException("Failed to create render node: compile failed");
         
         node.setupControls();
         RenderTarget target = RenderTarget.texture(dimensions);
@@ -119,24 +114,11 @@ public class RenderPipeline {
         for (RenderPipelineListener l : subscribers) l.nodeControlsChanged();
     }
     
-    public boolean addTextureInputToNode(RenderNode destNode, TextureInput input) {
-        if (input==null||destNode==null||input.getNode()==null) return false;
-        RenderNode inputNode = input.getNode();
-        
-        if (inputNode==destNode) return false;
-        destNode.addTextureInput(input);
-        
-        if (!compile()) {
-            throw new RuntimeException("Render pipeline would not compile");
-        }
-        return true;
-    }
-    
     public boolean disconnectNodeInput(RenderNode inputNode, RenderNode destinationNode) {
         return true;
     }
     
-    private boolean compile() {
+    boolean tryCompile() {
         List<RenderNode> newCompiledOrder = new ArrayList<>();
         Set<RenderNode> visiting = new HashSet<>();
         Set<RenderNode> visited = new HashSet<>();
@@ -165,7 +147,7 @@ public class RenderPipeline {
         return true;
     }
     
-    public void savePipelineToDisk() {
+    /*public void savePipelineToDisk() {
         Logger.info("Saving pipeline to disk");
         RenderPipelineState state = getState();
         JSONManager.savePipelineState("test1.show", state);
@@ -248,7 +230,7 @@ public class RenderPipeline {
         }
         
         for (RenderPipelineListener l : subscribers) l.pipelineFullyReloaded();
-    }
+    }*/
     
     public void iterate() {
         for (RenderNode n : compiledOrder) n.update();

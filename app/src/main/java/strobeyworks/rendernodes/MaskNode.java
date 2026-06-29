@@ -15,7 +15,7 @@ import static org.lwjgl.opengl.GL30.glBindFramebuffer;
 import java.util.UUID;
 
 import strobeyworks.pipeline.RenderNode;
-import strobeyworks.pipeline.configs.TextureInput;
+import strobeyworks.pipeline.input.TextureInput;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.utils.Vec2I;
 
@@ -28,7 +28,7 @@ public class MaskNode extends RenderNode {
     }
 
     public MaskNode(UUID id) {
-        super(id, "Mask", "mask", 2);
+        super(id, "Mask", "mask", 2, true);
     }
     
     @Override
@@ -75,7 +75,8 @@ public class MaskNode extends RenderNode {
         sM.setCurrentProgram(program);
         
         sM.setUniformInt("maskMode", 2);
-        uploadTextureInputs(sM);
+        uploadInputs(sM);
+        
         bindAndDrawFullScreen();
         
         // Reset

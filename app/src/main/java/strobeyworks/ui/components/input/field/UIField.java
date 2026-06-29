@@ -34,6 +34,8 @@ public class UIField<T> extends UIBindableInput<T, String> {
     private int cursorPos;
     private UIColor cachedColor;
     private boolean invalidInput;
+
+    private UIBasicCallback onCommit;
     
     public UIField(UIFont font, UIValueMapper<T, String> mapper) {
         super(mapper);
@@ -80,6 +82,10 @@ public class UIField<T> extends UIBindableInput<T, String> {
         flash.setForm(AnimationForm.SINE)
         .setSpeed(1f);
     }
+
+    public void onCommit(UIBasicCallback onCommit) {
+        this.onCommit = onCommit;
+    }
     
     @Override
     public void initialise() {
@@ -114,6 +120,7 @@ public class UIField<T> extends UIBindableInput<T, String> {
     public void lostFocus(IOEvent event) {
         UIRenderer.getInstance().removeAnimation(flash);
         cursor.style("visible", false);
+        super.lostFocus(event);
     }
     
     @Override
@@ -154,6 +161,8 @@ public class UIField<T> extends UIBindableInput<T, String> {
         
         cursorPos = getLocalValue().length();
         repositionCursorX();
+        
+        if (onCommit!=null) onCommit.implement();
     }
     
     private void handleBackSpace() {

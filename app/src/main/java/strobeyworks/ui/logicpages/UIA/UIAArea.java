@@ -194,7 +194,7 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
     }
     
     private void handleKeyDown(int keyCode) {
-        if (keyCode == GLFW_KEY_S) RenderPipeline.getInstance().savePipelineToDisk();
-        if (keyCode == GLFW_KEY_L) RenderPipeline.getInstance().loadPipelineFromDisk();
+        //if (keyCode == GLFW_KEY_S) RenderPipeline.getInstance().savePipelineToDisk();
+        //if (keyCode == GLFW_KEY_L) RenderPipeline.getInstance().loadPipelineFromDisk();
     }
 }

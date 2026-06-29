@@ -20,7 +20,6 @@ import static org.lwjgl.opengl.GL30.glDeleteVertexArrays;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -30,17 +29,18 @@ import java.util.UUID;
 import com.google.gson.JsonElement;
 
 import strobeyworks.SWMain;
-import strobeyworks.pipeline.ControlItem.ControlElement;
-import strobeyworks.pipeline.ControlItem.ControlGroup;
-import strobeyworks.pipeline.ControlItem.ControlTab;
-import strobeyworks.pipeline.configs.ControlConfig;
-import strobeyworks.pipeline.configs.ControlConfig.ActionControlConfig;
-import strobeyworks.pipeline.configs.ControlConfig.BooleanControlConfig;
-import strobeyworks.pipeline.configs.ControlConfig.FloatControlConfig;
-import strobeyworks.pipeline.configs.ControlConfig.IntegerControlConfig;
-import strobeyworks.pipeline.configs.ControlConfig.StringControlConfig;
-import strobeyworks.pipeline.configs.TextureInput;
-import strobeyworks.pipeline.configs.TextureInput.TextureInputState;
+import strobeyworks.pipeline.controls.ControlConfig.ActionControlConfig;
+import strobeyworks.pipeline.controls.ControlConfig.BooleanControlConfig;
+import strobeyworks.pipeline.controls.ControlConfig.FloatControlConfig;
+import strobeyworks.pipeline.controls.ControlElement;
+import strobeyworks.pipeline.controls.ControlItem.ControlGroup;
+import strobeyworks.pipeline.controls.ControlItem.ControlTab;
+import strobeyworks.pipeline.input.BooleanConstantInput;
+import strobeyworks.pipeline.input.FloatConstantInput;
+import strobeyworks.pipeline.input.RenderInput;
+import strobeyworks.pipeline.input.TextureInput;
+import strobeyworks.pipeline.input.TextureInput.TextureInputMode;
+import strobeyworks.pipeline.input.TextureInput.TextureInputState;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.rendernodes.AgentNode;
 import strobeyworks.rendernodes.MaskNode;
@@ -85,16 +85,17 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
     private int fullQuadVAO;
     private int fullQuadVBO;
     
-    private List<TextureInput> textureInputs;
+    private Set<RenderInput> inputs;
+    private List<TextureInput> textureInputCache;
+    
     private final int maxTextureInputs;
+    private final boolean hasTextureOutput;
     private int nodeDependancyCount;
     
     private int outputWidth;
     private int outputHeight;
     
     private List<ControlTab> controlTabs;
-    
-    private List<ControlConfig> registeredControls;
     
     private BindableValue<Float> widthControl;
     private BindableValue<Float> heightControl;
@@ -105,20 +106,22 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
     private Integer pendingOutputWidth;
     private Integer pendingOutputHeight;
     
-    public RenderNode(UUID id, String longName, String shortName, int maxTextureInputs) {
+    public RenderNode(UUID id, String longName, String shortName, int maxTextureInputs, boolean hasTextureOutput) {
         this.id = id;
         this.longName = longName;
         this.shortName = shortName;
         this.customName = "";
         
-        registeredControls = new ArrayList<>();
+        inputs = new HashSet<>();
+        
+        this.textureInputCache = new ArrayList<>();
+        this.maxTextureInputs = maxTextureInputs;
+        this.hasTextureOutput = hasTextureOutput;
+        this.nodeDependancyCount = 0;
         
         this.outputWidth = -1;
         this.outputHeight = -1;
         
-        this.textureInputs = new ArrayList<>();
-        this.maxTextureInputs = maxTextureInputs;
-        this.nodeDependancyCount = 0;
         
         this.uiaPosition = new Vec2(0f);
         
@@ -197,37 +200,63 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
     
     protected abstract void textureInputAdded(TextureInput input);
     
-    protected void addTextureInput(TextureInput input) {
-        if (input==null) return;
-        if (input.getNode()==this) return;
-        textureInputs.add(input);
+    public void addInput(RenderInput input) {
+        if (input instanceof TextureInput textureInput) {
+            if (!validateTextureInput(textureInput)) return;
+        }
+        
+        inputs.add(input);
+    }
+    
+    public boolean replaceInput(RenderInput oldInput, RenderInput newInput) {
+        if (inputs.remove(oldInput)) inputs.add(newInput);
+        else return false;
+
+        boolean result = true;
+        if (oldInput instanceof TextureInput) {
+            textureInputCache.remove(oldInput);
+            result = RenderPipeline.getInstance().tryCompile();
+        }
+
+        if (newInput instanceof TextureInput textureInput) {
+            result = validateTextureInput(textureInput);
+        }
+        
+        return result;
+    }
+    
+    private boolean validateTextureInput(TextureInput input) {
+        if (input==null||input.getSourceNode()==this) return false;
+        textureInputCache.add(input);
+        
+        boolean result = RenderPipeline.getInstance().tryCompile();
+        if (!result) {
+            textureInputCache.remove(input);
+            return false;
+        }
         
         countNodeDependancies();
         textureInputAdded(input);
-    }
-    
-    protected void removeTextureInput(TextureInput input) {
-        textureInputs.remove(input);
-        countNodeDependancies();
+        return true;
     }
     
     private void countNodeDependancies() {
         Set<RenderNode> nodes = new HashSet<>();
-        for (TextureInput t : textureInputs) nodes.add(t.getNode());
+        for (TextureInput t : textureInputCache) nodes.add(t.getSourceNode());
         nodeDependancyCount = nodes.size();
     }
     
     protected Set<RenderNode> getNodeDependancies() {
         Set<RenderNode> nodes = new HashSet<>();
-        for (TextureInput t : textureInputs) nodes.add(t.getNode());
+        for (TextureInput t : textureInputCache) nodes.add(t.getSourceNode());
         return nodes;
     }
     
     public List<RenderNode> getNodeConnections() {
         List<RenderNode> connections = new ArrayList<>();
         
-        for (TextureInput t : textureInputs) {
-            connections.add(t.getNode());
+        for (TextureInput t : textureInputCache) {
+            connections.add(t.getSourceNode());
         }
         return connections;
     }
@@ -244,52 +273,79 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         return tab;
     }
     
-    public ControlGroup createControlGroup(String name) {
-        ControlTab tab = getLatestControlTab();
+    public ControlGroup createControlGroup(String name, ControlTab tab) {
         if (tab==null) return null;
         
-        ControlGroup group = new ControlGroup(name, tab);
+        ControlGroup group = new ControlGroup(name);
         tab.add(group);
         return group;
-    }
-    
-    public void addControlElement(ControlElement control, ControlGroup group) {
-        if (group==null) return;
-        group.add(control);
-        
-        registeredControls.add(control.config());
-    }
-    
-    public ControlTab getLatestControlTab() {
-        if (controlTabs.isEmpty()) return null;
-        return controlTabs.get(controlTabs.size()-1);
-    }
-    
-    public ControlGroup getLatestControlGroup() {
-        ControlTab tab = getLatestControlTab();
-        if (tab==null) return null;
-        
-        List<ControlGroup> tabGroups = tab.items();
-        if (tabGroups.isEmpty()) return null;
-        return tabGroups.get(tabGroups.size()-1);
     }
     
     public List<ControlTab> getControlTabs() {
         return List.copyOf(controlTabs);
     }
+
+    protected void addControlledTextureInput(
+        String name,
+        ControlGroup group
+    ) {
+        TextureInput input = new TextureInput(null, TextureInputMode.LUMINANCE);
+        addInput(input);
+        
+        FloatControlConfig c = new FloatControlConfig(
+            name,
+            min,
+            max,
+            precision,
+            increment,
+            defaultValue,
+            slider
+        );
+        
+        group.add(new ControlElement(this, input, c));
+    }
     
-    protected BindableValue<Float> addFloatControl(
+    protected void addControlledFloatInput(
         String name,
         float min,
         float max,
         int precision,
         float increment,
         float defaultValue,
-        boolean slider
+        boolean slider,
+        String uniformName,
+        ControlGroup group
     ) {
-        return addFloatControl(name, min, max, precision, increment, defaultValue, slider, getLatestControlGroup());
+        FloatConstantInput input = new FloatConstantInput(uniformName, defaultValue);
+        addInput(input);
+        
+        FloatControlConfig c = new FloatControlConfig(
+            name,
+            min,
+            max,
+            precision,
+            increment,
+            defaultValue,
+            slider
+        );
+        
+        group.add(new ControlElement(this, input, c));
     }
     
+    protected void addControlledBooleanInput(
+        String name,
+        boolean defaultValue,
+        String uniformName,
+        ControlGroup group
+    ) {
+        BooleanConstantInput input = new BooleanConstantInput(uniformName, defaultValue);
+        addInput(input);
+
+        BooleanControlConfig c = new BooleanControlConfig(name, defaultValue);
+        
+        group.add(new ControlElement(this, input, c));
+    }
+
     protected BindableValue<Float> addFloatControl(
         String name,
         float min,
@@ -301,73 +357,38 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         ControlGroup group
     ) {
         BindableValue<Float> binding = BindableValue.of(defaultValue);
-        String key = group.tab().name()+"/"+group.name()+"/"+name;
-        
-        addControlElement(
-            new ControlElement(
-                new FloatControlConfig(
-                    key,
-                    name,
-                    binding,
-                    min,
-                    max,
-                    precision,
-                    increment,
-                    defaultValue,
-                    slider
-                ),
-                group
-            ),
-            group
+        FloatControlConfig c = new FloatControlConfig(
+            name,
+            min,
+            max,
+            precision,
+            increment,
+            defaultValue,
+            slider
         );
+        
+        group.add(new ControlElement(this, binding, c));
         return binding;
     }
     
-    protected BindableValue<Boolean> addBooleanControl(String name, boolean defaultValue) {
-        BindableValue<Boolean> binding = BindableValue.of(defaultValue);
-        ControlGroup group = getLatestControlGroup();
-        String key = group.tab().name()+"/"+group.name()+"/"+name;
-        
-        addControlElement(
-            new ControlElement(
-                new BooleanControlConfig(
-                    key,
-                    name,
-                    binding,
-                    defaultValue
-                ),
-                group
-            ),
-            group
+    protected void addActionControl(String name, String buttonText, Runnable action, ControlGroup group) {
+        ActionControlConfig c = new ActionControlConfig(
+            name,
+            buttonText,
+            action
         );
-        return binding;
-    }
-    
-    protected void addActionControl(String name, String buttonText, Runnable action) {
-        ControlGroup group = getLatestControlGroup();
-        String key = group.tab().name()+"/"+group.name()+"/"+name;
         
-        addControlElement(
-            new ControlElement(
-                new ActionControlConfig(
-                    key,
-                    "Resize to window",
-                    "Run",
-                    this::resizeToOutputWindow
-                ),
-                group
-            ),
-            group
-        );
+        group.add(new ControlElement(this, c));
     }
     
     protected void setupControls() {
-        createControlTab("Size");
-        createControlGroup("Output Texture");
+        ControlTab t = createControlTab("Size");
+        ControlGroup g = createControlGroup("Output Texture", t);
         
-        widthControl = addFloatControl("Width", 1f, 10000, 0, 1f, 1500, false);
-        heightControl = addFloatControl("Height", 1f, 10000, 0, 1f, 900, false);
-        addActionControl("Resize to window", "Run", this::resizeToOutputWindow);
+        widthControl = addFloatControl("Width", 1f, 10000, 0, 1f, 1500, false, g);
+        heightControl = addFloatControl("Height", 1f, 10000, 0, 1f, 900, false, g);
+        
+        addActionControl("Resize to window", "Run", this::resizeToOutputWindow, g);
         
         widthControl.bind(this);
         heightControl.bind(this);
@@ -434,18 +455,20 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         return renderTarget;
     }
     
-    protected void uploadTextureInputs(ShaderManager sM) {
-        List<TextureInput> textureInputs = getTextureInputs();
+    public void uploadInputs(ShaderManager sM) {
+        for (RenderInput input : inputs) input.upload(sM);
         
-        for (int i=0; i<textureInputs.size(); i++) {
-            TextureInput t = textureInputs.get(i);
+        // Special handling of texture input upload
+        
+        for (int i=0; i<textureInputCache.size(); i++) {
+            TextureInput t = textureInputCache.get(i);
             glActiveTexture(GL_TEXTURE0 + i);
-            glBindTexture(GL_TEXTURE_2D, t.getNode().getRenderTarget().getTexture());
+            glBindTexture(GL_TEXTURE_2D, t.getSourceNode().getRenderTarget().getTexture());
             
             sM.setUniformInt("uInputTextures[" + i + "]", i);
             sM.setUniformInt("uInputModes[" + i + "]", t.getMode().ordinal());
         }
-        sM.setUniformInt("uInputCount", textureInputs.size());
+        sM.setUniformInt("uInputCount", textureInputCache.size());
     }
     
     // -----------------------------------------------------------------------------
@@ -454,78 +477,82 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
     // -----------------------------------------------------------------------------
     // -----------------------------------------------------------------------------
     
-    public RenderNodeState getState() {
-        // Control states
-        List<RenderControlState> controlStates = new ArrayList<>();
-        
-        for (ControlConfig config : registeredControls) {
-            if (!config.isStateful()) continue;
-            RenderControlState state = config.getState();
-            if (state!=null) controlStates.add(state);
-        }
-        
-        // Input states
-        List<TextureInputState> textureInputStates = new ArrayList<>();
-        for (TextureInput t : textureInputs) textureInputStates.add(t.getState());
-        
-        return new RenderNodeState(
-            id.toString(),
-            longName,
-            customName,
-            (int) uiaPosition.x,
-            (int) uiaPosition.y,
-            controlStates,
-            textureInputStates
-        );
+    /*public RenderNodeState getState() {
+    // Control states
+    List<RenderControlState> controlStates = new ArrayList<>();
+    
+    for (ControlConfig config : registeredControls) {
+    if (!config.isStateful()) continue;
+    RenderControlState state = config.getState();
+    if (state!=null) controlStates.add(state);
+    }
+    
+    // Input states
+    List<TextureInputState> textureInputStates = new ArrayList<>();
+    for (TextureInput t : textureInputs) textureInputStates.add(t.getState());
+    
+    return new RenderNodeState(
+    id.toString(),
+    longName,
+    customName,
+    (int) uiaPosition.x,
+    (int) uiaPosition.y,
+    controlStates,
+    textureInputStates
+    );
     }
     
     public static RenderNode loadFromState(RenderNodeState state) {  
-        Class<? extends RenderNode> nodeClass = NODE_TYPE_REGISTRY.get(state.typeName());
-        
-        if (nodeClass==null) throw new RuntimeException("No RenderNode registry entry for: " + state.typeName());
-        if (!RenderNode.class.isAssignableFrom(nodeClass)) throw new RuntimeException("Saved type is not a RenderNode: " + state.typeName());
-        UUID id = UUID.fromString(state.id());
-        RenderNode node = getNode(nodeClass, id);
-        
-        node.setCustomName(state.customName());
-        node.setUIAPosition(new Vec2(state.uiaXPos(), state.uiaYPos()));
-        
-        return node;
+    Class<? extends RenderNode> nodeClass = NODE_TYPE_REGISTRY.get(state.typeName());
+    
+    if (nodeClass==null) throw new RuntimeException("No RenderNode registry entry for: " + state.typeName());
+    if (!RenderNode.class.isAssignableFrom(nodeClass)) throw new RuntimeException("Saved type is not a RenderNode: " + state.typeName());
+    UUID id = UUID.fromString(state.id());
+    RenderNode node = getNode(nodeClass, id);
+    
+    node.setCustomName(state.customName());
+    node.setUIAPosition(new Vec2(state.uiaXPos(), state.uiaYPos()));
+    
+    return node;
     }
     
     public void applyControlStates(List<RenderControlState> states) {
-        if (states == null) return;
-        
-        Map<String, RenderControlState> stateMap = new HashMap<>();
-        
-        for (RenderControlState state : states) {
-            stateMap.put(state.key(), state);
-        }
-        
-        for (ControlConfig config : registeredControls) {
-            RenderControlState state = stateMap.get(config.key());
-            if (state==null) continue;
-            
-            if (config instanceof FloatControlConfig c) {
-                c.binding().setValue(state.value().getAsFloat());
-            }
-            else if (config instanceof BooleanControlConfig c) {
-                c.binding().setValue(state.value().getAsBoolean());
-            }
-            else if (config instanceof IntegerControlConfig c) {
-                c.binding().setValue(state.value().getAsInt());
-            }
-            else if (config instanceof StringControlConfig c) {
-                c.binding().setValue(state.value().getAsString());
-            }
-        }
+    if (states == null) return;
+    
+    Map<String, RenderControlState> stateMap = new HashMap<>();
+    
+    for (RenderControlState state : states) {
+    stateMap.put(state.key(), state);
     }
+    
+    for (ControlConfig config : registeredControls) {
+    RenderControlState state = stateMap.get(config.key());
+    if (state==null) continue;
+    
+    if (config instanceof FloatControlConfig c) {
+    c.binding().setValue(state.value().getAsFloat());
+    }
+    else if (config instanceof BooleanControlConfig c) {
+    c.binding().setValue(state.value().getAsBoolean());
+    }
+    else if (config instanceof IntegerControlConfig c) {
+    c.binding().setValue(state.value().getAsInt());
+    }
+    else if (config instanceof StringControlConfig c) {
+    c.binding().setValue(state.value().getAsString());
+    }
+    }
+    }*/
     
     // -----------------------------------------------------------------------------
     // -----------------------------------------------------------------------------
     // ------ GETTERS & SETTERS
     // -----------------------------------------------------------------------------
     // -----------------------------------------------------------------------------
+    
+    public boolean hasTextureOutput() {
+        return hasTextureOutput;
+    }
     
     public int getNodeDependancyCount() {
         return nodeDependancyCount;
@@ -537,10 +564,6 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
     
     public boolean allowsTextureInputs() {
         return maxTextureInputs>0;
-    }
-    
-    protected List<TextureInput> getTextureInputs() {
-        return textureInputs;
     }
     
     public void setCustomName(String name) {
