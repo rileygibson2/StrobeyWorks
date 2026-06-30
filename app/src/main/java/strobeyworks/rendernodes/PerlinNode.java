@@ -37,55 +37,56 @@ public class PerlinNode extends RenderNode {
     }
     
     public PerlinNode(UUID id) {
-        super(id, "Perlin-Noise", "perlin", 0, true);
+        super(id, "Perlin-Noise", "perlin", true);
         
         this.colorLow = new Vec3(0f, 0f, 0f);
         this.colorHigh = new Vec3(1f, 1f, 1f);
     }
+
+    @Override
+    protected void setupFeeds() {}
     
     @Override
-    protected void setupControls() {
+    protected void setupParameters() {
         ControlTab t = createControlTab("Structure");
         ControlGroup g = createControlGroup("Base", t);
         
-        addControlledFloatInput("Speed", 0f, 1f, 3, 0.05f, 0.5f, true, "uSpeed", g);
-        addControlledFloatInput("Grid", 2f, 50f, 0, 1f, 10f, true, "uGridSize", g);
-        addControlledFloatInput("Octaves", 1f, 10f, 0, 1f, 1f, true, "uOctaves", g);
-        addControlledFloatInput("Gamma", 0f, 5f, 3, 0.1f, 4f, true, "uGamma", g);
-        addControlledFloatInput("Gain", 0f, 5f, 3, 0.1f, 4f, true, "uGain", g);
+        floatParam(g, "Speed", "uSpeed", 0f, 1f, 3, 0.05f, 0.5f, true);
+        floatParam(g, "Grid", "uGridSize", 2f, 50f, 0, 1f, 10f, true);
+        floatParam(g, "Octaves", "uOctaves", 1f, 10f, 0, 1f, 1f, true);
+        floatParam(g, "Gamma", "uGamma", 0f, 5f, 3, 0.1f, 4f, true);
+        floatParam(g, "Gain", "uGain", 0f, 5f, 3, 0.1f, 4f, true);
         
         g = createControlGroup("Seed", t);
-
-        addControlledFloatInput("Offset", 0f, 100f, 0, 1f, 0f, true, "uSeedOffset", g);
-        addControlledFloatInput("Salt", 0f, 9999f, 0, 1f, 0f, false, "uSalt", g);
+        
+        floatParam(g, "Offset", "uSeedOffset", 0f, 100f, 0, 1f, 0f, true);
+        floatParam(g, "Salt", "uSalt", 0f, 9999f, 0, 1f, 0f, false);
         
         t = createControlTab("Processing");
         g = createControlGroup("Warp", t);
         
-        addControlledBooleanInput("Warp", false, "uWarp", g);
-        addControlledFloatInput("Strength", 0f, 3f, 3, 0.1f, 0f, true, "uWarpStrength", g);
-        addControlledFloatInput("Scale", 0f, 3f, 3, 0.1f, 1f, true, "uWarpScale", g);
+        boolParam(g, "Warp", "uWarp", false);
+        floatParam(g, "Strength", "uWarpStrength", 0f, 3f, 3, 0.1f, 0f, true);
+        floatParam(g, "Scale", "uWarpScale", 0f, 3f, 3, 0.1f, 1f, true);
         
         g = createControlGroup("Ridge", t);
         
-        addControlledBooleanInput("Per Octave", false, "uOctaveRidge", g);
-        addControlledBooleanInput("Post", false, "uPostRidge", g);
-        addControlledFloatInput("Ridge Power", 0f, 5f, 3, 0.1f, 2f, true, "uRidgePow", g);
-
+        boolParam(g, "Per Octave", "uOctaveRidge", false);
+        boolParam(g, "Post", "uPostRidge", false);
+        floatParam(g, "Ridge Power", "uRidgePow", 0f, 5f, 3, 0.1f, 2f, true);
+        
         g = createControlGroup("Turbulence", t);
-
-        addControlledBooleanInput("Octave Turbulence", false, "uOctaveTurbulence", g);
-        addControlledFloatInput("Power", 0f, 5f, 3, 0.1f, 2f, true, "uTurbulencePow", g);
-    
-        super.setupControls();
+        
+        boolParam(g, "Octave Turbulence", "uOctaveTurbulence", false);
+        floatParam(g, "Power", "uTurbulencePow", 0f, 5f, 3, 0.1f, 2f, true);
     }
-
-    @Override
-    protected void textureInputAdded(TextureInput input) {}
-
+    
     public void setColorHigh(Vec3 color) {
         this.colorHigh = color;
     }
+
+    @Override
+    public void feedInputsChanged() {}
     
     @Override
     public void initialise(Vec2I dimensions) {
@@ -96,7 +97,7 @@ public class PerlinNode extends RenderNode {
         // Shaders init
         noiseProgram = sM.createProgram("noise/perlinfbm.vert", "noise/perlinfbm.frag");
         initialiseFullQuad();
-
+        
         sM.useProgram(0);
     }
     
@@ -123,10 +124,10 @@ public class PerlinNode extends RenderNode {
         sM.setUniformFloat("uTime", SWMain.getTotalTime());
         sM.setUniformFloat("uLacunarity", 2.0f);
         sM.setUniformFloat("uPersistence", 0.5f);
-
+        
         sM.setUniformVec3("uColorLow", colorLow);
         sM.setUniformVec3("uColorHigh", colorHigh);
-
+        
         uploadInputs(sM);
         bindAndDrawFullScreen();
         

@@ -2,7 +2,7 @@ package strobeyworks.pipeline;
 
 public interface RenderPipelineListener {
     void outputtingNodeChanged(RenderNode node);
-    void nodeControlsChanged();
+    void nodeInputsChanged(RenderNode node);
 
     void pipelineFullyReloaded();
 

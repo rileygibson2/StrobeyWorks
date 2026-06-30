@@ -43,7 +43,7 @@ public class UIInspectorPane extends UIRectangle implements RenderPipelineListen
     public void outputtingNodeChanged(RenderNode node) {}
 
     @Override
-    public void nodeControlsChanged() {
+    public void nodeInputsChanged(RenderNode node) {
         loadRenderNode(node);
     }
 

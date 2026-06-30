@@ -92,7 +92,7 @@ public class UIANode extends UIRectangle {
     }
     
     public void reposition() {
-        Vec2 pos = area.applyCamera(renderNode.getUIAPosition());
+        Vec2 pos = area.applyCamera(new Vec2(renderNode.getUIAPosX(), renderNode.getUIAPosY()));
         style("offset-left", px(pos.x));
         style("offset-top", px(pos.y));
     }
@@ -114,8 +114,8 @@ public class UIANode extends UIRectangle {
         dragStartMouseX = event.getMouseX();
         dragStartMouseY = event.getMouseY();
         
-        dragStartPosX = (int) renderNode.getUIAPosition().x;
-        dragStartPosY = (int) renderNode.getUIAPosition().y;
+        dragStartPosX = (int) renderNode.getUIAPosX();
+        dragStartPosY = (int) renderNode.getUIAPosY();
     }
     
     @Override
@@ -127,7 +127,7 @@ public class UIANode extends UIRectangle {
             
             int posX = dragStartPosX - (int) -dx;
             int posY = dragStartPosY - (int) -dy;
-            renderNode.setUIAPosition(new Vec2(posX, posY));
+            renderNode.setUIAPosition(posX, posY);
             reposition();
             break;
             

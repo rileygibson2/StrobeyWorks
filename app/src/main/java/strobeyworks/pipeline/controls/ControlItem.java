@@ -44,7 +44,6 @@ public abstract class ControlItem {
 
         public void add(ControlElement element) {
             items.add(element);
-            element.setParent(this);
         }
 
         public void setParent(ControlTab tab) {

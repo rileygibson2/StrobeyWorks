@@ -4,9 +4,13 @@ in vec2 vUV;
 
 #define MAX_INPUTS 8
 
-uniform sampler2D uInputTextures[MAX_INPUTS];
-uniform int uInputCount;
-uniform int uInputModes[MAX_INPUTS];
+uniform sampler2D uMainFeedTex;
+uniform int uMainFeedTexMode;
+
+uniform int uMaskSourceType;
+uniform float uMaskValue;
+uniform sampler2D uMaskTex;
+uniform int uMaskTexMode;
 
 uniform int maskMode;
 
@@ -25,21 +29,39 @@ float sampleInput(vec4 tex, int mode) {
     return 1.0; // unnecessary
 }
 
+vec4 sampleInputVec4(vec4 tex, int mode) {
+    if (mode == 0) return vec4(tex.r, tex.r, tex.r, tex.a);
+    if (mode == 1) return vec4(tex.g, tex.g, tex.g, tex.a);
+    if (mode == 2) return vec4(tex.b, tex.b, tex.b, tex.a);
+    if (mode == 3) return vec4(tex.a, tex.a, tex.a, tex.a);
+
+    if (mode == 4) {
+        float l = dot(tex.rgb, vec3(0.2126, 0.7152, 0.0722));
+        return vec4(l, l, l, tex.a);
+    }
+
+    return tex;
+}
+
+float getMaskValue() {
+    float maskValue = 0.0;
+
+    if (uMaskSourceType == 0) maskValue = uMaskValue;
+
+    if (uMaskSourceType == 1) {
+        vec4 maskTex = texture(uMaskTex, vUV);
+        maskValue = sampleInput(maskTex, uMaskTexMode);
+    }
+
+    return maskValue;
+}
+
 void main() {
-    if (uInputCount<=0) {
-        FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-        return;
-    }
+    vec4 inputTex = sampleInputVec4(texture(uMainFeedTex, vUV), uMainFeedTexMode);
 
-    vec4 inputTex = texture(uInputTextures[0], vUV);
-
-    float maskValue = 1.0;
-    if (uInputCount>1) {
-        vec4 maskTex = texture(uInputTextures[1], vUV);
-        maskValue = sampleInput(maskTex, uInputModes[1]);
-    }
-
-    vec4 color;
+    float maskValue = getMaskValue();
+    vec4 color = vec4(inputTex.rgb, inputTex.a);
+    
     if (maskMode==1) { // True alpha mask
         color = vec4(inputTex.rgb, inputTex.a*maskValue);
     }

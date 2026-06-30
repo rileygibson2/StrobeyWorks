@@ -1,5 +1,7 @@
 package strobeyworks.pipeline.controls;
 
+import strobeyworks.utils.BindableValue;
+
 public interface ControlConfig {
     String name();
     
@@ -35,6 +37,11 @@ public interface ControlConfig {
         String name,
         String buttonText,
         Runnable action
+    ) implements ControlConfig {}
+
+    public record DisplayControlConfig (
+        String name,
+        BindableValue<?> binding
     ) implements ControlConfig {}
 }
 

@@ -37,15 +37,21 @@ public class MixNode extends RenderNode {
     }
     
     public MixNode(UUID id) {
-        super(id, "Mix", "mix", 5, true);
+        super(id, "Mix", "mix", true);
         weights = new ArrayList<>();
     }
     
     @Override
-    protected void setupControls() {
+    protected void setupFeeds() {
+        for (int i=0; i<5; i++) {
+            createFeedSlot("uMainFeed"+i);
+        }
+    }
+    
+    @Override
+    protected void setupParameters() {
         ControlTab t = createControlTab("Mix");
         weightGroup = createControlGroup("Weights", t);
-        super.setupControls();
     }
     
     @Override
@@ -61,13 +67,7 @@ public class MixNode extends RenderNode {
     }
     
     @Override
-    protected void textureInputAdded(TextureInput input) {
-        float d = 0.5f;
-        //BindableValue<Float> w = addFloatControl("Input "+(getNodeDependancyCount()), 0f, 1f, 2, 0.1f, d, true, weightGroup);
-        //weights.add(w);
-        
-        RenderPipeline.getInstance().handleNodeControlsChanged();
-    }
+    public void feedInputsChanged() {}
     
     @Override
     public void render() {
@@ -90,7 +90,7 @@ public class MixNode extends RenderNode {
         sM.setCurrentProgram(program);
         
         uploadInputs(sM);
-
+        
         for (int i = 0; i < weights.size(); i++) {
             sM.setUniformFloat("uMixWeights[" + i + "]", weights.get(i).getValue());
         }

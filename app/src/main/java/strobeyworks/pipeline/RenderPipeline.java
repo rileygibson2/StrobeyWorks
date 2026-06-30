@@ -47,21 +47,19 @@ public class RenderPipeline {
         
         // Nodes
         PerlinNode n1 = addNode(PerlinNode.class, d);
-        n1.setUIAPosition(new Vec2(0, 0));
+        n1.setUIAPosition(0, 0);
         n1.setColorHigh(new Vec3(0f, 0f, 1f));
         
-        
         PerlinNode n2 = addNode(PerlinNode.class, d);
-        n2.setUIAPosition(new Vec2(140, 200));
+        n2.setUIAPosition(140, 200);
         n2.setColorHigh(new Vec3(1f, 0f, 0f));
         
-        
         RenderNode n3 = addNode(MaskNode.class, d);
-        n3.setUIAPosition(new Vec2(200, 300));
+        n3.setUIAPosition(200, 300);
         
         // Connections
-        n3.addInput(new TextureInput(n1));
-        n3.addInput(new TextureInput(n2, TextureInputMode.RED));
+        n3.setFeedInput(0, new TextureInput(n1));
+        //n3.setFeedInput(1, new TextureInput(n2, TextureInputMode.RED));
         
         setOutputtingNode(n3);
     }
@@ -77,9 +75,9 @@ public class RenderPipeline {
     public <T extends RenderNode> T addNode(Class<T> nodeClass, Vec2I dimensions) {
         T node = RenderNode.getNode(nodeClass);
         allNodes.add(node);
-        if (!tryCompile()) throw new RuntimeException("Failed to create render node: compile failed");
+        if (!tryCompile()) throw new RuntimeException("Failed to add render node: compile failed");
         
-        node.setupControls();
+        node.setup();
         RenderTarget target = RenderTarget.texture(dimensions);
         node.setCustomName(node.getShortName()+(countNodesOfType(nodeClass)));
         node.setRenderTarget(target);
@@ -110,8 +108,8 @@ public class RenderPipeline {
         return outputtingNode;
     }
     
-    public void handleNodeControlsChanged() {
-        for (RenderPipelineListener l : subscribers) l.nodeControlsChanged();
+    public void handleNodeInputsChanged(RenderNode node) {
+        for (RenderPipelineListener l : subscribers) l.nodeInputsChanged(node);
     }
     
     public boolean disconnectNodeInput(RenderNode inputNode, RenderNode destinationNode) {
@@ -136,7 +134,7 @@ public class RenderPipeline {
         if (visiting.contains(n)) return false; // Loop detected
         visiting.add(n);
         
-        for (RenderNode i : n.getNodeDependancies()) {
+        for (RenderNode i : n.getDependancies()) {
             if (!compileVisit(i, visiting, visited, order)) return false;
         }
         
@@ -148,88 +146,88 @@ public class RenderPipeline {
     }
     
     /*public void savePipelineToDisk() {
-        Logger.info("Saving pipeline to disk");
-        RenderPipelineState state = getState();
-        JSONManager.savePipelineState("test1.show", state);
-        
-        for (RenderPipelineListener l : subscribers) l.pipelineSavedToFile("test1.show");
+    Logger.info("Saving pipeline to disk");
+    RenderPipelineState state = getState();
+    JSONManager.savePipelineState("test1.show", state);
+    
+    for (RenderPipelineListener l : subscribers) l.pipelineSavedToFile("test1.show");
     }
     
     public void loadPipelineFromDisk() {
-        Logger.info("Loading pipeline from disk");
-        RenderPipelineState state = JSONManager.loadPipelineState("test1.show");
-        
-        configureFromState(state);
-        for (RenderPipelineListener l : subscribers) l.pipelineLoadedFromFile("test1.show");
+    Logger.info("Loading pipeline from disk");
+    RenderPipelineState state = JSONManager.loadPipelineState("test1.show");
+    
+    configureFromState(state);
+    for (RenderPipelineListener l : subscribers) l.pipelineLoadedFromFile("test1.show");
     }
     
     public RenderPipelineState getState() {
-        List<RenderNodeState> nodeStates = new ArrayList<>();
-        for (RenderNode n : allNodes) nodeStates.add(n.getState());
-        
-        return new RenderPipelineState(
-            nodeStates,
-            outputtingNode.getIDString()
-        );
+    List<RenderNodeState> nodeStates = new ArrayList<>();
+    for (RenderNode n : allNodes) nodeStates.add(n.getState());
+    
+    return new RenderPipelineState(
+    nodeStates,
+    outputtingNode.getIDString()
+    );
     }
     
     public void configureFromState(RenderPipelineState state) {
-        // Clear state
-        cleanup();
-        allNodes = new HashSet<>();
-        compiledOrder = new ArrayList<>();
-        outputtingNode = null;
-        
-        // Create all nodes
-        Vec2I dimensions = SWMain.getOutputWindow().getFramebufferDimensions();
-        Map<String, RenderNode> loadedNodes = new HashMap<>();
-        
-        for (RenderNodeState nodeState : state.nodes()) {
-            RenderNode node = RenderNode.loadFromState(nodeState);
-            
-            allNodes.add(node);
-            node.setupControls();
-            RenderTarget target = RenderTarget.texture(dimensions);
-            node.setRenderTarget(target);
-            node.initialise(dimensions);
-            
-            loadedNodes.put(nodeState.id(), node);
-        }
-        
-        // Link texture inputs
-        for (RenderNodeState nodeState : state.nodes()) {
-            RenderNode destination = loadedNodes.get(nodeState.id());
-            if (destination==null||nodeState.textureInputs()==null) continue;
-            
-            for (TextureInputState texInputState : nodeState.textureInputs()) {
-                RenderNode source = loadedNodes.get(texInputState.nodeID());
-                if (source==null) continue;
-                
-                TextureInputMode mode = TextureInputMode.UNNECESSARY;
-                if (texInputState.mode() != null) mode = TextureInputMode.valueOf(texInputState.mode());
-                
-                addTextureInputToNode(destination, new TextureInput(source, mode));
-            }
-        }
-        
-        // Apply controls to nodes
-        for (RenderNodeState nodeState : state.nodes()) {
-            RenderNode node = loadedNodes.get(nodeState.id());
-            if (node==null) continue;
-            node.applyControlStates(nodeState.controls());
-        }
-        
-        // Apply pipeline settings
-        for (RenderNode n : allNodes) {
-            if (n.hasSameID(state.outputtingNodeID)) setOutputtingNode(n);
-        }
-        
-        // Compile
-        if (!compile()) {
-            throw new RuntimeException("Pipeline state could not be loaded - compile error");
-        }
-        
-        for (RenderPipelineListener l : subscribers) l.pipelineFullyReloaded();
+    // Clear state
+    cleanup();
+    allNodes = new HashSet<>();
+    compiledOrder = new ArrayList<>();
+    outputtingNode = null;
+    
+    // Create all nodes
+    Vec2I dimensions = SWMain.getOutputWindow().getFramebufferDimensions();
+    Map<String, RenderNode> loadedNodes = new HashMap<>();
+    
+    for (RenderNodeState nodeState : state.nodes()) {
+    RenderNode node = RenderNode.loadFromState(nodeState);
+    
+    allNodes.add(node);
+    node.setupControls();
+    RenderTarget target = RenderTarget.texture(dimensions);
+    node.setRenderTarget(target);
+    node.initialise(dimensions);
+    
+    loadedNodes.put(nodeState.id(), node);
+    }
+    
+    // Link texture inputs
+    for (RenderNodeState nodeState : state.nodes()) {
+    RenderNode destination = loadedNodes.get(nodeState.id());
+    if (destination==null||nodeState.textureInputs()==null) continue;
+    
+    for (TextureInputState texInputState : nodeState.textureInputs()) {
+    RenderNode source = loadedNodes.get(texInputState.nodeID());
+    if (source==null) continue;
+    
+    TextureInputMode mode = TextureInputMode.UNNECESSARY;
+    if (texInputState.mode() != null) mode = TextureInputMode.valueOf(texInputState.mode());
+    
+    addTextureInputToNode(destination, new TextureInput(source, mode));
+    }
+    }
+    
+    // Apply controls to nodes
+    for (RenderNodeState nodeState : state.nodes()) {
+    RenderNode node = loadedNodes.get(nodeState.id());
+    if (node==null) continue;
+    node.applyControlStates(nodeState.controls());
+    }
+    
+    // Apply pipeline settings
+    for (RenderNode n : allNodes) {
+    if (n.hasSameID(state.outputtingNodeID)) setOutputtingNode(n);
+    }
+    
+    // Compile
+    if (!compile()) {
+    throw new RuntimeException("Pipeline state could not be loaded - compile error");
+    }
+    
+    for (RenderPipelineListener l : subscribers) l.pipelineFullyReloaded();
     }*/
     
     public void iterate() {

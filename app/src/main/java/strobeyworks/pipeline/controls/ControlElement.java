@@ -1,44 +1,41 @@
 package strobeyworks.pipeline.controls;
 
 import strobeyworks.pipeline.RenderNode;
-import strobeyworks.pipeline.input.RenderInput;
+import strobeyworks.pipeline.input.RenderInputSlot;
 import strobeyworks.utils.BindableValue;
 
 public class ControlElement extends ControlItem {
     
-    private RenderNode parentNode;
-    
-    private ControlGroup parent;
-    private ControlConfig config;
+    private final RenderNode parentNode;
+    private final ControlConfig config;
+    private final RenderInputSlot slot;
+    private final BindableValue<?> binding;
 
-    private RenderInput input;
-    private BindableValue<?> binding;
-
-    public ControlElement(RenderNode parentNode, RenderInput input, ControlConfig config) {
+    public ControlElement(RenderNode parentNode, ControlConfig config, RenderInputSlot slot) {
         super(config.name());
         this.config = config;
-        this.input = input;
+        this.slot = slot;
         this.parentNode = parentNode;
+
+        this.binding = null;
     }
 
-    public ControlElement(RenderNode parentNode, BindableValue<?> binding, ControlConfig config) {
+    public ControlElement(RenderNode parentNode, ControlConfig config, BindableValue<?> binding) {
         super(config.name());
+        this.config = config;
         this.binding = binding;
         this.parentNode = parentNode;
+
+        this.slot = null;
     }
 
     public ControlElement(RenderNode parentNode, ControlConfig config) {
         super(config.name());
         this.config = config;
         this.parentNode = parentNode;
-    }
 
-    public void setParent(ControlGroup group) {
-        this.parent = group;
-    }
-
-    public ControlGroup getParent() {
-        return this.parent;
+        this.slot = null;
+        this.binding = null;
     }
 
     public RenderNode getParentNode() {
@@ -49,15 +46,19 @@ public class ControlElement extends ControlItem {
         return this.config;
     }
 
-    public void setRenderInput(RenderInput input) {
-        this.input = input;
+    public RenderInputSlot getRenderInputSlot() {
+        return slot;
     }
 
-    public RenderInput getRenderInput() {
-        return this.input;
+    public boolean hasRenderInputSlot() {
+        return slot!=null;
     }
 
     public BindableValue<?> getBinding() {
         return binding;
+    }
+
+    public boolean hasBinding() {
+        return binding!=null;
     }
 }

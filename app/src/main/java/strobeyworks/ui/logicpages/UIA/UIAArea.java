@@ -54,7 +54,9 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
     }
     
     @Override
-    public void nodeControlsChanged() {}
+    public void nodeInputsChanged(RenderNode node) {
+        rebuildFromPipeline();
+    }
     
     @Override
     public void pipelineFullyReloaded() {
@@ -98,7 +100,7 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
         // Add connections
         for (RenderNode node : nodes) {
             UIANode n1 = getUIForNode(node);
-            List<RenderNode> connections = node.getNodeConnections();
+            List<RenderNode> connections = node.getDependancies();
             
             for (RenderNode connectingNode : connections) {
                 UIANode n2 = getUIForNode(connectingNode);

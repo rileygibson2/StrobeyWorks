@@ -7,41 +7,39 @@ out vec4 FragColor;
 const float PI = 3.14159265359;
 
 uniform float uTime;
-uniform float uSpeed;
-uniform float uGridSize;
 
-uniform float uSeedOffset;
-uniform float uSalt;
+uniform float uSpeedValue;
+uniform float uGridSizeValue;
 
-uniform float uOctaves;
+uniform float uSeedOffsetValue;
+uniform float uSaltValue;
+
+uniform float uOctavesValue;
 uniform float uLacunarity;
 uniform float uPersistence;
 
-uniform float uGamma;
-uniform float uGain;
+uniform float uGammaValue;
+uniform float uGainValue;
 
-uniform int uWarp;
-uniform float uWarpStrength;
-uniform float uWarpScale;
+uniform int uWarpValue;
+uniform float uWarpStrengthValue;
+uniform float uWarpScaleValue;
 
-uniform int uOctaveRidge;
-uniform int uPostRidge;
-uniform float uRidgePow;
+uniform int uOctaveRidgeValue;
+uniform int uPostRidgeValue;
+uniform float uRidgePowValue;
 
-uniform int uOctaveTurbulence;
-uniform float uTurbulencePow;
+uniform int uOctaveTurbulenceValue;
+uniform float uTurbulencePowValue;
 
 uniform vec3 uColorLow;
 uniform vec3 uColorHigh;
 
-// Produces a repeatable pseudo-random value between 0 and 1
-// for each integer grid coordinate.
 float hash(vec3 p) {
-    // Discrete salt: changes the hash identity.
     vec3 saltVec = vec3(
-        fract(uSalt * 0.1031),
-        fract(uSalt * 0.1137),
-        fract(uSalt * 0.1371)
+        fract(uSaltValue * 0.1031),
+        fract(uSaltValue * 0.1137),
+        fract(uSaltValue * 0.1371)
     );
 
     p = fract(p * vec3(123.34, 456.21, 789.56) + saltVec);
@@ -50,7 +48,6 @@ float hash(vec3 p) {
     return fract((p.x + p.y) * p.z);
 }
 
-// Gives each grid point a pseudo-random unit direction.
 vec3 gradient(vec3 gridPoint) {
     float z = hash(gridPoint) * 2.0 - 1.0;
     float angle = hash(gridPoint + vec3(17.13, 31.71, 47.77)) * 2.0 * PI;
@@ -63,8 +60,6 @@ vec3 gradient(vec3 gridPoint) {
     );
 }
 
-// Smooths interpolation near grid boundaries.
-// This is Perlin's quintic fade curve: 6t^5 - 15t^4 + 10t^3.
 vec3 fade(vec3 t) {
     return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
@@ -101,9 +96,8 @@ float fbm(vec3 position, bool ridged, bool turbulence) {
     float frequency = 1.0;
     float amplitudeSum = 0.0;
 
-    // GLSL prefers a compile-time loop limit.
     for (int octave = 0; octave < 10; octave++) {
-        if (octave >= int(uOctaves)) {
+        if (octave >= int(uOctavesValue)) {
             break;
         }
 
@@ -111,9 +105,9 @@ float fbm(vec3 position, bool ridged, bool turbulence) {
 
         if (ridged) {
             n = 1.0 - abs(n);
-            n = pow(clamp(n, 0.0, 1.0), uRidgePow);
+            n = pow(clamp(n, 0.0, 1.0), uRidgePowValue);
         } else if (turbulence) {
-            n = pow(abs(n), uTurbulencePow);
+            n = pow(abs(n), uTurbulencePowValue);
         }
 
         total += n * amplitude;
@@ -127,7 +121,7 @@ float fbm(vec3 position, bool ridged, bool turbulence) {
 }
 
 float warpedFbm(vec3 position) {
-    vec3 warpPosition = position * uWarpScale;
+    vec3 warpPosition = position * uWarpScaleValue;
 
     vec3 warp = vec3(
         fbm(warpPosition + vec3(12.7, 3.1, 8.4), false, false),
@@ -135,62 +129,46 @@ float warpedFbm(vec3 position) {
         fbm(warpPosition + vec3(9.8, 2.4, 23.6), false, false)
     );
 
-    // fbm is centred near zero, so this bends coordinates in both directions.
     return fbm(
-        position + warp * uWarpStrength,
-        uOctaveRidge == 1 ? true : false,
-        uOctaveTurbulence == 1 ? true : false
+        position + warp * uWarpStrengthValue,
+        uOctaveRidgeValue == 1,
+        uOctaveTurbulenceValue == 1
     );
-}
-
-vec3 hsbToRgb(vec3 hsb) {
-    vec3 rgb = clamp(
-        abs(mod(hsb.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0,
-        0.0,
-        1.0
-    );
-
-    rgb = rgb * rgb * (3.0 - 2.0 * rgb);
-
-    return hsb.z * mix(vec3(1.0), rgb, hsb.y);
 }
 
 void main() {
     vec3 position = vec3(
-        vUV * int(uGridSize),
-        uTime * uSpeed
+        vUV * int(uGridSizeValue),
+        uTime * uSpeedValue
     );
 
-    // Seed offset
     position += vec3(
-        uSeedOffset * 0.01,
-        uSeedOffset * 0.013,
-        uSeedOffset * 0.017
+        uSeedOffsetValue * 0.01,
+        uSeedOffsetValue * 0.013,
+        uSeedOffsetValue * 0.017
     );
 
-    // Noise
     float noise;
-    if (uWarp==1) {
+    if (uWarpValue == 1) {
         noise = warpedFbm(position);
     } else {
         noise = fbm(
             position,
-            uOctaveRidge == 1 ? true : false,
-            uOctaveTurbulence == 1 ? true : false
+            uOctaveRidgeValue == 1,
+            uOctaveTurbulenceValue == 1
         );
     }
 
-    // Post processing
-    if (uPostRidge == 1) {
+    if (uPostRidgeValue == 1) {
         noise = 1.0 - abs(noise);
-        noise = pow(noise, uRidgePow);
-    } else if (uOctaveRidge == 0 && uOctaveTurbulence == 0) {
+        noise = pow(noise, uRidgePowValue);
+    } else if (uOctaveRidgeValue == 0 && uOctaveTurbulenceValue == 0) {
         noise = noise * 0.5 + 0.5;
     }
 
-    noise = pow(clamp(noise, 0.0, 1.0), uGamma) * uGain;
+    noise = pow(clamp(noise, 0.0, 1.0), uGammaValue) * uGainValue;
     noise = clamp(noise, 0.0, 1.0);
-    
+
     vec3 color = mix(uColorLow, uColorHigh, noise);
 
     FragColor = vec4(color, 1.0);

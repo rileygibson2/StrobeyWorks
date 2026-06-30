@@ -15,7 +15,8 @@ import static org.lwjgl.opengl.GL30.glBindFramebuffer;
 import java.util.UUID;
 
 import strobeyworks.pipeline.RenderNode;
-import strobeyworks.pipeline.input.TextureInput;
+import strobeyworks.pipeline.controls.ControlItem.ControlGroup;
+import strobeyworks.pipeline.controls.ControlItem.ControlTab;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.utils.Vec2I;
 
@@ -28,14 +29,24 @@ public class MaskNode extends RenderNode {
     }
 
     public MaskNode(UUID id) {
-        super(id, "Mask", "mask", 2, true);
+        super(id, "Mask", "mask", true);
+    }
+
+    @Override
+    protected void setupFeeds() {
+        createFeedSlot("uMainFeed");
     }
     
     @Override
-    protected void setupControls() {
-        createControlTab("Mask");
-        super.setupControls();
+    protected void setupParameters() {
+        ControlTab t = createControlTab("Mix");
+        ControlGroup g = createControlGroup("Weights", t);
+
+        floatParam(g, "Mask Value", "uMask", 0f, 1f, 3, 0.1f, 1f, true);
     }
+
+    @Override
+    public void feedInputsChanged() {}
     
     @Override
     public void initialise(Vec2I dimensions) {
@@ -47,11 +58,6 @@ public class MaskNode extends RenderNode {
         program = sM.createProgram("mask/mask.vert", "mask/mask.frag");
         initialiseFullQuad();
         sM.useProgram(0);
-    }
-
-    @Override
-    protected void textureInputAdded(TextureInput input) {
-        
     }
     
     @Override

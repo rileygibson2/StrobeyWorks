@@ -7,20 +7,14 @@ import strobeyworks.pipeline.input.TextureInput.TextureInputMode;
 public final class RenderInputParser {
     
     
-    public static RenderInput parse(String input, String uniformName) {
+    public static RenderInput parse(String input) {
         input = clean(input);
         
         ConstantInput<?> numConst = tryNumericConstant(input);
-        if (numConst!=null) {
-            numConst.setUniformName(uniformName);
-            return numConst;
-        }
+        if (numConst!=null) return numConst;
 
         TextureInput tex = tryTexture(input);
-        if (tex!=null) {
-            tex.setUniformName(uniformName);
-            return tex;
-        }
+        if (tex!=null) return tex;
         
         return null;
     }
@@ -32,7 +26,7 @@ public final class RenderInputParser {
     private static ConstantInput<?> tryNumericConstant(String input) {
         try { // Float
             float value = Float.parseFloat(input);
-            return new FloatConstantInput(null, value);
+            return new FloatConstantInput(value);
         } catch (NumberFormatException e) {return null;}
     }
     

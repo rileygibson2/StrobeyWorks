@@ -6,8 +6,8 @@ public abstract class ConstantInput<T> extends RenderInput {
 
     protected BindableValue<T> binding;
 
-	public ConstantInput(String uniformName, BindableValue<T> binding) {
-		super(uniformName, false);
+	public ConstantInput(BindableValue<T> binding) {
+		super(false);
         this.binding = binding;
 	}
 

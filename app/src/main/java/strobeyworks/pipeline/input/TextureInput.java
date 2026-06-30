@@ -42,7 +42,7 @@ public class TextureInput extends RenderInput {
     }
     
     public TextureInput(RenderNode sourceNode, TextureInputMode mode) {
-        super("", true);
+        super(true);
         this.sourceNode = sourceNode;
         this.mode = mode;
     }
