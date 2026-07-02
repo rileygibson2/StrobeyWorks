@@ -1,64 +1,73 @@
 package strobeyworks.pipeline.controls;
 
 import strobeyworks.pipeline.RenderNode;
+import strobeyworks.pipeline.controls.ControlConfig.ActionControlConfig;
+import strobeyworks.pipeline.controls.ControlConfig.DisplayControlConfig;
 import strobeyworks.pipeline.input.RenderInputSlot;
 import strobeyworks.utils.BindableValue;
 
-public class ControlElement extends ControlItem {
+public abstract class ControlElement extends ControlItem {
     
     private final RenderNode parentNode;
-    private final ControlConfig config;
-    private final RenderInputSlot slot;
-    private final BindableValue<?> binding;
-
-    public ControlElement(RenderNode parentNode, ControlConfig config, RenderInputSlot slot) {
-        super(config.name());
-        this.config = config;
-        this.slot = slot;
-        this.parentNode = parentNode;
-
-        this.binding = null;
-    }
-
-    public ControlElement(RenderNode parentNode, ControlConfig config, BindableValue<?> binding) {
-        super(config.name());
-        this.config = config;
-        this.binding = binding;
-        this.parentNode = parentNode;
-
-        this.slot = null;
-    }
-
-    public ControlElement(RenderNode parentNode, ControlConfig config) {
+    private final ControlConfig<?> config;
+    
+    public ControlElement(RenderNode parentNode, ControlConfig<?> config) {
         super(config.name());
         this.config = config;
         this.parentNode = parentNode;
-
-        this.slot = null;
-        this.binding = null;
     }
-
+    
     public RenderNode getParentNode() {
         return parentNode;
     }
-
-    public ControlConfig getConfig() {
+    
+    public ControlConfig<?> getConfig() {
         return this.config;
     }
-
-    public RenderInputSlot getRenderInputSlot() {
-        return slot;
+    
+    public static class InputControlElement extends ControlElement {
+        private final RenderInputSlot slot;
+        
+        public InputControlElement(RenderNode parentNode, ControlConfig<?> config, RenderInputSlot slot) {
+            super(parentNode, config);
+            this.slot = slot;
+        }
+        
+        public RenderInputSlot getRenderInputSlot() {
+            return slot;
+        }
     }
-
-    public boolean hasRenderInputSlot() {
-        return slot!=null;
+    
+    public static class LocalControlElement<T> extends ControlElement {
+        private final BindableValue<T> binding;
+        
+        public LocalControlElement(RenderNode parentNode, ControlConfig<T> config, BindableValue<T> binding) {
+            super(parentNode, config);
+            this.binding = binding;
+        }
+        
+        public BindableValue<T> getBinding() {
+            return binding;
+        }
     }
-
-    public BindableValue<?> getBinding() {
-        return binding;
+    
+    public static class ActionControlElement extends ControlElement {
+        
+        public ActionControlElement(RenderNode parentNode, ActionControlConfig config) {
+            super(parentNode, config);
+        }
     }
-
-    public boolean hasBinding() {
-        return binding!=null;
+    
+    public static class DisplayControlElement extends ControlElement {
+        private final BindableValue<?> binding;
+        
+        public DisplayControlElement(RenderNode parentNode, DisplayControlConfig config, BindableValue<?> binding) {
+            super(parentNode, config);
+            this.binding = binding;
+        }
+        
+        public BindableValue<?> getBinding() {
+            return binding;
+        }
     }
 }

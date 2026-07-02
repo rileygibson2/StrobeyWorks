@@ -145,7 +145,7 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
             selectedNode.style("border-color", UIColor.rgb(0.3f))
             .style("z-index", 0);
         }
-        UIRenderer.getInstance().getInspectorPane().loadRenderNode(node);
+        UIRenderer.getInstance().getInspectorPane().selectRenderNode(node);
         
         if (node==null) return;
         for (UIANode uiaNode : uiaNodes) {

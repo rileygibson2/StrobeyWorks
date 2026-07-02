@@ -47,15 +47,15 @@ public class RenderPipeline {
         
         // Nodes
         PerlinNode n1 = addNode(PerlinNode.class, d);
-        n1.setUIAPosition(0, 0);
+        n1.setUIAPosition(-10, 0);
         n1.setColorHigh(new Vec3(0f, 0f, 1f));
         
         PerlinNode n2 = addNode(PerlinNode.class, d);
-        n2.setUIAPosition(140, 200);
+        n2.setUIAPosition(-10, 120);
         n2.setColorHigh(new Vec3(1f, 0f, 0f));
         
         RenderNode n3 = addNode(MaskNode.class, d);
-        n3.setUIAPosition(200, 300);
+        n3.setUIAPosition(165, 60);
         
         // Connections
         n3.setFeedInput(0, new TextureInput(n1));

@@ -64,6 +64,11 @@ public class UIInspectorPane extends UIRectangle implements RenderPipelineListen
         if (mainTab!=null) mainTab.setTab(0);
     }
 
+    public void selectRenderNode(RenderNode node) {
+        if (node==this.node) return;
+        loadRenderNode(node);
+    }
+
     public void loadRenderNode(RenderNode node) {
         removeAllContentChildren();
         this.node = node;
@@ -175,7 +180,7 @@ public class UIInspectorPane extends UIRectangle implements RenderPipelineListen
         pane.addChild(row);
     }
 
-    private void addDataRow(UIRectangle pane, ControlConfig config) {
+    private void addDataRow(UIRectangle pane, ControlConfig<?> config) {
         UIDataRow row = new UIDataRow(config);
         
         row.style("width", pcw(1f))

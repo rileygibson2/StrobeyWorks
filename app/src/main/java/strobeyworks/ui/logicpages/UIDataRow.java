@@ -5,29 +5,35 @@ import static strobeyworks.ui.core.UILength.pcw;
 import static strobeyworks.ui.core.UILength.px;
 
 import strobeyworks.logger.Logger;
+import strobeyworks.pipeline.controls.ControlConfig;
 import strobeyworks.pipeline.controls.ControlConfig.ActionControlConfig;
-import strobeyworks.pipeline.controls.ControlConfig.BooleanControlConfig;
 import strobeyworks.pipeline.controls.ControlConfig.DisplayControlConfig;
 import strobeyworks.pipeline.controls.ControlConfig.FloatControlConfig;
 import strobeyworks.pipeline.controls.ControlConfig.StringControlConfig;
-import strobeyworks.pipeline.controls.ControlConfig;
 import strobeyworks.pipeline.controls.ControlElement;
+import strobeyworks.pipeline.controls.ControlElement.ActionControlElement;
+import strobeyworks.pipeline.controls.ControlElement.DisplayControlElement;
+import strobeyworks.pipeline.controls.ControlElement.InputControlElement;
+import strobeyworks.pipeline.controls.ControlElement.LocalControlElement;
 import strobeyworks.pipeline.input.BooleanConstantInput;
 import strobeyworks.pipeline.input.FloatConstantInput;
 import strobeyworks.pipeline.input.RenderInput;
 import strobeyworks.pipeline.input.RenderInputParser;
 import strobeyworks.pipeline.input.RenderInputSlot;
 import strobeyworks.pipeline.input.TextureInput;
-import strobeyworks.pipeline.input.TextureInput.TextureInputMode;
+import strobeyworks.platform.Transition;
 import strobeyworks.ui.components.UIButton;
 import strobeyworks.ui.components.input.UISlider;
 import strobeyworks.ui.components.input.UIToggle;
 import strobeyworks.ui.components.input.UIValueMapper;
+import strobeyworks.ui.components.input.UIValueMapper.UIMapResult;
 import strobeyworks.ui.components.input.field.UIFloatField;
+import strobeyworks.ui.components.input.field.UIFloatFieldMapper;
 import strobeyworks.ui.components.input.field.UIStringField;
 import strobeyworks.ui.core.UIColor;
 import strobeyworks.ui.core.UIFont;
 import strobeyworks.ui.core.UIFontManager;
+import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.ui.primitives.UIText;
 import strobeyworks.utils.BindableValue;
@@ -35,7 +41,7 @@ import strobeyworks.utils.BindableValue;
 public class UIDataRow extends UIRectangle {
     
     private ControlElement controlElement;
-    private ControlConfig config;
+    private ControlConfig<?> config;
     
     private UIRectangle valueArea;
     protected UIColor valueColor;
@@ -50,7 +56,7 @@ public class UIDataRow extends UIRectangle {
         configure();
     }
     
-    public UIDataRow(ControlConfig config) {
+    public UIDataRow(ControlConfig<?> config) {
         this.config = config;
         
         configureBase(config.name());
@@ -88,38 +94,63 @@ public class UIDataRow extends UIRectangle {
     
     private void configure() {
         valueArea.removeAllContentChildren();
-
-        if (controlElement!=null) {
-            RenderInputSlot slot = controlElement.getRenderInputSlot();
-            if (slot==null) return;
-            RenderInput input = slot.getInput();
-            if (input==null) return;
-
-            if (input instanceof FloatConstantInput) configureFloatInput();
-            else if (input instanceof BooleanConstantInput) configureBooleanInput();
-            else if (input instanceof TextureInput) configureTextureInput();
-            return;
-        }
         
-        if (config instanceof FloatControlConfig) configureFloatControl();
-        else if (config instanceof StringControlConfig) configureStringControl();
-        else if (config instanceof ActionControlConfig) configureActionControl();
-        else if (config instanceof DisplayControlConfig) configureDisplayControl();
+        if (controlElement==null) configureLocalControl(null);
+        else if (controlElement instanceof InputControlElement inputControl) {
+            configureInputControl(inputControl);
+        }
+        else if (controlElement instanceof LocalControlElement<?> localControl) {
+            configureLocalControl(localControl);
+        }
+        else if (controlElement instanceof ActionControlElement actionControl) {
+            configureActionControl(actionControl);
+        }
+        else if (controlElement instanceof DisplayControlElement displayControl) {
+            configureDisplayControl(displayControl);
+        }
     }
     
-    public void configureFloatInput() {
+    private void configureInputControl(InputControlElement controlElement) {
+        RenderInputSlot slot = controlElement.getRenderInputSlot();
+        if (slot == null) return;
+        
+        RenderInput input = slot.getInput();
+        if (input == null) return;
+        
+        if (input instanceof FloatConstantInput) configureFloatInput(controlElement);
+        else if (input instanceof BooleanConstantInput) configureBooleanInput(controlElement);
+        else if (input instanceof TextureInput) configureTextureInput(controlElement);
+    }
+    
+    private void configureLocalControl(LocalControlElement<?> controlElement) {
+        if (controlElement==null&&this.config==null) return;
+        ControlConfig<?> config = this.config;
+        if (controlElement!=null) config = controlElement.getConfig();
+        
+        if (config instanceof FloatControlConfig) {
+            @SuppressWarnings("unchecked")
+            LocalControlElement<Float> floatControl = (LocalControlElement<Float>) controlElement;
+            configureFloatControl(floatControl);
+        }
+        else if (config instanceof StringControlConfig) {
+            @SuppressWarnings("unchecked")
+            LocalControlElement<String> stringControl = (LocalControlElement<String>) controlElement;
+            configureStringControl(stringControl);
+        }
+    }
+    
+    public void configureFloatInput(InputControlElement controlElement) {
         FloatControlConfig config = (FloatControlConfig) controlElement.getConfig();
         FloatConstantInput input = (FloatConstantInput) controlElement.getRenderInputSlot().getInput();
         BindableValue<Float> binding = input.getBinding();
         
         UIStringField field = new UIStringField(valueFont);
-        field.setLocalValue(input.getString());
         field.setMaxCharacters(50);
         field.style("width", pcw(0.3f))
         .style("height", pch(0.8f));
         
+        field.setLocalValue(getDisplayStringForInput(controlElement));
         field.onCommit(() -> triggerParse(field));
-        
         valueArea.addChild(field);
         
         if (config.slider()) {
@@ -130,11 +161,15 @@ public class UIDataRow extends UIRectangle {
             
             slider.bindTo(binding);
             valueArea.addChild(slider);
+            
+            slider.onLostPointer(e -> {
+                field.setLocalValue(getDisplayStringForInput(controlElement));
+            });
         }
         else field.style("width", pcw(0.9f));
     }
-
-    public void configureBooleanInput() {
+    
+    public void configureBooleanInput(InputControlElement controlElement) {
         BooleanConstantInput input = (BooleanConstantInput) controlElement.getRenderInputSlot().getInput();
         BindableValue<Boolean> binding = input.getBinding();
         
@@ -145,8 +180,8 @@ public class UIDataRow extends UIRectangle {
         toggle.bindTo(binding);
         valueArea.addChild(toggle);
     }
-
-    public void configureTextureInput() {
+    
+    public void configureTextureInput(InputControlElement controlElement) {
         TextureInput input = (TextureInput) controlElement.getRenderInputSlot().getInput();
         
         UIStringField field = new UIStringField(valueFont);
@@ -158,16 +193,15 @@ public class UIDataRow extends UIRectangle {
         field.onCommit(() -> triggerParse(field));
         valueArea.addChild(field);
     }
-
-
-
-
-
-
-    public void configureFloatControl() {
+    
+    
+    
+    
+    
+    
+    public void configureFloatControl(LocalControlElement<Float> controlElement) {
         FloatControlConfig config = (FloatControlConfig) controlElement.getConfig();
-        FloatConstantInput input = (FloatConstantInput) controlElement.getRenderInputSlot().getInput();
-        BindableValue<Float> binding = input.getBinding();
+        BindableValue<Float> binding = controlElement.getBinding();
         
         UIFloatField field = new UIFloatField(
             valueFont,
@@ -194,7 +228,7 @@ public class UIDataRow extends UIRectangle {
         else field.style("width", pcw(0.9f));
     }
     
-    public void configureStringControl() {
+    public void configureStringControl(LocalControlElement<String> controlElement) {
         UIStringField field = new UIStringField(valueFont);
         field.setMaxCharacters(50);
         field.style("width", pcw(0.9f))
@@ -203,7 +237,7 @@ public class UIDataRow extends UIRectangle {
         valueArea.addChild(field);
     }
     
-    public void configureActionControl() {
+    public void configureActionControl(ActionControlElement controlElement) {
         ActionControlConfig config = (ActionControlConfig) controlElement.getConfig();
         
         UIButton button = new UIButton(valueFont, config.buttonText());
@@ -218,6 +252,27 @@ public class UIDataRow extends UIRectangle {
         valueArea.addChild(button);
     }
     
+    public void configureDisplayControl(DisplayControlElement controlElement) {
+        BindableValue<?> binding = controlElement.getBinding();
+        Object rawValue = binding.getValue();
+        if (rawValue==null) return;
+        
+        UIText valueText = new UIText(valueFont, rawValue.toString());
+        valueText.style("margin-left", px(10))
+        .style("color", UIColor.rgb(0.7f));
+        
+        valueArea.addChild(valueText);
+        
+        bindDisplayText(binding, valueText);
+    }
+    
+    private <T> void bindDisplayText(BindableValue<T> binding, UIText text) {
+        binding.bind(v -> {
+            T value = v.getValue();
+            text.setText(value == null ? "" : value.toString());
+        });
+    }
+    
     public void configureBoringRow(String name, String value) {
         UIText valueText = new UIText(valueFont, value);
         valueText.style("margin-left", px(10))
@@ -226,22 +281,67 @@ public class UIDataRow extends UIRectangle {
         valueArea.addChild(valueText);
     }
     
+    private String getDisplayStringForInput(InputControlElement controlElement) {
+        RenderInputSlot slot = controlElement.getRenderInputSlot();
+        RenderInput input = slot.getInput();
+        
+        if (input instanceof FloatConstantInput floatInput && controlElement.getConfig() instanceof FloatControlConfig floatConfig) {
+            UIFloatFieldMapper mapper = new UIFloatFieldMapper()
+            .inputMinMax(floatConfig.min(), floatConfig.max())
+            .maxPrecision(floatConfig.precision());
+            
+            UIMapResult<String> result = mapper.mapExternalToLocal(floatInput.getBinding().getValue());
+            if (result.success()) return result.value();
+        }
+        
+        return input != null ? input.getString() : "";
+    }
+    
     private void triggerParse(UIStringField field) {
         String text = field.getLocalValue();
+        if (!(controlElement instanceof InputControlElement)) return;
+        
+        InputControlElement controlElement = (InputControlElement) this.controlElement;
         RenderInputSlot slot = controlElement.getRenderInputSlot();
-
-        RenderInput parsed =  RenderInputParser.parse(text);
-        Logger.debug(parsed);
+        
+        RenderInput oldInput = slot.getInput();
+        
+        RenderInput parsed = RenderInputParser.parse(text, slot);
         if (parsed == null) {
-            Logger.debug("no parsed object found");
+            field.setLocalValue(getDisplayStringForInput(controlElement));
+            flashFieldError(field);
             return;
         }
         
-        boolean result = controlElement.getParentNode().setSlotInput(slot, parsed);
-        
-        if (result) configure();
-        else {
-            // Error/invalid communication to user
+        boolean result = controlElement.getParentNode().setSlotInput(slot, parsed);       
+        if (!result) {
+            field.setLocalValue(getDisplayStringForInput(controlElement));
+            flashFieldError(field);
+            return;
         }
+        
+        RenderInput newInput = slot.getInput();
+        
+        if (oldInput != null && newInput != null && oldInput.getClass() == newInput.getClass()) {
+            field.setLocalValue(getDisplayStringForInput(controlElement));
+        } else {
+            configure();
+        }
+    }
+    
+    private void flashFieldError(UIStringField field) {
+        UIColor normal = UIColor.transparent(); // or whatever your normal field border is
+        UIColor error = UIColor.rgb(1f, 0.15f, 0.15f);
+        
+        field.style("border-enabled", true);
+        field.style("border-color", error);
+        
+        Transition reset = new Transition(0f, 0.5f, "field-error-reset");
+        reset.setCompletedAction(() -> {
+            field.style("border-color", normal)
+            .style("border-enabled", false);
+        });
+        
+        UIRenderer.getInstance().addTransition(field, reset);
     }
 }

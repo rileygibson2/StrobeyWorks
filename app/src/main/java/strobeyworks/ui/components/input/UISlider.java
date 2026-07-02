@@ -95,11 +95,13 @@ public class UISlider extends UIBindableInput<Float, Float> {
     @Override
     public void gotPointer(IOEvent event) {
         setValueFromMouse(event.getMouseX());
+        super.gotPointer(event);
     }
     
     @Override
     public void lostPointer(IOEvent event) {
         setValueFromMouse(event.getMouseX());
+        super.lostPointer(event);
     }
     
     @Override

@@ -14,19 +14,19 @@ public class RenderInputSlot {
     
     private boolean allowsTexture;
     
-    public RenderInputSlot(String uniformName) {
+    public RenderInputSlot(String uniformName, boolean allowsTexture) {
         this.uniformName = uniformName;
-        allowsTexture = true;
+        this.allowsTexture = allowsTexture;
     }
     
     public int upload(ShaderManager sM, int currentTextureUnit) {
         if (input==null) return currentTextureUnit;
-
+        
         if (input instanceof FloatConstantInput f) {
             sM.setUniformFloat(uniformName+"Value", f.getBinding().getValue());
             if (allowsTexture) sM.setUniformInt(uniformName+"SourceType", 0);
         }
-
+        
         if (input instanceof BooleanConstantInput b) {
             sM.setUniformInt(uniformName+"Value", b.getBinding().getValue() ? 1 : 0);
             if (allowsTexture) sM.setUniformInt(uniformName+"SourceType", 0);
@@ -41,7 +41,7 @@ public class RenderInputSlot {
             sM.setUniformInt(uniformName+"TexMode", t.getMode().ordinal());
             currentTextureUnit++;
         }
-
+        
         return currentTextureUnit;
     }
     
@@ -49,9 +49,18 @@ public class RenderInputSlot {
         return input;
     }
     
-    public void setInput(RenderInput input) {
-        if (!accepts(input)) return;
+    public boolean setInput(RenderInput input) {
+        if (input == null || !accepts(input)) return false;
+        
+        if (this.input instanceof ConstantInput<?> current
+            && input instanceof ConstantInput<?> next
+            && current.updateFrom(next)
+        ) {
+            return true;
+        }
+        
         this.input = input;
+        return true;
     }
     
     public boolean hasInput() {
@@ -63,10 +72,10 @@ public class RenderInputSlot {
         return true;
     }
     
-    public void allowsTexture(boolean allowsTexture) {
-        this.allowsTexture = allowsTexture;
+    public boolean allowsTexture() {
+        return allowsTexture;
     }
-
+    
     public String getUniformName() {
         return uniformName;
     }

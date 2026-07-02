@@ -34,7 +34,7 @@ public class MaskNode extends RenderNode {
 
     @Override
     protected void setupFeeds() {
-        createFeedSlot("uMainFeed");
+        createFeedSlot("uMainFeed", true);
     }
     
     @Override
@@ -42,7 +42,7 @@ public class MaskNode extends RenderNode {
         ControlTab t = createControlTab("Mix");
         ControlGroup g = createControlGroup("Weights", t);
 
-        floatParam(g, "Mask Value", "uMask", 0f, 1f, 3, 0.1f, 1f, true);
+        floatParam(g, "Mask Value", "uMask", true, 0f, 1f, 3, 0.1f, 1f, true);
     }
 
     @Override

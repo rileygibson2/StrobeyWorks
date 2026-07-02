@@ -1,12 +1,8 @@
 package strobeyworks.pipeline;
 
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
-import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
-import static org.lwjgl.opengl.GL11.glBindTexture;
 import static org.lwjgl.opengl.GL11.glDrawArrays;
-import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
-import static org.lwjgl.opengl.GL13.glActiveTexture;
 import static org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER;
 import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
 import static org.lwjgl.opengl.GL15.glBindBuffer;
@@ -20,10 +16,8 @@ import static org.lwjgl.opengl.GL30.glDeleteVertexArrays;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import com.google.gson.JsonElement;
@@ -33,8 +27,10 @@ import strobeyworks.pipeline.controls.ControlConfig.ActionControlConfig;
 import strobeyworks.pipeline.controls.ControlConfig.BooleanControlConfig;
 import strobeyworks.pipeline.controls.ControlConfig.DisplayControlConfig;
 import strobeyworks.pipeline.controls.ControlConfig.FloatControlConfig;
-import strobeyworks.pipeline.controls.ControlConfig;
-import strobeyworks.pipeline.controls.ControlElement;
+import strobeyworks.pipeline.controls.ControlElement.ActionControlElement;
+import strobeyworks.pipeline.controls.ControlElement.DisplayControlElement;
+import strobeyworks.pipeline.controls.ControlElement.InputControlElement;
+import strobeyworks.pipeline.controls.ControlElement.LocalControlElement;
 import strobeyworks.pipeline.controls.ControlItem.ControlGroup;
 import strobeyworks.pipeline.controls.ControlItem.ControlTab;
 import strobeyworks.pipeline.input.BooleanConstantInput;
@@ -42,7 +38,6 @@ import strobeyworks.pipeline.input.FloatConstantInput;
 import strobeyworks.pipeline.input.RenderInput;
 import strobeyworks.pipeline.input.RenderInputSlot;
 import strobeyworks.pipeline.input.TextureInput;
-import strobeyworks.pipeline.input.TextureInput.TextureInputMode;
 import strobeyworks.pipeline.input.TextureInput.TextureInputState;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.rendernodes.AgentNode;
@@ -51,7 +46,6 @@ import strobeyworks.rendernodes.MixNode;
 import strobeyworks.rendernodes.PerlinNode;
 import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.BindableValueObserver;
-import strobeyworks.utils.Vec2;
 import strobeyworks.utils.Vec2I;
 
 public abstract class RenderNode implements BindableValueObserver<Float> {
@@ -197,14 +191,14 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
     
     //protected abstract void textureInputAdded(TextureInput input);
     
-    protected RenderInputSlot createFeedSlot(String uniformName) {
-        RenderInputSlot slot = new RenderInputSlot(uniformName);
+    protected RenderInputSlot createFeedSlot(String uniformName, boolean allowsTexture) {
+        RenderInputSlot slot = new RenderInputSlot(uniformName, allowsTexture);
         feedSlots.add(slot);
         return slot;
     }
     
-    protected RenderInputSlot createParameterSlot(String uniformName) {
-        RenderInputSlot slot = new RenderInputSlot(uniformName);
+    protected RenderInputSlot createParameterSlot(String uniformName, boolean allowsTexture) {
+        RenderInputSlot slot = new RenderInputSlot(uniformName, allowsTexture);
         parameterSlots.add(slot);
         return slot;
     }
@@ -297,6 +291,7 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         ControlGroup group,
         String label,
         String uniformName,
+        boolean allowsTexture,
         float min,
         float max,
         int precision,
@@ -304,7 +299,7 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         float defaultValue,
         boolean slider
     ) {
-        RenderInputSlot slot = createParameterSlot(uniformName);
+        RenderInputSlot slot = createParameterSlot(uniformName, allowsTexture);
         slot.setInput(new FloatConstantInput(defaultValue));
         
         FloatControlConfig config = new FloatControlConfig(
@@ -317,7 +312,7 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
             slider
         );
         
-        group.add(new ControlElement(this, config, slot));
+        group.add(new InputControlElement(this, config, slot));
         return slot;
     }
     
@@ -327,10 +322,10 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         String uniformName,
         boolean defaultValue
     ) {
-        RenderInputSlot slot = createParameterSlot(uniformName);
+        RenderInputSlot slot = createParameterSlot(uniformName, false);
         slot.setInput(new BooleanConstantInput(defaultValue));
         
-        group.add(new ControlElement(
+        group.add(new InputControlElement(
             this,
             new BooleanControlConfig(label, defaultValue),
             slot
@@ -351,7 +346,7 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
     ) {
         BindableValue<Float> binding = BindableValue.of(defaultValue);
         
-        group.add(new ControlElement(
+        group.add(new LocalControlElement<Float>(
             this,
             new FloatControlConfig(label, min, max, precision, increment, defaultValue, slider),
             binding
@@ -372,7 +367,7 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
             action
         );
         
-        group.add(new ControlElement(this, c));
+        group.add(new ActionControlElement(this, c));
     }
 
     protected void displayLocal(
@@ -380,12 +375,9 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         String label,
         BindableValue<?> binding
     ) {
-        DisplayControlConfig c = new DisplayControlConfig(
-            label,
-            binding
-        );
+        DisplayControlConfig c = new DisplayControlConfig(label);
         
-        group.add(new ControlElement(this, c));
+        group.add(new DisplayControlElement(this, c, binding));
     }
     
     // -----------------------------------------------------------------------------

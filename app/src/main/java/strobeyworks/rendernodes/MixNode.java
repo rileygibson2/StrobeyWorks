@@ -17,10 +17,8 @@ import java.util.List;
 import java.util.UUID;
 
 import strobeyworks.pipeline.RenderNode;
-import strobeyworks.pipeline.RenderPipeline;
 import strobeyworks.pipeline.controls.ControlItem.ControlGroup;
 import strobeyworks.pipeline.controls.ControlItem.ControlTab;
-import strobeyworks.pipeline.input.TextureInput;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.Vec2I;
@@ -44,7 +42,7 @@ public class MixNode extends RenderNode {
     @Override
     protected void setupFeeds() {
         for (int i=0; i<5; i++) {
-            createFeedSlot("uMainFeed"+i);
+            createFeedSlot("uMainFeed"+i, true);
         }
     }
     

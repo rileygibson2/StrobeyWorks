@@ -135,22 +135,22 @@ public class AgentNode extends RenderNode implements MidiSubscriber {
         ControlTab t = createControlTab("Agents");
         ControlGroup g = createControlGroup("Turning", t);
         
-        floatParam(g, "Sensor Angle", "uSensorAngle", 0.02f, 3f, 3, 0.1f, 0.6f, true);
-        floatParam(g, "Sensor Distance", "uSensorDistance", 0f, 0.5f, 2, 0.01f, 0.01f, true);
-        floatParam(g, "Turn Speed", "uTurnSpeed", 0.2f, 20f, 2, 1f, 2f, true);
-        floatParam(g, "Speed", "uSpeed", 0f, 0.5f, 2, 0.01f, 0.05f, true);
+        floatParam(g, "Sensor Angle", "uSensorAngle", false, 0.02f, 3f, 3, 0.1f, 0.6f, true);
+        floatParam(g, "Sensor Distance", "uSensorDistance", false, 0f, 0.5f, 2, 0.01f, 0.01f, true);
+        floatParam(g, "Turn Speed", "uTurnSpeed", false, 0.2f, 20f, 2, 1f, 2f, true);
+        floatParam(g, "Speed", "uSpeed", false, 0f, 0.5f, 2, 0.01f, 0.05f, true);
         
         g = createControlGroup("Opacity", t);
         
-        floatParam(g, "Diffusion", "uDiffusion", 0f, 1.5f, 2, 0.01f, 0.1f, true);
-        floatParam(g, "Decay", "uDecay", 0f, 10f, 2, 1f, 4f, true);
-        floatParam(g, "Cuttoff", "uOpacityCuttoff", 0f, 1f, 2, 0.01f, 0f, true);
-        floatParam(g, "Contribution", "uPheramoneContribution", 0f, 1f, 2, 0.01f, 1f, true);
+        floatParam(g, "Diffusion", "uDiffusion", false, 0f, 1.5f, 2, 0.01f, 0.1f, true);
+        floatParam(g, "Decay", "uDecay", false, 0f, 10f, 2, 1f, 4f, true);
+        floatParam(g, "Cuttoff", "uOpacityCuttoff", false, 0f, 1f, 2, 0.01f, 0f, true);
+        floatParam(g, "Contribution", "uPheramoneContribution", false, 0f, 1f, 2, 0.01f, 1f, true);
         
         g = createControlGroup("Random", t);
         
-        floatParam(g, "Random Turn", "uRandomTurnStrength", 0f, 20f, 2, 0.01f, 0f, true);
-        floatParam(g, "Random Speed", "uRandomSpeedStrength", 0f, 2f, 2, 0.01f, 0f, true);
+        floatParam(g, "Random Turn", "uRandomTurnStrength", false, 0f, 20f, 2, 0.01f, 0f, true);
+        floatParam(g, "Random Speed", "uRandomSpeedStrength", false, 0f, 2f, 2, 0.01f, 0f, true);
     }
 
     @Override

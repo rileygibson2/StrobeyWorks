@@ -51,34 +51,34 @@ public class PerlinNode extends RenderNode {
         ControlTab t = createControlTab("Structure");
         ControlGroup g = createControlGroup("Base", t);
         
-        floatParam(g, "Speed", "uSpeed", 0f, 1f, 3, 0.05f, 0.5f, true);
-        floatParam(g, "Grid", "uGridSize", 2f, 50f, 0, 1f, 10f, true);
-        floatParam(g, "Octaves", "uOctaves", 1f, 10f, 0, 1f, 1f, true);
-        floatParam(g, "Gamma", "uGamma", 0f, 5f, 3, 0.1f, 4f, true);
-        floatParam(g, "Gain", "uGain", 0f, 5f, 3, 0.1f, 4f, true);
+        floatParam(g, "Speed", "uSpeed", false, 0f, 1f, 3, 0.05f, 0.5f, true);
+        floatParam(g, "Grid", "uGridSize", false, 2f, 50f, 0, 1f, 10f, true);
+        floatParam(g, "Octaves", "uOctaves", false, 1f, 10f, 0, 1f, 1f, true);
+        floatParam(g, "Gamma", "uGamma", false, 0f, 5f, 3, 0.1f, 4f, true);
+        floatParam(g, "Gain", "uGain", false, 0f, 5f, 3, 0.1f, 4f, true);
         
         g = createControlGroup("Seed", t);
         
-        floatParam(g, "Offset", "uSeedOffset", 0f, 100f, 0, 1f, 0f, true);
-        floatParam(g, "Salt", "uSalt", 0f, 9999f, 0, 1f, 0f, false);
+        floatParam(g, "Offset", "uSeedOffset", false, 0f, 100f, 0, 1f, 0f, true);
+        floatParam(g, "Salt", "uSalt", false, 0f, 9999f, 0, 1f, 0f, false);
         
         t = createControlTab("Processing");
         g = createControlGroup("Warp", t);
         
         boolParam(g, "Warp", "uWarp", false);
-        floatParam(g, "Strength", "uWarpStrength", 0f, 3f, 3, 0.1f, 0f, true);
-        floatParam(g, "Scale", "uWarpScale", 0f, 3f, 3, 0.1f, 1f, true);
+        floatParam(g, "Strength", "uWarpStrength", false, 0f, 3f, 3, 0.1f, 0f, true);
+        floatParam(g, "Scale", "uWarpScale", false, 0f, 3f, 3, 0.1f, 1f, true);
         
         g = createControlGroup("Ridge", t);
         
         boolParam(g, "Per Octave", "uOctaveRidge", false);
         boolParam(g, "Post", "uPostRidge", false);
-        floatParam(g, "Ridge Power", "uRidgePow", 0f, 5f, 3, 0.1f, 2f, true);
+        floatParam(g, "Ridge Power", "uRidgePow", false, 0f, 5f, 3, 0.1f, 2f, true);
         
         g = createControlGroup("Turbulence", t);
         
         boolParam(g, "Octave Turbulence", "uOctaveTurbulence", false);
-        floatParam(g, "Power", "uTurbulencePow", 0f, 5f, 3, 0.1f, 2f, true);
+        floatParam(g, "Power", "uTurbulencePow", false, 0f, 5f, 3, 0.1f, 2f, true);
     }
     
     public void setColorHigh(Vec3 color) {

@@ -2,7 +2,7 @@ package strobeyworks.pipeline.controls;
 
 import strobeyworks.utils.BindableValue;
 
-public interface ControlConfig {
+public interface ControlConfig<T> {
     String name();
     
     public record FloatControlConfig (
@@ -13,7 +13,7 @@ public interface ControlConfig {
         float increment,
         float defaultValue,
         boolean slider
-    ) implements ControlConfig {}
+    ) implements ControlConfig<Float> {}
     
     public record IntegerControlConfig (
         String name,
@@ -21,27 +21,26 @@ public interface ControlConfig {
         int max,
         int increment,
         int defaultValue
-    ) implements ControlConfig {}
+    ) implements ControlConfig<Integer> {}
     
     public record BooleanControlConfig (
         String name,
         boolean defaultValue
-    ) implements ControlConfig {}
+    ) implements ControlConfig<Boolean> {}
     
     public record StringControlConfig (
         String name,
         String defaultValue
-    ) implements ControlConfig {}
+    ) implements ControlConfig<String> {}
     
     public record ActionControlConfig (
         String name,
         String buttonText,
         Runnable action
-    ) implements ControlConfig {}
+    ) implements ControlConfig<Void> {}
 
     public record DisplayControlConfig (
-        String name,
-        BindableValue<?> binding
-    ) implements ControlConfig {}
+        String name
+    ) implements ControlConfig<Object> {}
 }
 
