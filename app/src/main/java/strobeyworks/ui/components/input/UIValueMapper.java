@@ -14,6 +14,9 @@ public interface UIValueMapper<E, L> {
             return new UIMapResult<>(false, null);
         }
     }
+
+    public UIMapResult<L> mapExternalToLocal(E externalValue);
+    public UIMapResult<E> mapLocalToExternal(L localValue);
     
     public static final UIValueMapper<Float, Float> FLOAT_IDENTITY = new UIValueMapper<>() {
         public UIMapResult<Float> mapExternalToLocal(Float value) {return UIMapResult.success(value);}
@@ -48,7 +51,4 @@ public interface UIValueMapper<E, L> {
             }
         };
     }
-    
-    public UIMapResult<L> mapExternalToLocal(E externalValue);
-    public UIMapResult<E> mapLocalToExternal(L localValue);
 }

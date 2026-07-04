@@ -73,7 +73,15 @@ public class UIRectFactory {
     public static UIRectangle rowGrow(float grow) {
         UIRectangle r = new UIRectangle();
         r.style("width", px(1))
-        .style("height", pch(1.0f))
+        .style("height", pch(1f))
+        .style("grow", grow);
+        return r;
+    }
+
+    public static UIRectangle colGrow(float grow) {
+        UIRectangle r = new UIRectangle();
+        r.style("width", pcw(1f))
+        .style("height", px(1))
         .style("grow", grow);
         return r;
     }

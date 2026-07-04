@@ -1,7 +1,5 @@
 package strobeyworks.pipeline.controls;
 
-import strobeyworks.utils.BindableValue;
-
 public interface ControlConfig<T> {
     String name();
     
@@ -31,6 +29,12 @@ public interface ControlConfig<T> {
     public record StringControlConfig (
         String name,
         String defaultValue
+    ) implements ControlConfig<String> {}
+
+    public record SelectControlConfig (
+        String name,
+        String[] options,
+        int defaultValue
     ) implements ControlConfig<String> {}
     
     public record ActionControlConfig (

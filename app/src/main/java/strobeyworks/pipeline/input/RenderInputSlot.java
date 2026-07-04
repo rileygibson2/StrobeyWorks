@@ -24,12 +24,17 @@ public class RenderInputSlot {
         
         if (input instanceof FloatConstantInput f) {
             sM.setUniformFloat(uniformName+"Value", f.getBinding().getValue());
-            if (allowsTexture) sM.setUniformInt(uniformName+"SourceType", 0);
+            sM.setUniformInt(uniformName+"SourceType", 0);
         }
         
         if (input instanceof BooleanConstantInput b) {
             sM.setUniformInt(uniformName+"Value", b.getBinding().getValue() ? 1 : 0);
-            if (allowsTexture) sM.setUniformInt(uniformName+"SourceType", 0);
+            sM.setUniformInt(uniformName+"SourceType", 0);
+        }
+
+        if (input instanceof SelectConstantInput s) {
+            sM.setUniformInt(uniformName+"Value", s.getBinding().getValue());
+            sM.setUniformInt(uniformName+"SourceType", 0);
         }
         
         if (input instanceof TextureInput t) {

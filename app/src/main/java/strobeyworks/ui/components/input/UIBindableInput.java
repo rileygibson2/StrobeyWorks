@@ -56,8 +56,6 @@ public abstract class UIBindableInput<E, L> extends UIRectangle implements Binda
     @Override
     public void layoutUpdated() {
         if (hasLocalValue()) implementLocalValueOnUI();
-        //i++;
-        //Logger.debug("aaaaa - "+i);
     }
     
     public boolean commitLocalValue() {
@@ -79,10 +77,6 @@ public abstract class UIBindableInput<E, L> extends UIRectangle implements Binda
     
     public L getLocalValue() {
         return localValue;
-    }
-    
-    protected E previewExternalValue() {
-        return mapper.mapLocalToExternal(localValue).value();
     }
     
     public void setLocalValue(L value) {
@@ -119,5 +113,9 @@ public abstract class UIBindableInput<E, L> extends UIRectangle implements Binda
     
     public boolean hasLocalValue() {
         return localValue!=null;
+    }
+
+    public UIValueMapper<E, L> getMapper() {
+        return mapper;
     }
 }

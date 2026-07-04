@@ -11,7 +11,7 @@ import strobeyworks.pipeline.input.TextureInput;
 import strobeyworks.pipeline.input.TextureInput.TextureInputMode;
 import strobeyworks.rendernodes.MaskNode;
 import strobeyworks.rendernodes.PerlinNode;
-import strobeyworks.utils.Vec2;
+import strobeyworks.rendernodes.PixelDots;
 import strobeyworks.utils.Vec2I;
 import strobeyworks.utils.Vec3;
 
@@ -48,7 +48,7 @@ public class RenderPipeline {
         // Nodes
         PerlinNode n1 = addNode(PerlinNode.class, d);
         n1.setUIAPosition(-10, 0);
-        n1.setColorHigh(new Vec3(0f, 0f, 1f));
+        //n1.setColorHigh(new Vec3(0f, 0f, 1f));
         
         PerlinNode n2 = addNode(PerlinNode.class, d);
         n2.setUIAPosition(-10, 120);
@@ -56,10 +56,15 @@ public class RenderPipeline {
         
         RenderNode n3 = addNode(MaskNode.class, d);
         n3.setUIAPosition(165, 60);
+
+        RenderNode n4 = addNode(PixelDots.class, d);
+        n4.setUIAPosition(165, 200);
         
-        // Connections
+        // Feed inputs
         n3.setFeedInput(0, new TextureInput(n1));
-        //n3.setFeedInput(1, new TextureInput(n2, TextureInputMode.RED));
+        n3.setFeedInput(1, new TextureInput(n2, TextureInputMode.RED));
+
+        n4.setFeedInput(0, new TextureInput(n3));
         
         setOutputtingNode(n3);
     }

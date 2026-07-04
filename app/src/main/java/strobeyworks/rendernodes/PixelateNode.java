@@ -20,16 +20,16 @@ import strobeyworks.pipeline.controls.ControlItem.ControlTab;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.utils.Vec2I;
 
-public class MaskNode extends RenderNode {
+public class PixelateNode extends RenderNode {
     
     private int program;
     
-    public MaskNode() {
+    public PixelateNode() {
         this(UUID.randomUUID());
     }
 
-    public MaskNode(UUID id) {
-        super(id, "Mask", "mask", true);
+    public PixelateNode(UUID id) {
+        super(id, "Pixelate", "pix", true);
     }
 
     @Override
@@ -39,11 +39,10 @@ public class MaskNode extends RenderNode {
     
     @Override
     protected void setupParameters() {
-        ControlTab t = createControlTab("Mark");
-        ControlGroup g = createControlGroup("Mask", t);
+        ControlTab t = createControlTab("Pixelate");
+        ControlGroup g = createControlGroup("Pixelate", t);
 
-        floatParam(g, "Mask", "uMask", true, 0f, 1f, 3, 0.1f, 1f, true);
-        selectParam(g, "Type", "uMaskMode", new String[]{"True Alpha", "Visual Matte", "Premultiplied"}, 0);
+        floatParam(g, "Grid Size", "uGridSize", false, 0f, 100f, 3, 1f, 10f, true);
     }
 
     @Override
@@ -56,7 +55,7 @@ public class MaskNode extends RenderNode {
         ShaderManager sM = ShaderManager.getInstance();
         
         // Shaders init
-        program = sM.createProgram("mask/mask.vert", "mask/mask.frag");
+        program = sM.createProgram("default_FSQ.vert", "pixelate/pixelate.frag");
         initialiseFullQuad();
         sM.useProgram(0);
     }

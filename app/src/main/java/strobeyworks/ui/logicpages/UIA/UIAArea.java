@@ -1,13 +1,9 @@
 package strobeyworks.ui.logicpages.UIA;
 
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_L;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_S;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import strobeyworks.logger.Logger;
 import strobeyworks.pipeline.RenderNode;
 import strobeyworks.pipeline.RenderPipeline;
 import strobeyworks.pipeline.RenderPipelineListener;
@@ -155,12 +151,6 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
                 selectedNode = uiaNode;
             }
         }
-    }
-    
-    @Override
-    public void clicked(IOEvent event) {
-        super.clicked(event);
-        selectNode(null);
     }
     
     @Override

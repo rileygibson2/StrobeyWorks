@@ -87,7 +87,7 @@ public class UIFloatField extends UIField<Float> {
     
     private void increment(int direction) {
         float i = externalSpaceIncrement*direction;
-        float f = previewExternalValue()+i;
+        float f = getLocalValueAsExternal()+i;
         commitValue(f);
     }
 }

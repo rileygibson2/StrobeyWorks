@@ -4,10 +4,8 @@ import static strobeyworks.ui.core.UILength.pch;
 import static strobeyworks.ui.core.UILength.pcw;
 import static strobeyworks.ui.core.UILength.px;
 
-import strobeyworks.logger.Logger;
 import strobeyworks.pipeline.controls.ControlConfig;
 import strobeyworks.pipeline.controls.ControlConfig.ActionControlConfig;
-import strobeyworks.pipeline.controls.ControlConfig.DisplayControlConfig;
 import strobeyworks.pipeline.controls.ControlConfig.FloatControlConfig;
 import strobeyworks.pipeline.controls.ControlConfig.StringControlConfig;
 import strobeyworks.pipeline.controls.ControlElement;
@@ -20,9 +18,11 @@ import strobeyworks.pipeline.input.FloatConstantInput;
 import strobeyworks.pipeline.input.RenderInput;
 import strobeyworks.pipeline.input.RenderInputParser;
 import strobeyworks.pipeline.input.RenderInputSlot;
+import strobeyworks.pipeline.input.SelectConstantInput;
 import strobeyworks.pipeline.input.TextureInput;
 import strobeyworks.platform.Transition;
 import strobeyworks.ui.components.UIButton;
+import strobeyworks.ui.components.input.UIDropDown;
 import strobeyworks.ui.components.input.UISlider;
 import strobeyworks.ui.components.input.UIToggle;
 import strobeyworks.ui.components.input.UIValueMapper;
@@ -95,7 +95,9 @@ public class UIDataRow extends UIRectangle {
     private void configure() {
         valueArea.removeAllContentChildren();
         
-        if (controlElement==null) configureLocalControl(null);
+        if (controlElement==null) {
+            configureLocalControl(null);
+        }
         else if (controlElement instanceof InputControlElement inputControl) {
             configureInputControl(inputControl);
         }
@@ -103,10 +105,10 @@ public class UIDataRow extends UIRectangle {
             configureLocalControl(localControl);
         }
         else if (controlElement instanceof ActionControlElement actionControl) {
-            configureActionControl(actionControl);
+            configureActionLocal(actionControl);
         }
         else if (controlElement instanceof DisplayControlElement displayControl) {
-            configureDisplayControl(displayControl);
+            configureDisplayLocal(displayControl);
         }
     }
     
@@ -119,23 +121,25 @@ public class UIDataRow extends UIRectangle {
         
         if (input instanceof FloatConstantInput) configureFloatInput(controlElement);
         else if (input instanceof BooleanConstantInput) configureBooleanInput(controlElement);
+        else if (input instanceof SelectConstantInput) configureSelectInput(controlElement);
         else if (input instanceof TextureInput) configureTextureInput(controlElement);
     }
     
     private void configureLocalControl(LocalControlElement<?> controlElement) {
         if (controlElement==null&&this.config==null) return;
+
         ControlConfig<?> config = this.config;
         if (controlElement!=null) config = controlElement.getConfig();
         
         if (config instanceof FloatControlConfig) {
             @SuppressWarnings("unchecked")
             LocalControlElement<Float> floatControl = (LocalControlElement<Float>) controlElement;
-            configureFloatControl(floatControl);
+            configureFloatLocal(floatControl);
         }
         else if (config instanceof StringControlConfig) {
             @SuppressWarnings("unchecked")
             LocalControlElement<String> stringControl = (LocalControlElement<String>) controlElement;
-            configureStringControl(stringControl);
+            configureStringLocal(stringControl);
         }
     }
     
@@ -180,6 +184,18 @@ public class UIDataRow extends UIRectangle {
         toggle.bindTo(binding);
         valueArea.addChild(toggle);
     }
+
+    public void configureSelectInput(InputControlElement controlElement) {
+        SelectConstantInput input = (SelectConstantInput) controlElement.getRenderInputSlot().getInput();
+        BindableValue<Integer> binding = input.getBinding();
+        
+        UIDropDown drop = new UIDropDown(valueFont, input.getOptions());
+        drop.style("width", pcw(1f))
+        .style("height", pch(0.8f));
+        
+        drop.bindTo(binding);
+        valueArea.addChild(drop);
+    }
     
     public void configureTextureInput(InputControlElement controlElement) {
         TextureInput input = (TextureInput) controlElement.getRenderInputSlot().getInput();
@@ -194,12 +210,7 @@ public class UIDataRow extends UIRectangle {
         valueArea.addChild(field);
     }
     
-    
-    
-    
-    
-    
-    public void configureFloatControl(LocalControlElement<Float> controlElement) {
+    public void configureFloatLocal(LocalControlElement<Float> controlElement) {
         FloatControlConfig config = (FloatControlConfig) controlElement.getConfig();
         BindableValue<Float> binding = controlElement.getBinding();
         
@@ -228,7 +239,7 @@ public class UIDataRow extends UIRectangle {
         else field.style("width", pcw(0.9f));
     }
     
-    public void configureStringControl(LocalControlElement<String> controlElement) {
+    public void configureStringLocal(LocalControlElement<String> controlElement) {
         UIStringField field = new UIStringField(valueFont);
         field.setMaxCharacters(50);
         field.style("width", pcw(0.9f))
@@ -237,7 +248,7 @@ public class UIDataRow extends UIRectangle {
         valueArea.addChild(field);
     }
     
-    public void configureActionControl(ActionControlElement controlElement) {
+    public void configureActionLocal(ActionControlElement controlElement) {
         ActionControlConfig config = (ActionControlConfig) controlElement.getConfig();
         
         UIButton button = new UIButton(valueFont, config.buttonText());
@@ -252,7 +263,7 @@ public class UIDataRow extends UIRectangle {
         valueArea.addChild(button);
     }
     
-    public void configureDisplayControl(DisplayControlElement controlElement) {
+    public void configureDisplayLocal(DisplayControlElement controlElement) {
         BindableValue<?> binding = controlElement.getBinding();
         Object rawValue = binding.getValue();
         if (rawValue==null) return;

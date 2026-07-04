@@ -8,11 +8,12 @@ uniform sampler2D uMainFeedTex;
 uniform int uMainFeedTexMode;
 
 uniform int uMaskSourceType;
+
 uniform float uMaskValue;
 uniform sampler2D uMaskTex;
 uniform int uMaskTexMode;
 
-uniform int maskMode;
+uniform int uMaskModeValue;
 
 out vec4 FragColor;
 
@@ -62,13 +63,13 @@ void main() {
     float maskValue = getMaskValue();
     vec4 color = vec4(inputTex.rgb, inputTex.a);
     
-    if (maskMode==1) { // True alpha mask
+    if (uMaskModeValue==0) { // True alpha mask
         color = vec4(inputTex.rgb, inputTex.a*maskValue);
     }
-    else if (maskMode==2) { // Visual matte
+    else if (uMaskModeValue==1) { // Visual matte
         color = vec4(inputTex.rgb*maskValue, 1.0);
     }
-    else if (maskMode==3) { // Premult respects input alpha
+    else if (uMaskModeValue==2) { // Premult respects input alpha
         float a = inputTex.a*maskValue;
         color = vec4(inputTex.rgb*a, a);
     }

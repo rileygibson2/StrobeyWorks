@@ -27,6 +27,7 @@ import strobeyworks.pipeline.controls.ControlConfig.ActionControlConfig;
 import strobeyworks.pipeline.controls.ControlConfig.BooleanControlConfig;
 import strobeyworks.pipeline.controls.ControlConfig.DisplayControlConfig;
 import strobeyworks.pipeline.controls.ControlConfig.FloatControlConfig;
+import strobeyworks.pipeline.controls.ControlConfig.SelectControlConfig;
 import strobeyworks.pipeline.controls.ControlElement.ActionControlElement;
 import strobeyworks.pipeline.controls.ControlElement.DisplayControlElement;
 import strobeyworks.pipeline.controls.ControlElement.InputControlElement;
@@ -37,6 +38,7 @@ import strobeyworks.pipeline.input.BooleanConstantInput;
 import strobeyworks.pipeline.input.FloatConstantInput;
 import strobeyworks.pipeline.input.RenderInput;
 import strobeyworks.pipeline.input.RenderInputSlot;
+import strobeyworks.pipeline.input.SelectConstantInput;
 import strobeyworks.pipeline.input.TextureInput;
 import strobeyworks.pipeline.input.TextureInput.TextureInputState;
 import strobeyworks.platform.ShaderManager;
@@ -328,6 +330,25 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         group.add(new InputControlElement(
             this,
             new BooleanControlConfig(label, defaultValue),
+            slot
+        ));
+        
+        return slot;
+    }
+
+    protected RenderInputSlot selectParam(
+        ControlGroup group,
+        String label,
+        String uniformName,
+        String[] options,
+        int defaultValue
+    ) {
+        RenderInputSlot slot = createParameterSlot(uniformName, false);
+        slot.setInput(new SelectConstantInput(options, defaultValue));
+        
+        group.add(new InputControlElement(
+            this,
+            new SelectControlConfig(label, options, defaultValue),
             slot
         ));
         
