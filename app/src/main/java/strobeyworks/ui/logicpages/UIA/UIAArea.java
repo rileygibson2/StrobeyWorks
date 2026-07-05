@@ -15,6 +15,7 @@ import strobeyworks.ui.core.UIRenderer;
 import strobeyworks.ui.primitives.UIConnection;
 import strobeyworks.ui.primitives.UIRectangle;
 import strobeyworks.utils.Vec2;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_S;
 
 public class UIAArea extends UIRectangle implements RenderPipelineListener {
     
@@ -186,7 +187,7 @@ public class UIAArea extends UIRectangle implements RenderPipelineListener {
     }
     
     private void handleKeyDown(int keyCode) {
-        //if (keyCode == GLFW_KEY_S) RenderPipeline.getInstance().savePipelineToDisk();
+        if (keyCode == GLFW_KEY_S) RenderPipeline.getInstance().savePipelineToDisk();
         //if (keyCode == GLFW_KEY_L) RenderPipeline.getInstance().loadPipelineFromDisk();
     }
 }

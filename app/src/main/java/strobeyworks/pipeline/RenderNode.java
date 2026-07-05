@@ -38,14 +38,15 @@ import strobeyworks.pipeline.input.BooleanConstantInput;
 import strobeyworks.pipeline.input.FloatConstantInput;
 import strobeyworks.pipeline.input.RenderInput;
 import strobeyworks.pipeline.input.RenderInputSlot;
+import strobeyworks.pipeline.input.RenderInputSlot.RenderInputSlotState;
 import strobeyworks.pipeline.input.SelectConstantInput;
 import strobeyworks.pipeline.input.TextureInput;
-import strobeyworks.pipeline.input.TextureInput.TextureInputState;
 import strobeyworks.platform.ShaderManager;
 import strobeyworks.rendernodes.AgentNode;
 import strobeyworks.rendernodes.MaskNode;
 import strobeyworks.rendernodes.MixNode;
 import strobeyworks.rendernodes.PerlinNode;
+import strobeyworks.rendernodes.PixelDots;
 import strobeyworks.utils.BindableValue;
 import strobeyworks.utils.BindableValueObserver;
 import strobeyworks.utils.Vec2I;
@@ -56,7 +57,8 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         "Perlin-Noise", PerlinNode.class,
         "Species-Agents", AgentNode.class,
         "Mix", MixNode.class,
-        "Mask", MaskNode.class
+        "Mask", MaskNode.class,
+        "Pixel-Dots", PixelDots.class
     );
     
     public record RenderNodeState(
@@ -65,8 +67,8 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         String customName,
         int uiaXPos,
         int uiaYPos,
-        List<RenderControlState> controls,
-        List<TextureInputState> textureInputs
+        List<RenderInputSlotState> feedSlots,
+        List<RenderInputSlotState> parameterSlots
     ) {}
     
     public record RenderControlState(
@@ -86,7 +88,7 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
     
     private List<RenderInputSlot> feedSlots;
     private List<RenderInputSlot> parameterSlots;
-
+    
     private final boolean hasTextureOutput;
     
     private int outputWidth;
@@ -112,7 +114,7 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         
         feedSlots = new ArrayList<>();
         parameterSlots = new ArrayList<>();
-
+        
         this.hasTextureOutput = hasTextureOutput;
         
         this.outputWidth = -1;
@@ -194,20 +196,20 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
     //protected abstract void textureInputAdded(TextureInput input);
     
     protected RenderInputSlot createFeedSlot(String uniformName, boolean allowsTexture) {
-        RenderInputSlot slot = new RenderInputSlot(uniformName, allowsTexture);
+        RenderInputSlot slot = new RenderInputSlot("feed"+feedSlots.size()+1, uniformName, allowsTexture);
         feedSlots.add(slot);
         return slot;
     }
     
-    protected RenderInputSlot createParameterSlot(String uniformName, boolean allowsTexture) {
-        RenderInputSlot slot = new RenderInputSlot(uniformName, allowsTexture);
+    protected RenderInputSlot createParameterSlot(String id, String uniformName, boolean allowsTexture) {
+        RenderInputSlot slot = new RenderInputSlot(id, uniformName, allowsTexture);
         parameterSlots.add(slot);
         return slot;
     }
     
     public boolean setFeedInput(int feedInput, RenderInput input) {
         if (feedInput<0||feedInput>feedSlots.size()-1) return false;
-
+        
         RenderInputSlot slot = feedSlots.get(feedInput);
         if (slot==null) return false;
         
@@ -215,10 +217,10 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
             feedInputsChanged();
             return true;
         }
-
+        
         return false;
     }
-
+    
     public abstract void feedInputsChanged();
     
     public boolean setSlotInput(RenderInputSlot slot, RenderInput input) {
@@ -237,7 +239,7 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
             slot.setInput(oldInput);
             return false;
         }
-
+        
         RenderPipeline.getInstance().handleNodeInputsChanged(this);
         return true;
     }
@@ -249,20 +251,32 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
     
     public List<RenderNode> getDependancies() {
         List<RenderNode> nodes = new ArrayList<>();
-
+        
         for (RenderInputSlot slot : feedSlots) {
             if (!slot.hasInput()) continue;
             RenderInput i = slot.getInput();
             if (i instanceof TextureInput t) nodes.add(t.getSourceNode());
         }
-
+        
         for (RenderInputSlot slot : parameterSlots) {
             if (!slot.hasInput()) continue;
             RenderInput i = slot.getInput();
             if (i instanceof TextureInput t) nodes.add(t.getSourceNode());
         }
-
+        
         return nodes;
+    }
+
+    public RenderInputSlot getSlotById(String id) {
+        for (RenderInputSlot slot : feedSlots) {
+            if (slot.getId().equals(id)) return slot;
+        }
+        
+        for (RenderInputSlot slot : parameterSlots) {
+            if (slot.getId().equals(id)) return slot;
+        }
+        
+        return null;
     }
     
     // -----------------------------------------------------------------------------
@@ -301,7 +315,8 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         float defaultValue,
         boolean slider
     ) {
-        RenderInputSlot slot = createParameterSlot(uniformName, allowsTexture);
+        String id = label.toLowerCase().replaceAll(" ", "_");
+        RenderInputSlot slot = createParameterSlot(id, uniformName, allowsTexture);
         slot.setInput(new FloatConstantInput(defaultValue));
         
         FloatControlConfig config = new FloatControlConfig(
@@ -324,7 +339,8 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         String uniformName,
         boolean defaultValue
     ) {
-        RenderInputSlot slot = createParameterSlot(uniformName, false);
+        String id = label.toLowerCase().replaceAll(" ", "_");
+        RenderInputSlot slot = createParameterSlot(id, uniformName, false);
         slot.setInput(new BooleanConstantInput(defaultValue));
         
         group.add(new InputControlElement(
@@ -335,7 +351,7 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         
         return slot;
     }
-
+    
     protected RenderInputSlot selectParam(
         ControlGroup group,
         String label,
@@ -343,7 +359,8 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         String[] options,
         int defaultValue
     ) {
-        RenderInputSlot slot = createParameterSlot(uniformName, false);
+        String id = label.toLowerCase().replaceAll(" ", "_");
+        RenderInputSlot slot = createParameterSlot(id, uniformName, false);
         slot.setInput(new SelectConstantInput(options, defaultValue));
         
         group.add(new InputControlElement(
@@ -390,7 +407,7 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         
         group.add(new ActionControlElement(this, c));
     }
-
+    
     protected void displayLocal(
         ControlGroup group,
         String label,
@@ -410,7 +427,7 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
     protected void setup() {
         setupFeeds();
         setupParameters();
-
+        
         ControlTab t = createControlTab("Size");
         ControlGroup g = createControlGroup("Output Texture", t);
         
@@ -419,20 +436,20 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         actionLocal(g, "Resize to window", "Run", this::resizeToOutputWindow);
         
         g = createControlGroup("Display", t);
-
+        
         uiaPosX = BindableValue.of(0);
         uiaPosY = BindableValue.of(0);
-
+        
         displayLocal(g, "X", uiaPosX);
         displayLocal(g, "Y", uiaPosY);
-
-
+        
+        
         widthControl.bind(this);
         heightControl.bind(this);
     }
-
+    
     protected abstract void setupFeeds();
-
+    
     protected abstract void setupParameters();
     
     public void loadControlDefaults() {}
@@ -497,8 +514,14 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
     }
     
     public void uploadInputs(ShaderManager sM) {
+        // Upload static inputs
+        sM.setUniformInt("uOutputWidth", getOutputWidth());
+        sM.setUniformInt("uOutputHeight", getOutputHeight());
+        sM.setUniformFloat("uOutputAspect", getOutputAspectRatio());
+        
+        // Upload feed and parameter inputs
         int currentTextureUnit = 0;
-
+        
         for (RenderInputSlot slot : feedSlots) {
             currentTextureUnit = slot.upload(sM, currentTextureUnit);
         }
@@ -514,32 +537,29 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
     // -----------------------------------------------------------------------------
     // -----------------------------------------------------------------------------
     
-    /*public RenderNodeState getState() {
-    // Control states
-    List<RenderControlState> controlStates = new ArrayList<>();
-    
-    for (ControlConfig config : registeredControls) {
-    if (!config.isStateful()) continue;
-    RenderControlState state = config.getState();
-    if (state!=null) controlStates.add(state);
+    public RenderNodeState getState() {
+        List<RenderInputSlotState> feedSlotStates = new ArrayList<>();
+        for (RenderInputSlot slot : feedSlots) {
+            feedSlotStates.add(slot.getState());
+        }
+
+        List<RenderInputSlotState> parameterSlotStates = new ArrayList<>();
+        for (RenderInputSlot slot : parameterSlots) {
+            parameterSlotStates.add(slot.getState());
+        }
+        
+        return new RenderNodeState(
+            id.toString(),
+            longName,
+            customName,
+            (int) uiaPosX.getValue(),
+            (int) uiaPosY.getValue(),
+            feedSlotStates,
+            parameterSlotStates
+        );
     }
     
-    // Input states
-    List<TextureInputState> textureInputStates = new ArrayList<>();
-    for (TextureInput t : textureInputs) textureInputStates.add(t.getState());
-    
-    return new RenderNodeState(
-    id.toString(),
-    longName,
-    customName,
-    (int) uiaPosition.x,
-    (int) uiaPosition.y,
-    controlStates,
-    textureInputStates
-    );
-    }
-    
-    public static RenderNode loadFromState(RenderNodeState state) {  
+    /*public static RenderNode loadFromState(RenderNodeState state) {  
     Class<? extends RenderNode> nodeClass = NODE_TYPE_REGISTRY.get(state.typeName());
     
     if (nodeClass==null) throw new RuntimeException("No RenderNode registry entry for: " + state.typeName());
@@ -616,6 +636,11 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
         return outputHeight;
     }
     
+    public float getOutputAspectRatio() {
+        if (outputHeight==0) return 1f;
+        return (float) outputWidth / (float) outputHeight;
+    }
+    
     public String getIDString() {
         return this.id.toString();
     }
@@ -639,7 +664,7 @@ public abstract class RenderNode implements BindableValueObserver<Float> {
     public int getUIAPosX() {
         return uiaPosX.getValue();
     }
-
+    
     public int getUIAPosY() {
         return uiaPosY.getValue();
     }

@@ -1,222 +1,329 @@
 {
   "nodes": [
     {
-      "id": "251d43e3-b952-4c6e-bb0b-bac467ad023c",
+      "id": "4310c57d-f352-4ac9-b61a-b1853756d825",
       "typeName": "Perlin-Noise",
       "customName": "perlin1",
-      "uiaXPos": 0,
+      "uiaXPos": -10,
       "uiaYPos": 0,
-      "controls": [
+      "feedSlots": [],
+      "parameterSlots": [
         {
-          "key": "Structure/Base/Speed",
-          "type": "float",
-          "value": 0.5
+          "id": "speed",
+          "input": {
+            "type": "float",
+            "value": 0.5
+          }
         },
         {
-          "key": "Structure/Base/Grid",
-          "type": "float",
-          "value": 2.0
+          "id": "grid",
+          "input": {
+            "type": "float",
+            "value": 10.0
+          }
         },
         {
-          "key": "Structure/Base/Octaves",
-          "type": "float",
-          "value": 3.417556
+          "id": "octaves",
+          "input": {
+            "type": "float",
+            "value": 1.0
+          }
         },
         {
-          "key": "Structure/Base/Gamma",
-          "type": "float",
-          "value": 3.7761953
+          "id": "gamma",
+          "input": {
+            "type": "float",
+            "value": 4.0
+          }
         },
         {
-          "key": "Structure/Base/Gain",
-          "type": "float",
-          "value": 3.3509004
+          "id": "gain",
+          "input": {
+            "type": "float",
+            "value": 4.0
+          }
         },
         {
-          "key": "Structure/Seed/Offset",
-          "type": "float",
-          "value": 0.0
+          "id": "offset",
+          "input": {
+            "type": "float",
+            "value": 0.0
+          }
         },
         {
-          "key": "Structure/Seed/Salt",
-          "type": "float",
-          "value": 0.0
+          "id": "salt",
+          "input": {
+            "type": "float",
+            "value": 0.0
+          }
         },
         {
-          "key": "Processing/Warp/Warp",
-          "type": "boolean",
-          "value": false
+          "id": "warp",
+          "input": {
+            "type": "boolean",
+            "value": false
+          }
         },
         {
-          "key": "Processing/Warp/Strength",
-          "type": "float",
-          "value": 1.5329211
+          "id": "strength",
+          "input": {
+            "type": "float",
+            "value": 0.0
+          }
         },
         {
-          "key": "Processing/Warp/Scale",
-          "type": "float",
-          "value": 1.0
+          "id": "scale",
+          "input": {
+            "type": "float",
+            "value": 1.0
+          }
         },
         {
-          "key": "Processing/Ridge/Per Octave",
-          "type": "boolean",
-          "value": true
+          "id": "per_octave",
+          "input": {
+            "type": "boolean",
+            "value": false
+          }
         },
         {
-          "key": "Processing/Ridge/Post",
-          "type": "boolean",
-          "value": false
+          "id": "post",
+          "input": {
+            "type": "boolean",
+            "value": false
+          }
         },
         {
-          "key": "Processing/Ridge/Ridge Power",
-          "type": "float",
-          "value": 4.408552
+          "id": "ridge_power",
+          "input": {
+            "type": "float",
+            "value": 2.0
+          }
         },
         {
-          "key": "Processing/Turbulence/Octave Turbulence",
-          "type": "boolean",
-          "value": true
+          "id": "octave_turbulence",
+          "input": {
+            "type": "boolean",
+            "value": false
+          }
         },
         {
-          "key": "Processing/Turbulence/Power",
-          "type": "float",
-          "value": 0.6914231
-        },
-        {
-          "key": "Size/Output Texture/Width",
-          "type": "float",
-          "value": 3000.0
-        },
-        {
-          "key": "Size/Output Texture/Height",
-          "type": "float",
-          "value": 1800.0
-        }
-      ],
-      "textureInputs": []
-    },
-    {
-      "id": "db67af81-6d95-42b5-9272-d34747a439c2",
-      "typeName": "Mask",
-      "customName": "mask1",
-      "uiaXPos": 403,
-      "uiaYPos": 23,
-      "controls": [
-        {
-          "key": "Size/Output Texture/Width",
-          "type": "float",
-          "value": 3000.0
-        },
-        {
-          "key": "Size/Output Texture/Height",
-          "type": "float",
-          "value": 1800.0
-        }
-      ],
-      "textureInputs": [
-        {
-          "nodeID": "251d43e3-b952-4c6e-bb0b-bac467ad023c"
-        },
-        {
-          "nodeID": "de9c565d-0eca-4f12-a000-9fb6bfea579e"
+          "id": "power",
+          "input": {
+            "type": "float",
+            "value": 2.0
+          }
         }
       ]
     },
     {
-      "id": "de9c565d-0eca-4f12-a000-9fb6bfea579e",
-      "typeName": "Perlin-Noise",
-      "customName": "perlin2",
-      "uiaXPos": 140,
+      "id": "3fb84b59-aa1b-4c5e-9143-96c4d8fc0c5c",
+      "typeName": "Pixel-Dots",
+      "customName": "pixdots1",
+      "uiaXPos": 165,
       "uiaYPos": 200,
-      "controls": [
+      "feedSlots": [
         {
-          "key": "Structure/Base/Speed",
-          "type": "float",
-          "value": 0.5
-        },
-        {
-          "key": "Structure/Base/Grid",
-          "type": "float",
-          "value": 2.0
-        },
-        {
-          "key": "Structure/Base/Octaves",
-          "type": "float",
-          "value": 1.0
-        },
-        {
-          "key": "Structure/Base/Gamma",
-          "type": "float",
-          "value": 4.624833
-        },
-        {
-          "key": "Structure/Base/Gain",
-          "type": "float",
-          "value": 4.981144
-        },
-        {
-          "key": "Structure/Seed/Offset",
-          "type": "float",
-          "value": 48.5853
-        },
-        {
-          "key": "Structure/Seed/Salt",
-          "type": "float",
-          "value": 0.0
-        },
-        {
-          "key": "Processing/Warp/Warp",
-          "type": "boolean",
-          "value": false
-        },
-        {
-          "key": "Processing/Warp/Strength",
-          "type": "float",
-          "value": 3.0
-        },
-        {
-          "key": "Processing/Warp/Scale",
-          "type": "float",
-          "value": 0.6781008
-        },
-        {
-          "key": "Processing/Ridge/Per Octave",
-          "type": "boolean",
-          "value": false
-        },
-        {
-          "key": "Processing/Ridge/Post",
-          "type": "boolean",
-          "value": true
-        },
-        {
-          "key": "Processing/Ridge/Ridge Power",
-          "type": "float",
-          "value": 5.0
-        },
-        {
-          "key": "Processing/Turbulence/Octave Turbulence",
-          "type": "boolean",
-          "value": false
-        },
-        {
-          "key": "Processing/Turbulence/Power",
-          "type": "float",
-          "value": 0.0
-        },
-        {
-          "key": "Size/Output Texture/Width",
-          "type": "float",
-          "value": 3000.0
-        },
-        {
-          "key": "Size/Output Texture/Height",
-          "type": "float",
-          "value": 1800.0
+          "id": "feed01",
+          "input": {
+            "type": "float",
+            "sourceNodeID": "6afe4439-2763-4de2-b53d-2569218a631c",
+            "sourceTextureMode": "UNNECESSARY"
+          }
         }
       ],
-      "textureInputs": []
+      "parameterSlots": [
+        {
+          "id": "grid_x",
+          "input": {
+            "type": "float",
+            "value": 20.0
+          }
+        },
+        {
+          "id": "grid_y",
+          "input": {
+            "type": "float",
+            "value": 20.0
+          }
+        },
+        {
+          "id": "enforce_aspect",
+          "input": {
+            "type": "boolean",
+            "value": true
+          }
+        },
+        {
+          "id": "low_size",
+          "input": {
+            "type": "float",
+            "value": 0.0
+          }
+        },
+        {
+          "id": "high_size",
+          "input": {
+            "type": "float",
+            "value": 1.0
+          }
+        },
+        {
+          "id": "invert",
+          "input": {
+            "type": "boolean",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "74693e2c-e8fc-4c56-a89f-822b3d829c22",
+      "typeName": "Perlin-Noise",
+      "customName": "perlin2",
+      "uiaXPos": -10,
+      "uiaYPos": 120,
+      "feedSlots": [],
+      "parameterSlots": [
+        {
+          "id": "speed",
+          "input": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        {
+          "id": "grid",
+          "input": {
+            "type": "float",
+            "value": 10.0
+          }
+        },
+        {
+          "id": "octaves",
+          "input": {
+            "type": "float",
+            "value": 1.0
+          }
+        },
+        {
+          "id": "gamma",
+          "input": {
+            "type": "float",
+            "value": 4.0
+          }
+        },
+        {
+          "id": "gain",
+          "input": {
+            "type": "float",
+            "value": 4.0
+          }
+        },
+        {
+          "id": "offset",
+          "input": {
+            "type": "float",
+            "value": 0.0
+          }
+        },
+        {
+          "id": "salt",
+          "input": {
+            "type": "float",
+            "value": 0.0
+          }
+        },
+        {
+          "id": "warp",
+          "input": {
+            "type": "boolean",
+            "value": false
+          }
+        },
+        {
+          "id": "strength",
+          "input": {
+            "type": "float",
+            "value": 0.0
+          }
+        },
+        {
+          "id": "scale",
+          "input": {
+            "type": "float",
+            "value": 1.0
+          }
+        },
+        {
+          "id": "per_octave",
+          "input": {
+            "type": "boolean",
+            "value": false
+          }
+        },
+        {
+          "id": "post",
+          "input": {
+            "type": "boolean",
+            "value": false
+          }
+        },
+        {
+          "id": "ridge_power",
+          "input": {
+            "type": "float",
+            "value": 2.0
+          }
+        },
+        {
+          "id": "octave_turbulence",
+          "input": {
+            "type": "boolean",
+            "value": false
+          }
+        },
+        {
+          "id": "power",
+          "input": {
+            "type": "float",
+            "value": 2.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "6afe4439-2763-4de2-b53d-2569218a631c",
+      "typeName": "Mask",
+      "customName": "mask1",
+      "uiaXPos": 165,
+      "uiaYPos": 60,
+      "feedSlots": [
+        {
+          "id": "feed01",
+          "input": {
+            "type": "float",
+            "sourceNodeID": "4310c57d-f352-4ac9-b61a-b1853756d825",
+            "sourceTextureMode": "UNNECESSARY"
+          }
+        }
+      ],
+      "parameterSlots": [
+        {
+          "id": "mask",
+          "input": {
+            "type": "float",
+            "value": 1.0
+          }
+        },
+        {
+          "id": "type",
+          "input": {
+            "type": "select",
+            "value": 0
+          }
+        }
+      ]
     }
   ],
-  "outputtingNodeID": "db67af81-6d95-42b5-9272-d34747a439c2"
+  "outputtingNodeID": "3fb84b59-aa1b-4c5e-9143-96c4d8fc0c5c"
 }

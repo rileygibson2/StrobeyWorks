@@ -29,7 +29,7 @@ public class PixelDots extends RenderNode {
     }
     
     public PixelDots(UUID id) {
-        super(id, "Pixel Dots", "pixdots", true);
+        super(id, "Pixel-Dots", "pixdots", true);
     }
     
     @Override
@@ -40,10 +40,17 @@ public class PixelDots extends RenderNode {
     @Override
     protected void setupParameters() {
         ControlTab t = createControlTab("Pixel Dots");
-        ControlGroup g = createControlGroup("Pixel Dots", t);
+
+        ControlGroup g = createControlGroup("Grid", t);
+        floatParam(g, "Grid X", "uGridSizeX", false, 2f, 400f, 0, 1f, 20f, true);
+        floatParam(g, "Grid Y", "uGridSizeY", false, 2f, 400f, 0, 1f, 20f, true);
+        boolParam(g, "Enforce Aspect", "uEnforceAspectRatio", true);
         
-        floatParam(g, "Grid", "uGridSize", false, 2f, 200f, 0, 1f, 20f, true);
-        floatParam(g, "Dot Scale", "uDotScale", false, 0f, 1f, 2, 0.01f, 1f, true);
+        g = createControlGroup("Dot Sizing", t);
+        floatParam(g, "Low Size", "uDotLow", false, 0f, 1f, 2, 0.01f, 0f, true);
+        floatParam(g, "High Size", "uDotHigh", false, 0f, 1f, 2, 0.01f, 1f, true);
+        
+        g = createControlGroup("Coloring", t);
         boolParam(g, "Invert", "uInvert", false);
     }
     

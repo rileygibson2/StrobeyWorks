@@ -1,14 +1,21 @@
 package strobeyworks.pipeline;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import strobeyworks.SWMain;
+import strobeyworks.logger.Logger;
 import strobeyworks.pipeline.RenderNode.RenderNodeState;
+import strobeyworks.pipeline.input.RenderInput.RenderInputState;
+import strobeyworks.pipeline.input.RenderInputSlot.RenderInputSlotState;
 import strobeyworks.pipeline.input.TextureInput;
 import strobeyworks.pipeline.input.TextureInput.TextureInputMode;
+import strobeyworks.pipeline.input.TextureInput.TextureInputState;
+import strobeyworks.platform.JSONManager;
 import strobeyworks.rendernodes.MaskNode;
 import strobeyworks.rendernodes.PerlinNode;
 import strobeyworks.rendernodes.PixelDots;
@@ -56,17 +63,17 @@ public class RenderPipeline {
         
         RenderNode n3 = addNode(MaskNode.class, d);
         n3.setUIAPosition(165, 60);
-
+        
         RenderNode n4 = addNode(PixelDots.class, d);
         n4.setUIAPosition(165, 200);
         
         // Feed inputs
         n3.setFeedInput(0, new TextureInput(n1));
         n3.setFeedInput(1, new TextureInput(n2, TextureInputMode.RED));
-
+        
         n4.setFeedInput(0, new TextureInput(n3));
         
-        setOutputtingNode(n3);
+        setOutputtingNode(n4);
     }
     
     public void subscribe(RenderPipelineListener listener) {
@@ -150,90 +157,107 @@ public class RenderPipeline {
         return true;
     }
     
-    /*public void savePipelineToDisk() {
-    Logger.info("Saving pipeline to disk");
-    RenderPipelineState state = getState();
-    JSONManager.savePipelineState("test1.show", state);
+    private RenderPipelineState getState() {
+        List<RenderNodeState> nodeStates = new ArrayList<>();
+        for (RenderNode n : allNodes) nodeStates.add(n.getState());
+        
+        return new RenderPipelineState(
+            nodeStates,
+            outputtingNode.getIDString()
+        );
+    }
     
-    for (RenderPipelineListener l : subscribers) l.pipelineSavedToFile("test1.show");
+    public void savePipelineToDisk() {
+        Logger.info("Saving pipeline to disk");
+        RenderPipelineState state = getState();
+        JSONManager.savePipelineState("test1.show", state);
+        
+        for (RenderPipelineListener l : subscribers) l.pipelineSavedToFile("test1.show");
     }
     
     public void loadPipelineFromDisk() {
-    Logger.info("Loading pipeline from disk");
-    RenderPipelineState state = JSONManager.loadPipelineState("test1.show");
-    
-    configureFromState(state);
-    for (RenderPipelineListener l : subscribers) l.pipelineLoadedFromFile("test1.show");
-    }
-    
-    public RenderPipelineState getState() {
-    List<RenderNodeState> nodeStates = new ArrayList<>();
-    for (RenderNode n : allNodes) nodeStates.add(n.getState());
-    
-    return new RenderPipelineState(
-    nodeStates,
-    outputtingNode.getIDString()
-    );
+        Logger.info("Loading pipeline from disk");
+        RenderPipelineState state = JSONManager.loadPipelineState("test1.show");
+        
+        configureFromState(state);
+        for (RenderPipelineListener l : subscribers) l.pipelineLoadedFromFile("test1.show");
     }
     
     public void configureFromState(RenderPipelineState state) {
-    // Clear state
-    cleanup();
-    allNodes = new HashSet<>();
-    compiledOrder = new ArrayList<>();
-    outputtingNode = null;
-    
-    // Create all nodes
-    Vec2I dimensions = SWMain.getOutputWindow().getFramebufferDimensions();
-    Map<String, RenderNode> loadedNodes = new HashMap<>();
-    
-    for (RenderNodeState nodeState : state.nodes()) {
-    RenderNode node = RenderNode.loadFromState(nodeState);
-    
-    allNodes.add(node);
-    node.setupControls();
-    RenderTarget target = RenderTarget.texture(dimensions);
-    node.setRenderTarget(target);
-    node.initialise(dimensions);
-    
-    loadedNodes.put(nodeState.id(), node);
+        // Clear state
+        cleanup();
+        allNodes = new HashSet<>();
+        compiledOrder = new ArrayList<>();
+        outputtingNode = null;
+        
+        // Create all nodes
+        Vec2I dimensions = SWMain.getOutputWindow().getFramebufferDimensions();
+        Map<String, RenderNode> loadedNodes = new HashMap<>();
+        
+        for (RenderNodeState nodeState : state.nodes()) {
+            RenderNode node = RenderNode.loadFromState(nodeState);
+            
+            allNodes.add(node);
+            node.setup();
+            RenderTarget target = RenderTarget.texture(dimensions);
+            node.setRenderTarget(target);
+            node.initialise(dimensions);
+            
+            loadedNodes.put(nodeState.id(), node);
+        }
+        
+        // Set saved inputs
+        for (RenderNodeState nodeState : state.nodes()) {
+            RenderNode destination = loadedNodes.get(nodeState.id());
+            if (destination==null) continue;
+            
+            for (RenderInputSlotState feedSlotState : nodeState.feedSlots()) {
+                RenderInputState inputState = feedSlotState.input();
+                if (inputState==null) continue;
+
+                if (inputState.type().equals("texture")) {
+                    TextureInputState texInputState = JSONManager.gson.fromJson(inputState.value(), TextureInputState.class);
+                    
+                    RenderNode source = loadedNodes.get(texInputState.nodeID());
+                    if (source==null) continue;
+
+                    TextureInputMode mode = TextureInputMode.UNNECESSARY;
+                    if (texInputState.mode()!=null) mode = TextureInputMode.valueOf(texInputState.mode());
+
+                    
+                    
+                }
+
+
+                RenderNode source = loadedNodes.get(feedSlotState.nodeID());
+                if (source==null) continue;
+                
+                TextureInputMode mode = TextureInputMode.UNNECESSARY;
+                if (texInputState.mode() != null) mode = TextureInputMode.valueOf(texInputState.mode());
+                
+                addTextureInputToNode(destination, new TextureInput(source, mode));
+            }
+        }
+        
+        // Apply controls to nodes
+        for (RenderNodeState nodeState : state.nodes()) {
+            RenderNode node = loadedNodes.get(nodeState.id());
+            if (node==null) continue;
+            node.applyControlStates(nodeState.controls());
+        }
+        
+        // Apply pipeline settings
+        for (RenderNode n : allNodes) {
+            if (n.hasSameID(state.outputtingNodeID)) setOutputtingNode(n);
+        }
+        
+        // Compile
+        if (!tryCompile()) {
+            throw new RuntimeException("Pipeline state could not be loaded - compile error");
+        }
+        
+        for (RenderPipelineListener l : subscribers) l.pipelineFullyReloaded();
     }
-    
-    // Link texture inputs
-    for (RenderNodeState nodeState : state.nodes()) {
-    RenderNode destination = loadedNodes.get(nodeState.id());
-    if (destination==null||nodeState.textureInputs()==null) continue;
-    
-    for (TextureInputState texInputState : nodeState.textureInputs()) {
-    RenderNode source = loadedNodes.get(texInputState.nodeID());
-    if (source==null) continue;
-    
-    TextureInputMode mode = TextureInputMode.UNNECESSARY;
-    if (texInputState.mode() != null) mode = TextureInputMode.valueOf(texInputState.mode());
-    
-    addTextureInputToNode(destination, new TextureInput(source, mode));
-    }
-    }
-    
-    // Apply controls to nodes
-    for (RenderNodeState nodeState : state.nodes()) {
-    RenderNode node = loadedNodes.get(nodeState.id());
-    if (node==null) continue;
-    node.applyControlStates(nodeState.controls());
-    }
-    
-    // Apply pipeline settings
-    for (RenderNode n : allNodes) {
-    if (n.hasSameID(state.outputtingNodeID)) setOutputtingNode(n);
-    }
-    
-    // Compile
-    if (!compile()) {
-    throw new RuntimeException("Pipeline state could not be loaded - compile error");
-    }
-    
-    for (RenderPipelineListener l : subscribers) l.pipelineFullyReloaded();
-    }*/
     
     public void iterate() {
         for (RenderNode n : compiledOrder) n.update();

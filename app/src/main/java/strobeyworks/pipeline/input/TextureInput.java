@@ -33,7 +33,7 @@ public class TextureInput extends RenderInput {
             return null;
         }
     }
-
+    
     private RenderNode sourceNode;
     private TextureInputMode mode;
     
@@ -46,7 +46,7 @@ public class TextureInput extends RenderInput {
         this.sourceNode = sourceNode;
         this.mode = mode;
     }
-
+    
     public RenderNode getSourceNode() {
         return sourceNode;
     }
@@ -57,10 +57,16 @@ public class TextureInput extends RenderInput {
     
     public void upload(ShaderManager sM) {}
     
-    /*public TextureInputState getState() {
-    return new TextureInputState(node.getIDString(), mode.name());
-    }*/
-
+    @Override
+    public RenderInputState getState() {
+        return new RenderInputState(
+            "float",
+            null,
+            sourceNode.getIDString(),
+            mode.name()
+        );
+    }
+    
     @Override
     public String getString() {
         return sourceNode.getCustomName()+"."+mode.aliases[1];

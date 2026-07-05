@@ -1,5 +1,7 @@
 package strobeyworks.pipeline.input;
 
+import com.google.gson.JsonPrimitive;
+
 import strobeyworks.utils.BindableValue;
 
 public class SelectConstantInput extends ConstantInput<Integer> {
@@ -11,11 +13,6 @@ public class SelectConstantInput extends ConstantInput<Integer> {
         this.options = options;
     }
 
-    @Override
-    public String getString() {
-        return binding.getValue().toString();
-    }
-
     public String[] getOptions() {
         return options;
     }
@@ -25,5 +22,20 @@ public class SelectConstantInput extends ConstantInput<Integer> {
         if (index<0||index>=options.length) index = 0;
 
         return options[index];
+    }
+
+    @Override
+    public RenderInputState getState() {
+        return new RenderInputState(
+            "select",
+            new JsonPrimitive(binding.getValue()),
+            null,
+            null
+        );
+    }
+
+    @Override
+    public String getString() {
+        return binding.getValue().toString();
     }
 }

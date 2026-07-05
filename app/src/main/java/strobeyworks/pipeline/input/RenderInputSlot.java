@@ -1,20 +1,28 @@
 package strobeyworks.pipeline.input;
 
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL11.glBindTexture;
 import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
 import static org.lwjgl.opengl.GL13.glActiveTexture;
-import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 
+import strobeyworks.pipeline.input.RenderInput.RenderInputState;
 import strobeyworks.platform.ShaderManager;
 
 public class RenderInputSlot {
+
+    public record RenderInputSlotState(
+        String id,
+        RenderInputState input
+    ) {}
     
+    private final String id;
     private final String uniformName;
     private RenderInput input;
     
     private boolean allowsTexture;
     
-    public RenderInputSlot(String uniformName, boolean allowsTexture) {
+    public RenderInputSlot(String id, String uniformName, boolean allowsTexture) {
+        this.id = id;
         this.uniformName = uniformName;
         this.allowsTexture = allowsTexture;
     }
@@ -83,5 +91,16 @@ public class RenderInputSlot {
     
     public String getUniformName() {
         return uniformName;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public RenderInputSlotState getState() {
+        return new RenderInputSlotState(
+            id,
+            input==null ? null : input.getState()
+        );
     }
 }

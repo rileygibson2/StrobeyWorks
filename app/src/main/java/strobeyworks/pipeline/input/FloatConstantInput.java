@@ -1,5 +1,7 @@
 package strobeyworks.pipeline.input;
 
+import com.google.gson.JsonPrimitive;
+
 import strobeyworks.utils.BindableValue;
 
 public class FloatConstantInput extends ConstantInput<Float> {
@@ -10,6 +12,16 @@ public class FloatConstantInput extends ConstantInput<Float> {
 
     public FloatConstantInput() {
         super(BindableValue.of(0f));
+    }
+
+    @Override
+    public RenderInputState getState() {
+        return new RenderInputState(
+            "float",
+            new JsonPrimitive(binding.getValue()),
+            null,
+            null
+        );
     }
 
     @Override

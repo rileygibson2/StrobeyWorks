@@ -3,14 +3,22 @@
 in vec2 vUV;
 out vec4 FragColor;
 
+uniform float uOutputWidth;
+uniform float uOutputHeight;
+uniform float uOutputAspect;
+
 uniform sampler2D uMainFeedTex;
 uniform int uMainFeedTexMode;
 
-uniform float uGridSizeValue;
-uniform float uDotScaleValue;   // 0.0-1.0, optional
+uniform float uGridSizeXValue;
+uniform float uGridSizeYValue;
+uniform int uEnforceAspectRatioValue;
+
+uniform float uDotLowValue;
+uniform float uDotHighValue;
 uniform int uInvertValue;       // optional bool-as-int
 
-float sampleScalar(vec4 tex, int mode) {
+float sampleInputScalar(vec4 tex, int mode) {
     if (mode == 0) return tex.r;
     if (mode == 1) return tex.g;
     if (mode == 2) return tex.b;
@@ -24,10 +32,14 @@ float sampleScalar(vec4 tex, int mode) {
 }
 
 void main() {
-    float gridSize = max(1.0, uGridSizeValue);
-    float dotScale = clamp(uDotScaleValue, 0.0, 1.0);
+    float gridSizeX = max(1.0, uGridSizeXValue);
+    float gridSizeY = max(1.0, uGridSizeYValue);
 
-    vec2 grid = vec2(gridSize);
+    if (uEnforceAspectRatioValue==1) {
+        gridSizeY = max(1.0, gridSizeX/uOutputAspect);
+    }
+
+    vec2 grid = vec2(gridSizeX, gridSizeY);
 
     // Cell identity and local position.
     vec2 cell = floor(vUV * grid);
@@ -38,7 +50,7 @@ void main() {
 
     // Read source once per cell.
     vec4 source = texture(uMainFeedTex, centerUV);
-    float lum = sampleScalar(source, uMainFeedTexMode);
+    float lum = sampleInputScalar(source, uMainFeedTexMode);
 
     if (uInvertValue == 1) {
         lum = 1.0 - lum;
@@ -47,8 +59,11 @@ void main() {
     // Distance inside the cell, normalized so cell center is vec2(0).
     vec2 p = cellUV - 0.5;
 
-    // Radius in cell-local units. Max useful radius is about 0.5.
-    float radius = lum * 0.5 * dotScale;
+    // Radius in cell-local units.
+    float low = clamp(uDotLowValue, 0.0, 1.0)*0.5;
+    float high = clamp(uDotHighValue, 0.0, 1.0)*0.5;
+
+    float radius = mix(low, high, lum);
 
     float dist = length(p);
 
@@ -58,7 +73,7 @@ void main() {
 
     // White background, grayscale dot.
     vec3 bg = vec3(0.0);
-    vec3 dotColor = vec3(lum);
+    vec3 dotColor = vec3(1.0);
 
     vec3 color = mix(bg, dotColor, dotMask);
 
